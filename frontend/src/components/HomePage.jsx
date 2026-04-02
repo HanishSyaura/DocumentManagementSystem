@@ -237,8 +237,8 @@ const HomePage = () => {
             <div className={`hidden md:flex justify-center animate-fade-in ${landingContent?.heroImage && landingContent?.heroImagePosition === 'right' ? 'md:order-2' : 'md:order-1'}`}>
               <div className="relative">
                 {landingContent?.heroImage ? (
-                  <div className="bg-white bg-opacity-20 backdrop-blur-sm p-8 lg:p-12 rounded-2xl hover:scale-105 transition-transform duration-500">
-                    <img src={landingContent.heroImage} alt="Hero" className="h-64 w-64 lg:h-96 lg:w-96 object-contain" />
+                  <div className="bg-white bg-opacity-20 backdrop-blur-sm p-4 sm:p-6 lg:p-8 rounded-2xl hover:scale-105 transition-transform duration-500">
+                    <img src={landingContent.heroImage} alt="Hero" className="max-w-full h-auto w-auto max-h-[22rem] sm:max-h-[24rem] lg:max-h-[28rem] object-contain" />
                   </div>
                 ) : (
                   <div className="bg-white bg-opacity-20 backdrop-blur-sm p-12 lg:p-16 rounded-2xl hover:scale-105 transition-transform duration-500">
@@ -264,8 +264,8 @@ const HomePage = () => {
             <div className={`flex justify-center order-2 ${landingContent?.aboutImage && landingContent?.aboutImagePosition === 'right' ? 'md:order-2' : 'md:order-1'}`}>
               <div className="relative group">
                 {landingContent?.aboutImage ? (
-                  <div className="bg-white p-8 sm:p-10 lg:p-12 rounded-3xl shadow-2xl transform hover:scale-105 transition-all duration-500">
-                    <img src={landingContent.aboutImage} alt="About DMS" className="h-64 w-64 sm:h-72 sm:w-72 lg:h-80 lg:w-80 object-contain" />
+                  <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-3xl shadow-2xl transform hover:scale-105 transition-all duration-500">
+                    <img src={landingContent.aboutImage} alt="About DMS" className="max-w-full h-auto w-auto max-h-[18rem] sm:max-h-[22rem] lg:max-h-[26rem] object-contain" />
                   </div>
                 ) : (
                   <>
