@@ -242,25 +242,59 @@ function LandingPageSettings() {
   })
 
   useEffect(() => {
-    const saved = localStorage.getItem('dms_landing_page_settings')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      // Merge with defaults to ensure all fields exist
+    let mounted = true
+
+    const applySettings = (parsed) => {
       setContent(prev => ({
         ...prev,
         ...parsed,
-        // Ensure position fields exist with defaults if not set
         heroImagePosition: parsed.heroImagePosition || prev.heroImagePosition,
         aboutImagePosition: parsed.aboutImagePosition || prev.aboutImagePosition,
         workflowImagePosition: parsed.workflowImagePosition || prev.workflowImagePosition,
         contactImagePosition: parsed.contactImagePosition || prev.contactImagePosition
       }))
     }
+
+    const load = async () => {
+      try {
+        const res = await api.get('/system/config/landing-page-settings')
+        const serverSettings = res.data?.data?.settings
+        if (serverSettings && typeof serverSettings === 'object') {
+          if (!mounted) return
+          applySettings(serverSettings)
+          try {
+            localStorage.setItem('dms_landing_page_settings', JSON.stringify(serverSettings))
+          } catch {}
+          return
+        }
+      } catch {}
+
+      try {
+        const saved = localStorage.getItem('dms_landing_page_settings')
+        if (!saved) return
+        const parsed = JSON.parse(saved)
+        if (!mounted) return
+        applySettings(parsed)
+      } catch {}
+    }
+
+    load()
+    return () => {
+      mounted = false
+    }
   }, [])
 
-  const handleSave = () => {
-    localStorage.setItem('dms_landing_page_settings', JSON.stringify(content))
-    alert('Landing page settings saved successfully! Refresh the homepage to see changes.')
+  const handleSave = async () => {
+    try {
+      const res = await api.put('/system/config/landing-page-settings', content)
+      const savedSettings = res.data?.data?.settings || content
+      try {
+        localStorage.setItem('dms_landing_page_settings', JSON.stringify(savedSettings))
+      } catch {}
+      alert('Landing page settings saved successfully!')
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to save landing page settings')
+    }
   }
 
   const handleAddFeature = () => {
@@ -444,7 +478,6 @@ function LandingPageSettings() {
             <textarea value={content.heroSubheadline} onChange={(e) => setContent(prev => ({ ...prev, heroSubheadline: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           
-          {/* Custom Colors for Hero Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">Background Color</label>

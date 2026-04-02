@@ -52,7 +52,19 @@ const HomePage = () => {
     loadBranding();
   }, []);
 
-  const loadLandingContent = () => {
+  const loadLandingContent = async () => {
+    try {
+      const response = await api.get('/public/landing-page-settings');
+      const serverSettings = response.data?.data?.settings;
+      if (serverSettings && typeof serverSettings === 'object') {
+        setLandingContent(serverSettings);
+        try {
+          localStorage.setItem('dms_landing_page_settings', JSON.stringify(serverSettings));
+        } catch {}
+        return;
+      }
+    } catch {}
+
     try {
       const saved = localStorage.getItem('dms_landing_page_settings');
       if (saved) {

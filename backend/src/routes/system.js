@@ -196,6 +196,10 @@ router.get('/config/notification-settings', authenticate, configController.getNo
 router.put('/config/notification-settings', authenticate, configController.updateNotificationSettings);
 router.post('/config/notification-settings/test-email', authenticate, configController.testEmailSettings);
 
+// Landing Page Settings (global)
+router.get('/config/landing-page-settings', authenticate, configController.getLandingPageSettings);
+router.put('/config/landing-page-settings', authenticate, configController.updateLandingPageSettings);
+
 // Security Settings
 router.get('/config/security-settings', authenticate, asyncHandler(async (req, res) => {
   const settings = await securityService.getSecuritySettings();

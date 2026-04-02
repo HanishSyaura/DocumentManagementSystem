@@ -193,3 +193,23 @@ exports.getStatistics = asyncHandler(async (req, res) => {
 
   return ResponseFormatter.success(res, stats, 'Statistics retrieved successfully');
 });
+
+/**
+ * Get landing page settings (global)
+ */
+exports.getLandingPageSettings = asyncHandler(async (req, res) => {
+  const config = await prisma.configuration.findUnique({
+    where: { key: 'landing_page_settings' }
+  });
+
+  let settings = null;
+  if (config?.value) {
+    try {
+      settings = JSON.parse(config.value);
+    } catch {
+      settings = null;
+    }
+  }
+
+  return ResponseFormatter.success(res, { settings }, 'Landing page settings retrieved successfully');
+});

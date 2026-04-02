@@ -545,6 +545,45 @@ class ConfigService {
     const emailService = require('./emailService');
     return await emailService.sendTestEmail(testEmail);
   }
+
+  // ============================================
+  // LANDING PAGE SETTINGS (GLOBAL)
+  // ============================================
+
+  async getLandingPageSettings() {
+    const config = await prisma.configuration.findUnique({
+      where: { key: 'landing_page_settings' }
+    });
+
+    if (config?.value) {
+      try {
+        return JSON.parse(config.value);
+      } catch (error) {
+        console.error('Failed to parse landing page settings:', error);
+      }
+    }
+
+    return null;
+  }
+
+  async updateLandingPageSettings(settings) {
+    const settingsJson = JSON.stringify(settings);
+
+    const config = await prisma.configuration.upsert({
+      where: { key: 'landing_page_settings' },
+      update: {
+        value: settingsJson,
+        description: 'Landing page content and layout settings'
+      },
+      create: {
+        key: 'landing_page_settings',
+        value: settingsJson,
+        description: 'Landing page content and layout settings'
+      }
+    });
+
+    return JSON.parse(config.value);
+  }
 }
 
 module.exports = new ConfigService();

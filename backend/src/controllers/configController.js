@@ -463,3 +463,39 @@ exports.testEmailSettings = asyncHandler(async (req, res) => {
     );
   }
 });
+
+/**
+ * @desc    Get landing page settings (global)
+ * @route   GET /api/system/config/landing-page-settings
+ * @access  Private (Admin)
+ */
+exports.getLandingPageSettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getLandingPageSettings();
+
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Landing page settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update landing page settings (global)
+ * @route   PUT /api/system/config/landing-page-settings
+ * @access  Private (Admin)
+ */
+exports.updateLandingPageSettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateLandingPageSettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Landing page settings updated successfully'
+  );
+});
