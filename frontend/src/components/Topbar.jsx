@@ -6,8 +6,26 @@ import { normalizeAppPath } from '../utils/normalizeUrl'
 export default function Topbar({ onMenu }) {
   const { t } = usePreferences()
   const navigate = useNavigate()
-  const [logo, setLogo] = useState(null)
-  const [companyName, setCompanyName] = useState('FileNix')
+  const [logo, setLogo] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings')
+      if (!savedTheme) return null
+      const theme = JSON.parse(savedTheme)
+      return theme.mainLogo || null
+    } catch {
+      return null
+    }
+  })
+  const [companyName, setCompanyName] = useState(() => {
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info')
+      if (!savedCompanyInfo) return 'FileNix'
+      const companyInfo = JSON.parse(savedCompanyInfo)
+      return companyInfo.companyName || 'FileNix'
+    } catch {
+      return 'FileNix'
+    }
+  })
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [currentUser, setCurrentUser] = useState({ name: 'John Doe', email: 'john.doe@company.com', role: 'Document Controller', department: '', profileImage: null })
 

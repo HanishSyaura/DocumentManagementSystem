@@ -116,17 +116,16 @@ export default function Layout({ children }) {
 
     loadThemeSettings()
 
-    // Update right panel collapse state based on current route
-    // Collapsed by default on all pages except dashboard
-    setIsRightPanelCollapsed(location.pathname !== '/dashboard')
-
-    // Listen for storage events (theme changes)
     window.addEventListener('storage', loadThemeSettings)
-    
+
     return () => {
       window.removeEventListener('storage', loadThemeSettings)
     }
-  }, [location.pathname]) // Re-check on route change to pick up any theme changes
+  }, [])
+
+  useEffect(() => {
+    setIsRightPanelCollapsed(location.pathname !== '/dashboard')
+  }, [location.pathname])
 
   return (
     <div className="h-screen flex flex-col">

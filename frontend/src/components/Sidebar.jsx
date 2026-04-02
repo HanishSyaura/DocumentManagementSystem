@@ -106,8 +106,26 @@ function NavItem({ item, isActive, onClick }) {
 export default function Sidebar({ isOpen, onClose }) {
   const { t } = usePreferences()
   const location = useLocation()
-  const [logo, setLogo] = useState(null)
-  const [companyName, setCompanyName] = useState('FileNix')
+  const [logo, setLogo] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings')
+      if (!savedTheme) return null
+      const theme = JSON.parse(savedTheme)
+      return theme.mainLogo || null
+    } catch {
+      return null
+    }
+  })
+  const [companyName, setCompanyName] = useState(() => {
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info')
+      if (!savedCompanyInfo) return 'FileNix'
+      const companyInfo = JSON.parse(savedCompanyInfo)
+      return companyInfo.companyName || 'FileNix'
+    } catch {
+      return 'FileNix'
+    }
+  })
   const [permissionTrigger, setPermissionTrigger] = useState(0)
   
   // Listen for permission changes
