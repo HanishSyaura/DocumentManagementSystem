@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api/axios'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { normalizeAppPath } from '../utils/normalizeUrl'
 
 // Inline SVG icons
 const DocumentTextIcon = (props) => (
@@ -53,7 +54,7 @@ function Avatar({ name, profileImage }) {
   return (
     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md overflow-hidden flex-shrink-0">
       {profileImage ? (
-        <img src={`http://localhost:4000${profileImage}`} alt={name} className="w-full h-full object-cover" />
+        <img src={normalizeAppPath(profileImage)} alt={name} className="w-full h-full object-cover" />
       ) : (
         getInitials()
       )}

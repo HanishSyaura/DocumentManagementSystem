@@ -3,6 +3,7 @@ import api from '../api/axios'
 import NotificationPreferences from '../components/NotificationPreferences.jsx'
 import ConfirmModal, { AlertModal } from '../components/ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { normalizeAppPath } from '../utils/normalizeUrl'
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange, t }) {
@@ -104,7 +105,7 @@ function ProfileInformation() {
         
         // Load profile image if exists
         if (user.profileImage) {
-          setProfileImage(`http://localhost:4000${user.profileImage}`)
+          setProfileImage(normalizeAppPath(user.profileImage))
         }
       }
       
@@ -125,7 +126,7 @@ function ProfileInformation() {
         
         // Load profile image if exists
         if (user.profileImage) {
-          setProfileImage(`http://localhost:4000${user.profileImage}`)
+          setProfileImage(normalizeAppPath(user.profileImage))
         }
         
         // Update localStorage

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { normalizeAppPath } from '../utils/normalizeUrl'
 
 export default function Topbar({ onMenu }) {
   const { t } = usePreferences()
@@ -22,7 +23,7 @@ export default function Topbar({ onMenu }) {
             email: user.email || 'user@company.com',
             role: user.role || 'Document Controller',
             department: user.department || '',
-            profileImage: user.profileImage || null
+            profileImage: normalizeAppPath(user.profileImage) || null
           })
         } catch (e) {
           console.error('Failed to parse user data', e)
@@ -161,7 +162,7 @@ export default function Topbar({ onMenu }) {
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md overflow-hidden">
               {currentUser.profileImage ? (
-                <img src={`http://localhost:4000${currentUser.profileImage}`} alt="Profile" className="w-full h-full object-cover" />
+                <img src={normalizeAppPath(currentUser.profileImage)} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 getUserInitials()
               )}

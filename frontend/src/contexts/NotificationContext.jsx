@@ -1,25 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
 import api from '../api/axios'
 
 const NotificationContext = createContext()
 
 // Create a silent API instance that doesn't log 404 errors (for optional backend sync)
-const silentApi = axios.create({
-  baseURL: 'http://localhost:4000/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
-
-// Add auth token from localStorage
-silentApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-}, (error) => Promise.reject(error))
+const silentApi = api
 
 export const useNotifications = () => {
   const context = useContext(NotificationContext)

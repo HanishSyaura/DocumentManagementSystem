@@ -15,7 +15,7 @@ import {
   EnvelopeIcon,
   PhoneIcon
 } from '@heroicons/react/24/outline';
-import axios from 'axios';
+import api from '../api/axios';
 
 const iconMap = {
   'document-text': DocumentTextIcon,
@@ -91,9 +91,7 @@ const HomePage = () => {
 
   const fetchFeatures = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/public/features`
-      );
+      const response = await api.get('/public/features');
       if (response.data.success) {
         setFeatures(response.data.data);
       }
@@ -109,10 +107,7 @@ const HomePage = () => {
     setSubmitStatus('submitting');
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/public/contact`,
-        contactForm
-      );
+      const response = await api.post('/public/contact', contactForm);
 
       if (response.data.success) {
         setSubmitStatus('success');
