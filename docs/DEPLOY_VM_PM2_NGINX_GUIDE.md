@@ -206,6 +206,9 @@ npm run build
 
 Output: `/var/www/dms/frontend/dist`
 
+Nota:
+- Untuk deploy guna Nginx proxy `/api`, pastikan `VITE_API_URL=/api` (atau biarkan kosong supaya fallback ke `/api`).
+
 ---
 
 ## PART 6 — Nginx serve dist + proxy /api & /uploads
@@ -237,6 +240,23 @@ curl -I http://127.0.0.1/uploads/
 ---
 
 ## PART 7 — Update code lepas deploy (tanpa kacau DB & uploads)
+
+Command update biasa di server (lepas kau push dari PC):
+
+```bash
+cd /var/www/dms
+git pull
+
+cd /var/www/dms/backend
+npm ci
+npx prisma migrate deploy
+pm2 reload ecosystem.config.cjs --update-env
+
+cd /var/www/dms/frontend
+npm ci
+npm run build
+sudo systemctl reload nginx
+```
 
 Flow update (standard):
 
@@ -290,4 +310,3 @@ Kalau masih fail, check log:
 ```bash
 pm2 logs dms-backend --lines 300
 ```
-
