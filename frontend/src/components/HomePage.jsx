@@ -199,7 +199,12 @@ const HomePage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="h-screen flex items-center overflow-hidden" style={{background: `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`, color: 'var(--dms-landing-hero-text, #FFFFFF)'}}> 
+      <section id="home" className="h-screen flex items-center overflow-hidden" style={{
+        background: landingContent?.heroBgColor 
+          ? landingContent.heroBgColor 
+          : `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`, 
+        color: landingContent?.heroTextColor || 'var(--dms-landing-hero-text, #FFFFFF)'
+      }}> 
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Text Content */}
