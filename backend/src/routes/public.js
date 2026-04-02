@@ -18,4 +18,7 @@ router.get('/statistics', publicController.getStatistics);
 // GET /api/public/landing-page-settings - Get landing page settings (global)
 router.get('/landing-page-settings', publicController.getLandingPageSettings);
 
+// GET /api/public/branding - Get global branding (company info + theme)
+router.get('/branding', publicController.getBranding);
+
 module.exports = router;

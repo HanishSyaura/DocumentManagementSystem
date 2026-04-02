@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import HomePage from './components/HomePage'
 import DiagnosticPage from './components/DiagnosticPage'
@@ -19,8 +19,29 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import SessionProvider from './components/SessionProvider'
 import { PreferencesProvider } from './contexts/PreferencesContext'
+import api from './api/axios'
+import { applyCompanyInfo, applyTheme, persistBranding } from './utils/branding'
 
 export default function App() {
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const res = await api.get('/public/branding')
+        const companyInfo = res.data?.data?.companyInfo || null
+        const theme = res.data?.data?.theme || null
+        if (!mounted) return
+        persistBranding({ companyInfo, theme })
+        applyTheme(theme)
+        applyCompanyInfo(companyInfo)
+      } catch {}
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   return (
     <PreferencesProvider>
     <SessionProvider>

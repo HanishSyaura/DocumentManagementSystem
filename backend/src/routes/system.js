@@ -200,6 +200,12 @@ router.post('/config/notification-settings/test-email', authenticate, configCont
 router.get('/config/landing-page-settings', authenticate, configController.getLandingPageSettings);
 router.put('/config/landing-page-settings', authenticate, configController.updateLandingPageSettings);
 
+// Branding (global)
+router.get('/config/company-info', authenticate, configController.getCompanyInfo);
+router.put('/config/company-info', authenticate, configController.updateCompanyInfo);
+router.get('/config/theme-settings', authenticate, configController.getThemeSettings);
+router.put('/config/theme-settings', authenticate, configController.updateThemeSettings);
+
 // Security Settings
 router.get('/config/security-settings', authenticate, asyncHandler(async (req, res) => {
   const settings = await securityService.getSecuritySettings();

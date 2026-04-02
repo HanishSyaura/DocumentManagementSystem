@@ -213,3 +213,30 @@ exports.getLandingPageSettings = asyncHandler(async (req, res) => {
 
   return ResponseFormatter.success(res, { settings }, 'Landing page settings retrieved successfully');
 });
+
+exports.getBranding = asyncHandler(async (req, res) => {
+  const [companyConfig, themeConfig] = await Promise.all([
+    prisma.configuration.findUnique({ where: { key: 'company_info' } }),
+    prisma.configuration.findUnique({ where: { key: 'theme_settings' } })
+  ]);
+
+  let companyInfo = null;
+  if (companyConfig?.value) {
+    try {
+      companyInfo = JSON.parse(companyConfig.value);
+    } catch {
+      companyInfo = null;
+    }
+  }
+
+  let theme = null;
+  if (themeConfig?.value) {
+    try {
+      theme = JSON.parse(themeConfig.value);
+    } catch {
+      theme = null;
+    }
+  }
+
+  return ResponseFormatter.success(res, { companyInfo, theme }, 'Branding retrieved successfully');
+});

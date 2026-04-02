@@ -50,6 +50,10 @@ const HomePage = () => {
     fetchFeatures();
     loadLandingContent();
     loadBranding();
+    window.addEventListener('storage', loadBranding)
+    return () => {
+      window.removeEventListener('storage', loadBranding)
+    }
   }, []);
 
   const loadLandingContent = async () => {
@@ -75,7 +79,20 @@ const HomePage = () => {
     }
   };
 
-  const loadBranding = () => {
+  const loadBranding = async () => {
+    try {
+      const res = await api.get('/public/branding')
+      const companyInfo = res.data?.data?.companyInfo
+      const theme = res.data?.data?.theme
+      if (theme?.mainLogo) setLogo(theme.mainLogo)
+      if (companyInfo?.companyName) setCompanyName(companyInfo.companyName)
+      try {
+        if (theme) localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
+        if (companyInfo) localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
+      } catch {}
+      return
+    } catch {}
+
     const savedTheme = localStorage.getItem('dms_theme_settings');
     if (savedTheme) {
       try {

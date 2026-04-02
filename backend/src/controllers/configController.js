@@ -499,3 +499,31 @@ exports.updateLandingPageSettings = asyncHandler(async (req, res) => {
     'Landing page settings updated successfully'
   );
 });
+
+exports.getCompanyInfo = asyncHandler(async (req, res) => {
+  const companyInfo = await configService.getCompanyInfo();
+  return ResponseFormatter.success(res, { companyInfo }, 'Company info retrieved successfully');
+});
+
+exports.updateCompanyInfo = asyncHandler(async (req, res) => {
+  const companyInfo = req.body;
+  if (!companyInfo || typeof companyInfo !== 'object') {
+    throw new ValidationError('Invalid company info data');
+  }
+  const updatedCompanyInfo = await configService.updateCompanyInfo(companyInfo);
+  return ResponseFormatter.success(res, { companyInfo: updatedCompanyInfo }, 'Company info updated successfully');
+});
+
+exports.getThemeSettings = asyncHandler(async (req, res) => {
+  const theme = await configService.getThemeSettings();
+  return ResponseFormatter.success(res, { theme }, 'Theme settings retrieved successfully');
+});
+
+exports.updateThemeSettings = asyncHandler(async (req, res) => {
+  const theme = req.body;
+  if (!theme || typeof theme !== 'object') {
+    throw new ValidationError('Invalid theme settings data');
+  }
+  const updatedTheme = await configService.updateThemeSettings(theme);
+  return ResponseFormatter.success(res, { theme: updatedTheme }, 'Theme settings updated successfully');
+});

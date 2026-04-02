@@ -56,9 +56,36 @@ function CompanyInfo() {
   })
 
   useEffect(() => {
-    const saved = localStorage.getItem('dms_company_info')
-    if (saved) {
-      setFormData(JSON.parse(saved))
+    let mounted = true
+
+    const load = async () => {
+      try {
+        const res = await api.get('/system/config/company-info')
+        const companyInfo = res.data?.data?.companyInfo
+        if (companyInfo && typeof companyInfo === 'object') {
+          if (!mounted) return
+          setFormData(companyInfo)
+          try {
+            localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
+            window.dispatchEvent(new Event('storage'))
+          } catch {}
+          return
+        }
+      } catch {}
+
+      try {
+        const saved = localStorage.getItem('dms_company_info')
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (!mounted) return
+          setFormData(parsed)
+        }
+      } catch {}
+    }
+
+    load()
+    return () => {
+      mounted = false
     }
   }, [])
 
@@ -66,10 +93,18 @@ function CompanyInfo() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleSave = () => {
-    localStorage.setItem('dms_company_info', JSON.stringify(formData))
-    console.log('Saving company info:', formData)
-    alert('Company information saved successfully!')
+  const handleSave = async () => {
+    try {
+      const res = await api.put('/system/config/company-info', formData)
+      const savedCompanyInfo = res.data?.data?.companyInfo || formData
+      try {
+        localStorage.setItem('dms_company_info', JSON.stringify(savedCompanyInfo))
+        window.dispatchEvent(new Event('storage'))
+      } catch {}
+      alert('Company information saved successfully!')
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to save company information')
+    }
   }
 
   return (
@@ -1198,25 +1233,42 @@ function ThemeBranding() {
 
   useEffect(() => {
     // Load saved theme or get current CSS variables
-    const saved = localStorage.getItem('dms_theme_settings')
-    if (saved) {
-      const savedTheme = JSON.parse(saved)
+    let mounted = true
+
+    const applyLoadedTheme = (savedTheme) => {
       setTheme(savedTheme)
       setOriginalTheme(savedTheme)
       applyTheme(savedTheme)
-      
-      // Set logo previews from saved theme
-      if (savedTheme.mainLogo) {
-        setLogoPreview(savedTheme.mainLogo)
+      if (savedTheme.mainLogo) setLogoPreview(savedTheme.mainLogo)
+      if (savedTheme.favicon) setFaviconPreview(savedTheme.favicon)
+      if (savedTheme.bgImage) setBgImagePreview(savedTheme.bgImage)
+    }
+
+    const load = async () => {
+      try {
+        const res = await api.get('/system/config/theme-settings')
+        const savedTheme = res.data?.data?.theme
+        if (savedTheme && typeof savedTheme === 'object') {
+          try {
+            localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
+            window.dispatchEvent(new Event('storage'))
+          } catch {}
+          if (!mounted) return
+          applyLoadedTheme(savedTheme)
+          return
+        }
+      } catch {}
+
+      const saved = localStorage.getItem('dms_theme_settings')
+      if (saved) {
+        try {
+          const savedTheme = JSON.parse(saved)
+          if (!mounted) return
+          applyLoadedTheme(savedTheme)
+          return
+        } catch {}
       }
-      if (savedTheme.favicon) {
-        setFaviconPreview(savedTheme.favicon)
-      }
-      if (savedTheme.bgImage) {
-        setBgImagePreview(savedTheme.bgImage)
-      }
-    } else {
-      // Get current CSS variables as original theme
+
       const root = document.documentElement
       const currentTheme = {
         primaryColor: getComputedStyle(root).getPropertyValue('--dms-primary').trim() || '#0f6fcf',
@@ -1234,7 +1286,13 @@ function ThemeBranding() {
         favicon: null,
         bgImage: null
       }
+      if (!mounted) return
       setOriginalTheme(currentTheme)
+    }
+
+    load()
+    return () => {
+      mounted = false
     }
   }, [])
 
@@ -1388,7 +1446,7 @@ function ThemeBranding() {
     reader.readAsDataURL(file)
   }
 
-  const handleRemoveLogo = (type) => {
+  const handleRemoveLogo = async (type) => {
     const newTheme = { ...theme }
     
     if (type === 'logo') {
@@ -1420,6 +1478,14 @@ function ThemeBranding() {
     setTheme(newTheme)
     applyTheme(newTheme)
     // Immediately save the change
+    try {
+      const res = await api.put('/system/config/theme-settings', newTheme)
+      const savedTheme = res.data?.data?.theme || newTheme
+      localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
+      window.dispatchEvent(new Event('storage'))
+      setOriginalTheme(savedTheme)
+      return
+    } catch {}
     localStorage.setItem('dms_theme_settings', JSON.stringify(newTheme))
     window.dispatchEvent(new Event('storage'))
     setOriginalTheme(newTheme)
@@ -1439,9 +1505,18 @@ function ThemeBranding() {
     }
   }
 
-  const handleKeepChanges = () => {
+  const handleKeepChanges = async () => {
+    try {
+      const res = await api.put('/system/config/theme-settings', theme)
+      const savedTheme = res.data?.data?.theme || theme
+      localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
+      window.dispatchEvent(new Event('storage'))
+      setOriginalTheme(savedTheme)
+      setShowConfirmModal(false)
+      setHasChanges(false)
+      return
+    } catch {}
     localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
-    // Dispatch storage event to notify other components
     window.dispatchEvent(new Event('storage'))
     setOriginalTheme(theme)
     setShowConfirmModal(false)

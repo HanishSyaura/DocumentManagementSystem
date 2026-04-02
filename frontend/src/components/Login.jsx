@@ -59,8 +59,19 @@ export default function Login() {
 
   useEffect(() => {
     // Load logo and company name from localStorage
-    const loadBranding = () => {
+    const loadBranding = async () => {
       let loadedCompanyName = 'FileNix'
+
+      try {
+        const res = await api.get('/public/branding')
+        const companyInfo = res.data?.data?.companyInfo
+        const theme = res.data?.data?.theme
+        try {
+          if (theme) localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
+          if (companyInfo) localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
+          window.dispatchEvent(new Event('storage'))
+        } catch {}
+      } catch {}
       
       const savedTheme = localStorage.getItem('dms_theme_settings')
       if (savedTheme) {

@@ -584,6 +584,62 @@ class ConfigService {
 
     return JSON.parse(config.value);
   }
+
+  async getCompanyInfo() {
+    const config = await prisma.configuration.findUnique({
+      where: { key: 'company_info' }
+    });
+
+    if (config?.value) {
+      try {
+        return JSON.parse(config.value);
+      } catch (error) {
+        console.error('Failed to parse company info:', error);
+      }
+    }
+
+    return null;
+  }
+
+  async updateCompanyInfo(companyInfo) {
+    const value = JSON.stringify(companyInfo);
+
+    const config = await prisma.configuration.upsert({
+      where: { key: 'company_info' },
+      update: { value, description: 'Company information (global branding)' },
+      create: { key: 'company_info', value, description: 'Company information (global branding)' }
+    });
+
+    return JSON.parse(config.value);
+  }
+
+  async getThemeSettings() {
+    const config = await prisma.configuration.findUnique({
+      where: { key: 'theme_settings' }
+    });
+
+    if (config?.value) {
+      try {
+        return JSON.parse(config.value);
+      } catch (error) {
+        console.error('Failed to parse theme settings:', error);
+      }
+    }
+
+    return null;
+  }
+
+  async updateThemeSettings(themeSettings) {
+    const value = JSON.stringify(themeSettings);
+
+    const config = await prisma.configuration.upsert({
+      where: { key: 'theme_settings' },
+      update: { value, description: 'Theme and branding settings (global)' },
+      create: { key: 'theme_settings', value, description: 'Theme and branding settings (global)' }
+    });
+
+    return JSON.parse(config.value);
+  }
 }
 
 module.exports = new ConfigService();
