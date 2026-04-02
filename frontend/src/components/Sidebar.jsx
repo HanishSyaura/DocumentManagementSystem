@@ -214,8 +214,8 @@ export default function Sidebar({ isOpen, onClose }) {
         <div className={`absolute left-0 top-0 h-full w-64 md:w-72 p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
           <div className="flex justify-between items-center mb-4">
             {logo ? (
-              <div className="h-10 flex items-center">
-                <img src={logo} alt="Company Logo" className="max-h-10 max-w-[150px] object-contain" />
+              <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
+                <img src={logo} alt="Company Logo" className="max-h-8 max-w-[150px] object-contain" />
               </div>
             ) : (
               <div className="font-semibold text-lg text-white">{companyName}</div>

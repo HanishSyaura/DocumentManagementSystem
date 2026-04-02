@@ -296,8 +296,8 @@ export default function Login() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
               {logo ? (
-                <div className="h-10 flex items-center">
-                  <img src={logo} alt="Company Logo" className="max-h-10 max-w-[180px] object-contain" />
+                <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
+                  <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
                 </div>
               ) : (
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
@@ -352,7 +352,7 @@ export default function Login() {
             <div className="text-center">
               <div className="mb-6">
                 {logo ? (
-                  <div className="inline-block p-8">
+                  <div className="inline-block p-8 bg-white rounded-3xl shadow-sm">
                     <img src={logo} alt="Company Logo" className="h-48 w-auto object-contain" />
                   </div>
                 ) : (
@@ -373,8 +373,8 @@ export default function Login() {
               <div className="text-center mb-10">
                 <div className="flex items-center justify-center mb-5">
                   {logo ? (
-                    <div className="h-20 flex items-center">
-                      <img src={logo} alt="Company Logo" className="max-h-20 max-w-[240px] object-contain" />
+                    <div className="h-20 flex items-center bg-white rounded-xl px-4 shadow-sm">
+                      <img src={logo} alt="Company Logo" className="max-h-16 max-w-[240px] object-contain" />
                     </div>
                   ) : (
                     <div className="flex items-center px-5 py-3 rounded-lg" style={{ backgroundColor: `var(--dms-login-btn-bg, #2563EB)` }}>

@@ -136,8 +136,8 @@ export default function Topbar({ onMenu }) {
           </svg>
         </button>
         {logo ? (
-          <div className="h-10 flex items-center">
-            <img src={logo} alt="Company Logo" className="max-h-10 max-w-[180px] object-contain" />
+          <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
+            <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
           </div>
         ) : (
           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold shadow-sm">
