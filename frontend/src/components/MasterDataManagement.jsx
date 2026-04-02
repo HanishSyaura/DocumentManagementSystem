@@ -1,0 +1,1028 @@
+import React, { useState, useEffect } from 'react'
+import { usePreferences } from '../contexts/PreferencesContext'
+import api from '../api/axios'
+import ActionMenu from './ActionMenu'
+import ConfirmModal, { AlertModal } from './ConfirmModal'
+
+// Tab Navigation for Master Data
+function MasterDataTabs({ activeTab, onTabChange }) {
+  const { t } = usePreferences()
+  const tabs = [
+    { id: 'document-types', label: t('mdm_doc_types') },
+    { id: 'project-categories', label: t('mdm_project_categories') },
+    { id: 'departments', label: t('mdm_departments') }
+  ]
+
+  return (
+    <div className="border-b border-gray-200 mb-6">
+      <nav className="flex space-x-8">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === tab.id
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  )
+}
+
+// Add/Edit Modal for Document Type
+function DocumentTypeModal({ isOpen, onClose, onSubmit, initialData }) {
+  const { t } = usePreferences()
+  const [formData, setFormData] = useState({
+    name: '',
+    prefix: '',
+    description: ''
+  })
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        prefix: initialData.prefix || '',
+        description: initialData.description || ''
+      })
+    } else {
+      setFormData({
+        name: '',
+        prefix: '',
+        description: ''
+      })
+    }
+  }, [initialData, isOpen])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSubmit(formData)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-gray-900">
+            {initialData ? t('mdm_edit_doc_type') : t('mdm_add_doc_type')}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_name')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., Minutes of Meeting"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_prefix')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.prefix}
+                onChange={(e) => setFormData({ ...formData, prefix: e.target.value.toUpperCase() })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., MoM"
+              />
+              <p className="mt-1.5 text-xs text-gray-500">{t('mdm_prefix_help')}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('description')}
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+                placeholder={t('mdm_optional_desc')}
+              />
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              {initialData ? t('mdm_update') : t('mdm_create')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Add/Edit Modal for Project Category
+function ProjectCategoryModal({ isOpen, onClose, onSubmit, initialData }) {
+  const { t } = usePreferences()
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    description: ''
+  })
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        code: initialData.code || '',
+        description: initialData.description || ''
+      })
+    } else {
+      setFormData({
+        name: '',
+        code: '',
+        description: ''
+      })
+    }
+  }, [initialData, isOpen])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSubmit(formData)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-gray-900">
+            {initialData ? t('mdm_edit_project_cat') : t('mdm_add_project_cat')}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_name')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., Internal Project"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_code')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., INT"
+              />
+              <p className="mt-1.5 text-xs text-gray-500">{t('mdm_code_project_help')}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('description')}
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+                placeholder={t('mdm_optional_desc')}
+              />
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              {initialData ? t('mdm_update') : t('mdm_create')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Document Types Management
+function DocumentTypesManagement() {
+  const { t } = usePreferences()
+  const [documentTypes, setDocumentTypes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+
+  useEffect(() => {
+    loadDocumentTypes()
+  }, [])
+
+  const loadDocumentTypes = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/system/config/document-types')
+      setDocumentTypes(res.data.data.documentTypes || [])
+    } catch (error) {
+      console.error('Failed to load document types:', error)
+      setAlertModal({ show: true, title: 'Error', message: 'Failed to load document types', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdd = () => {
+    setEditingItem(null)
+    setShowModal(true)
+  }
+
+  const handleEdit = (item) => {
+    setEditingItem(item)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async (formData) => {
+    try {
+      if (editingItem) {
+        await api.put(`/system/config/document-types/${editingItem.id}`, formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Document type updated successfully', type: 'success' })
+      } else {
+        await api.post('/system/config/document-types', formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Document type created successfully', type: 'success' })
+      }
+      setShowModal(false)
+      setEditingItem(null)
+      loadDocumentTypes()
+    } catch (error) {
+      console.error('Failed to save document type:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to save document type', type: 'error' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    setConfirmModal({
+      show: true,
+      title: t('mdm_confirm_delete'),
+      message: t('mdm_confirm_delete_doc_type'),
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/system/config/document-types/${id}`)
+          setAlertModal({ show: true, title: 'Success', message: 'Document type deleted successfully', type: 'success' })
+          loadDocumentTypes()
+        } catch (error) {
+          console.error('Failed to delete document type:', error)
+          setAlertModal({ show: true, title: 'Error', message: 'Failed to delete document type', type: 'error' })
+        }
+      }
+    })
+  }
+
+  const filteredItems = documentTypes.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.prefix.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-6">
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false })}
+      />
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false })}
+      />
+      <DocumentTypeModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setEditingItem(null)
+        }}
+        onSubmit={handleSubmit}
+        initialData={editingItem}
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{t('mdm_doc_types')}</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {t('mdm_doc_types_desc')}
+          </p>
+        </div>
+        <button
+          onClick={handleAdd}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t('mdm_add_doc_type')}
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder={t('mdm_search_name_prefix')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_name')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_prefix')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('description')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('status')}</th>
+              <th className="text-right py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('action')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span>{t('loading')}</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredItems.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  {t('mdm_no_doc_types')}
+                </td>
+              </tr>
+            ) : (
+              filteredItems.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
+                  <td className="py-4 px-4">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-sm font-mono font-semibold">
+                      {item.prefix}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                  <td className="py-4 px-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${
+                      item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.isActive ? t('mdm_active') : t('mdm_inactive')}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    <ActionMenu
+                      actions={[
+                        { label: t('rp_edit'), onClick: () => handleEdit(item) },
+                        { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Project Categories Management
+function ProjectCategoriesManagement() {
+  const { t } = usePreferences()
+  const [projectCategories, setProjectCategories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+
+  useEffect(() => {
+    loadProjectCategories()
+  }, [])
+
+  const loadProjectCategories = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/system/config/project-categories')
+      setProjectCategories(res.data.data.projectCategories || [])
+    } catch (error) {
+      console.error('Failed to load project categories:', error)
+      setAlertModal({ show: true, title: 'Error', message: 'Failed to load project categories', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdd = () => {
+    setEditingItem(null)
+    setShowModal(true)
+  }
+
+  const handleEdit = (item) => {
+    setEditingItem(item)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async (formData) => {
+    try {
+      if (editingItem) {
+        await api.put(`/system/config/project-categories/${editingItem.id}`, formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Project category updated successfully', type: 'success' })
+      } else {
+        await api.post('/system/config/project-categories', formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Project category created successfully', type: 'success' })
+      }
+      setShowModal(false)
+      setEditingItem(null)
+      loadProjectCategories()
+    } catch (error) {
+      console.error('Failed to save project category:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to save project category', type: 'error' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    setConfirmModal({
+      show: true,
+      title: t('mdm_confirm_delete'),
+      message: t('mdm_confirm_delete_project_cat'),
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/system/config/project-categories/${id}`)
+          setAlertModal({ show: true, title: 'Success', message: 'Project category deleted successfully', type: 'success' })
+          loadProjectCategories()
+        } catch (error) {
+          console.error('Failed to delete project category:', error)
+          setAlertModal({ show: true, title: 'Error', message: 'Failed to delete project category', type: 'error' })
+        }
+      }
+    })
+  }
+
+  const filteredItems = projectCategories.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.code.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-6">
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false })}
+      />
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false })}
+      />
+      <ProjectCategoryModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setEditingItem(null)
+        }}
+        onSubmit={handleSubmit}
+        initialData={editingItem}
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{t('mdm_project_categories')}</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {t('mdm_project_cat_desc')}
+          </p>
+        </div>
+        <button
+          onClick={handleAdd}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t('mdm_add_project_cat')}
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder={t('mdm_search_name_code')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_name')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_code')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('description')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('status')}</th>
+              <th className="text-right py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('action')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span>{t('loading')}</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredItems.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  {t('mdm_no_project_cats')}
+                </td>
+              </tr>
+            ) : (
+              filteredItems.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
+                  <td className="py-4 px-4">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 text-sm font-mono font-semibold">
+                      {item.code}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                  <td className="py-4 px-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${
+                      item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.isActive ? t('mdm_active') : t('mdm_inactive')}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    <ActionMenu
+                      actions={[
+                        { label: t('rp_edit'), onClick: () => handleEdit(item) },
+                        { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Add/Edit Modal for Department
+function DepartmentModal({ isOpen, onClose, onSubmit, initialData }) {
+  const { t } = usePreferences()
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    description: ''
+  })
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        code: initialData.code || '',
+        description: initialData.description || ''
+      })
+    } else {
+      setFormData({
+        name: '',
+        code: '',
+        description: ''
+      })
+    }
+  }, [initialData, isOpen])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSubmit(formData)
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-gray-900">
+            {initialData ? t('mdm_edit_dept') : t('mdm_add_dept')}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_name')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., Information Technology"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('mdm_code')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="e.g., IT"
+              />
+              <p className="mt-1.5 text-xs text-gray-500">{t('mdm_code_dept_help')}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('description')}
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
+                placeholder={t('mdm_optional_desc')}
+              />
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            >
+              {initialData ? t('mdm_update') : t('mdm_create')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Departments Management
+function DepartmentsManagement() {
+  const { t } = usePreferences()
+  const [departments, setDepartments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+
+  useEffect(() => {
+    loadDepartments()
+  }, [])
+
+  const loadDepartments = async () => {
+    setLoading(true)
+    try {
+      const res = await api.get('/system/config/departments')
+      setDepartments(res.data.data.departments || [])
+    } catch (error) {
+      console.error('Failed to load departments:', error)
+      setAlertModal({ show: true, title: 'Error', message: 'Failed to load departments', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAdd = () => {
+    setEditingItem(null)
+    setShowModal(true)
+  }
+
+  const handleEdit = (item) => {
+    setEditingItem(item)
+    setShowModal(true)
+  }
+
+  const handleSubmit = async (formData) => {
+    try {
+      if (editingItem) {
+        await api.put(`/system/config/departments/${editingItem.id}`, formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Department updated successfully', type: 'success' })
+      } else {
+        await api.post('/system/config/departments', formData)
+        setAlertModal({ show: true, title: 'Success', message: 'Department created successfully', type: 'success' })
+      }
+      setShowModal(false)
+      setEditingItem(null)
+      loadDepartments()
+    } catch (error) {
+      console.error('Failed to save department:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to save department', type: 'error' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    setConfirmModal({
+      show: true,
+      title: t('mdm_confirm_delete'),
+      message: t('mdm_confirm_delete_dept'),
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/system/config/departments/${id}`)
+          setAlertModal({ show: true, title: 'Success', message: 'Department deleted successfully', type: 'success' })
+          loadDepartments()
+        } catch (error) {
+          console.error('Failed to delete department:', error)
+          setAlertModal({ show: true, title: 'Error', message: 'Failed to delete department', type: 'error' })
+        }
+      }
+    })
+  }
+
+  const filteredItems = departments.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.code.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-6">
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false })}
+      />
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false })}
+      />
+      <DepartmentModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false)
+          setEditingItem(null)
+        }}
+        onSubmit={handleSubmit}
+        initialData={editingItem}
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">{t('mdm_departments')}</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {t('mdm_dept_desc')}
+          </p>
+        </div>
+        <button
+          onClick={handleAdd}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t('mdm_add_dept')}
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-4">
+        <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder={t('mdm_search_name_code')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_name')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_code')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('description')}</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('status')}</th>
+              <th className="text-right py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('action')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span>{t('loading')}</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredItems.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  {t('mdm_no_depts')}
+                </td>
+              </tr>
+            ) : (
+              filteredItems.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
+                  <td className="py-4 px-4">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-green-50 text-green-700 text-sm font-mono font-semibold">
+                      {item.code}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
+                  <td className="py-4 px-4">
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${
+                      item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {item.isActive ? t('mdm_active') : t('mdm_inactive')}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    <ActionMenu
+                      actions={[
+                        { label: t('rp_edit'), onClick: () => handleEdit(item) },
+                        { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
+                      ]}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// Main Component
+export default function MasterDataManagement() {
+  const { t } = usePreferences()
+  const [activeTab, setActiveTab] = useState('document-types')
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="card p-6">
+        <h2 className="text-2xl font-bold text-gray-900">{t('mdm_title')}</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          {t('mdm_title_desc')}
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="card p-6">
+        <MasterDataTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        {activeTab === 'document-types' && <DocumentTypesManagement />}
+        {activeTab === 'project-categories' && <ProjectCategoriesManagement />}
+        {activeTab === 'departments' && <DepartmentsManagement />}
+      </div>
+    </div>
+  )
+}

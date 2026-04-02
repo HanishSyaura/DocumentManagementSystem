@@ -1,0 +1,270 @@
+const fs = require('fs').promises;
+const path = require('path');
+const config = require('../config/app');
+const { BadRequestError } = require('../utils/errors');
+
+class FileStorageService {
+  /**
+   * Initialize storage directories
+   */
+  async initializeStorage() {
+    const directories = [
+      config.uploadDir,
+      path.join(config.uploadDir, 'documents'),
+      path.join(config.uploadDir, 'profiles'),
+      path.join(config.uploadDir, 'templates'),
+      path.join(config.uploadDir, 'temp')
+    ];
+
+    for (const dir of directories) {
+      await fs.mkdir(dir, { recursive: true });
+    }
+  }
+
+  /**
+   * Get document storage path by year/month/fileCode
+   * @param {string} fileCode - Document file code (e.g., "DOC-2025-001")
+   */
+  getDocumentPath(fileCode) {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    
+    const relativePath = path.join('documents', String(year), month, fileCode);
+    return {
+      relativePath,
+      absolutePath: path.join(config.uploadDir, relativePath)
+    };
+  }
+
+  /**
+   * Create directory for document storage
+   * @param {string} fileCode - Document file code
+   */
+  async createDocumentDirectory(fileCode) {
+    const { absolutePath } = this.getDocumentPath(fileCode);
+    await fs.mkdir(absolutePath, { recursive: true });
+    return absolutePath;
+  }
+
+  /**
+   * Rename document directory (used when assigning file code)
+   * @param {string} oldFileCode - Old file code (temporary)
+   * @param {string} newFileCode - New file code (permanent)
+   */
+  async renameDocumentDirectory(oldFileCode, newFileCode) {
+    const { absolutePath: oldPath } = this.getDocumentPath(oldFileCode);
+    const { absolutePath: newPath } = this.getDocumentPath(newFileCode);
+    
+    // Check if old directory exists
+    const oldExists = await this.fileExists(oldPath);
+    if (!oldExists) {
+      console.warn(`Old directory not found: ${oldPath}`);
+      return;
+    }
+    
+    // Create parent directory for new path
+    const newParentDir = path.dirname(newPath);
+    await fs.mkdir(newParentDir, { recursive: true });
+    
+    // Rename directory
+    await fs.rename(oldPath, newPath);
+    return newPath;
+  }
+
+  /**
+   * Save uploaded file
+   * @param {Object} file - Multer file object
+   * @param {string} destinationPath - Destination directory path
+   * @param {string} fileName - New file name
+   */
+  async saveFile(file, destinationPath, fileName) {
+    await fs.mkdir(destinationPath, { recursive: true });
+    
+    const filePath = path.join(destinationPath, fileName);
+    await fs.rename(file.path, filePath);
+    
+    return filePath;
+  }
+
+  /**
+   * Delete file
+   * @param {string} filePath - Absolute file path
+   */
+  async deleteFile(filePath) {
+    try {
+      await fs.unlink(filePath);
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete directory and all its contents
+   * @param {string} dirPath - Directory path
+   */
+  async deleteDirectory(dirPath) {
+    try {
+      await fs.rm(dirPath, { recursive: true, force: true });
+      return true;
+    } catch (error) {
+      console.error('Error deleting directory:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if file exists
+   * @param {string} filePath - File path
+   */
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get file stats
+   * @param {string} filePath - File path
+   */
+  async getFileStats(filePath) {
+    try {
+      return await fs.stat(filePath);
+    } catch (error) {
+      throw new BadRequestError('File not found');
+    }
+  }
+
+  /**
+   * Copy file to new location
+   * @param {string} sourcePath - Source file path
+   * @param {string} destinationPath - Destination file path
+   */
+  async copyFile(sourcePath, destinationPath) {
+    const destDir = path.dirname(destinationPath);
+    await fs.mkdir(destDir, { recursive: true });
+    await fs.copyFile(sourcePath, destinationPath);
+  }
+
+  /**
+   * Move file to new location
+   * @param {string} sourcePath - Source file path
+   * @param {string} destinationPath - Destination file path
+   */
+  async moveFile(sourcePath, destinationPath) {
+    const destDir = path.dirname(destinationPath);
+    await fs.mkdir(destDir, { recursive: true });
+    await fs.rename(sourcePath, destinationPath);
+  }
+
+  /**
+   * Get file size in bytes
+   * @param {string} filePath - File path
+   */
+  async getFileSize(filePath) {
+    const stats = await this.getFileStats(filePath);
+    return stats.size;
+  }
+
+  /**
+   * Format file size to human readable
+   * @param {number} bytes - File size in bytes
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Validate file type
+   * @param {string} mimetype - File MIME type
+   * @param {string[]} allowedTypes - Allowed MIME types
+   */
+  isValidFileType(mimetype, allowedTypes = null) {
+    const allowed = allowedTypes || [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain'
+    ];
+
+    return allowed.includes(mimetype);
+  }
+
+  /**
+   * Validate file size
+   * @param {number} size - File size in bytes
+   * @param {number} maxSize - Maximum allowed size in bytes
+   */
+  isValidFileSize(size, maxSize = null) {
+    const max = maxSize || config.maxFileSize;
+    return size <= max;
+  }
+
+  /**
+   * Get file extension from filename
+   * @param {string} filename - File name
+   */
+  getFileExtension(filename) {
+    return path.extname(filename).toLowerCase();
+  }
+
+  /**
+   * Generate unique filename
+   * @param {string} originalName - Original file name
+   */
+  generateUniqueFileName(originalName) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const ext = this.getFileExtension(originalName);
+    const nameWithoutExt = path.basename(originalName, ext);
+    
+    // Sanitize filename
+    const sanitizedName = nameWithoutExt
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .substring(0, 50);
+
+    return `${sanitizedName}_${timestamp}_${random}${ext}`;
+  }
+
+  /**
+   * Clean up old temporary files
+   * @param {number} maxAgeHours - Maximum age in hours
+   */
+  async cleanupTempFiles(maxAgeHours = 24) {
+    const tempDir = path.join(config.uploadDir, 'temp');
+    
+    try {
+      const files = await fs.readdir(tempDir);
+      const now = Date.now();
+      const maxAge = maxAgeHours * 60 * 60 * 1000;
+
+      for (const file of files) {
+        const filePath = path.join(tempDir, file);
+        const stats = await fs.stat(filePath);
+        
+        if (now - stats.mtimeMs > maxAge) {
+          await this.deleteFile(filePath);
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up temp files:', error);
+    }
+  }
+}
+
+module.exports = new FileStorageService();

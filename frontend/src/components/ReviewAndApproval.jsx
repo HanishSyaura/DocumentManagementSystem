@@ -1,0 +1,727 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../api/axios'
+import ReviewDocumentModal from './ReviewDocumentModal'
+import ApproveDocumentModal from './ApproveDocumentModal'
+import AcknowledgeDocumentModal from './AcknowledgeDocumentModal'
+import DocumentViewerModal from './DocumentViewerModal'
+import PublishDocumentModal from './PublishDocumentModal'
+import ReviewSupersedeModal from './ReviewSupersedeModal'
+import ApproveSupersedeModal from './ApproveSupersedeModal'
+import StatusBadge from './StatusBadge'
+import ActionMenu from './ActionMenu'
+import EmptyState from './EmptyState'
+import Pagination from './Pagination'
+import { PermissionGate } from './PermissionGate'
+import { hasPermission } from '../utils/permissions'
+import { AlertModal } from './ConfirmModal'
+import { usePreferences } from '../contexts/PreferencesContext'
+
+export default function ReviewAndApproval() {
+  const { itemsPerPage, t } = usePreferences()
+  const navigate = useNavigate()
+  const [documents, setDocuments] = useState([])
+  const [filteredDocuments, setFilteredDocuments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [stageFilter, setStageFilter] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(itemsPerPage)
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [approveModalOpen, setApproveModalOpen] = useState(false)
+  const [acknowledgeModalOpen, setAcknowledgeModalOpen] = useState(false)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [publishModalOpen, setPublishModalOpen] = useState(false)
+  const [reviewSupersedeModalOpen, setReviewSupersedeModalOpen] = useState(false)
+  const [approveSupersedeModalOpen, setApproveSupersedeModalOpen] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState(null)
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+
+  // Get current user ID for ownership check
+  const getCurrentUserId = () => {
+    try {
+      const userStr = localStorage.getItem('user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        return user.id
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error)
+    }
+    return null
+  }
+
+  // Check if current user owns the document
+  const isDocumentOwner = (doc) => {
+    const currentUserId = getCurrentUserId()
+    return currentUserId && doc.ownerId === currentUserId
+  }
+
+  // Check if current user is the assigned approver for the document
+  const isAssignedApprover = (doc) => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) return false
+    
+    // Check if user is assigned as first or second approver
+    const isFirstApprover = doc.firstApproverId === currentUserId
+    const isSecondApprover = doc.secondApproverId === currentUserId
+    
+    // For first approval stage, check firstApproverId
+    if (doc.stage === 'FIRST_APPROVAL' || doc.stage === 'Approval') {
+      return isFirstApprover
+    }
+    
+    // For second approval stage, check secondApproverId
+    if (doc.stage === 'SECOND_APPROVAL') {
+      return isSecondApprover
+    }
+    
+    // For generic approval stage, check both
+    return isFirstApprover || isSecondApprover
+  }
+
+  // Check if current user is the assigned reviewer for the document
+  const isAssignedReviewer = (doc) => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) return false
+    
+    // Check if user is assigned as reviewer
+    return doc.reviewerId === currentUserId
+  }
+
+  useEffect(() => {
+    loadDocuments()
+  }, [])
+
+  // Filter and search documents
+  useEffect(() => {
+    let filtered = documents
+
+    // Apply stage filter
+    if (stageFilter !== 'All') {
+      filtered = filtered.filter(doc => doc.stage === stageFilter)
+    }
+
+    // Apply search
+    if (searchQuery) {
+      filtered = filtered.filter(doc =>
+        doc.fileCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    setFilteredDocuments(filtered)
+    setCurrentPage(1)
+  }, [documents, stageFilter, searchQuery])
+
+  const loadDocuments = async () => {
+    try {
+      console.log('Fetching review-approval documents...')
+      // Add timestamp to prevent caching
+      const res = await api.get(`/documents/review-approval?_t=${Date.now()}`)
+      console.log('API Response:', res.data)
+      // Access nested data structure: res.data.data.documents
+      const docs = res.data.data?.documents || res.data.documents || []
+      console.log('Documents loaded:', docs.length, docs)
+      setDocuments(docs)
+      setFilteredDocuments(docs)
+    } catch (error) {
+      console.error('Failed to load documents:', error)
+      console.error('Error details:', error.response?.data || error.message)
+      setDocuments([])
+      setFilteredDocuments([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Get unique stages for filter
+  const allStages = ['All', ...new Set(documents.map(doc => doc.stage))]
+
+  // Pagination
+  const totalPages = Math.ceil(filteredDocuments.length / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const currentDocuments = filteredDocuments.slice(startIndex, endIndex)
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPageSize(newPageSize)
+    setCurrentPage(1)
+  }
+
+  const handleView = (doc) => {
+    setSelectedDocument(doc)
+    setViewModalOpen(true)
+  }
+
+  const handleReview = (doc) => {
+    setSelectedDocument(doc)
+    // Check if this is a supersede request
+    if (doc.type === 'supersede-request') {
+      setReviewSupersedeModalOpen(true)
+    } else {
+      setReviewModalOpen(true)
+    }
+  }
+
+  const handleReviewSubmit = async (formData) => {
+    try {
+      console.log('Review submitted:', formData)
+      
+      // Prepare form data for API
+      const apiFormData = new FormData()
+      
+      // Add fields based on review decision
+      if (formData.reviewDecision === 'reviewed') {
+        apiFormData.append('action', 'APPROVE')
+      } else if (formData.reviewDecision === 'amendments') {
+        apiFormData.append('action', 'RETURN')
+      }
+      
+      apiFormData.append('comments', formData.comments || '')
+      
+      // Add approver if reviewing (not returning)
+      if (formData.reviewDecision === 'reviewed' && formData.assignedApprover) {
+        apiFormData.append('approverId', formData.assignedApprover)
+      }
+      
+      // Add reviewed file if uploaded
+      if (formData.reviewedFile) {
+        apiFormData.append('reviewedFile', formData.reviewedFile)
+      }
+      
+      // Call API
+      await api.post(`/workflow/review/${selectedDocument.id}`, apiFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      setAlertModal({ show: true, title: 'Success', message: 'Review submitted successfully!', type: 'success' })
+      setReviewModalOpen(false)
+      setSelectedDocument(null)
+      
+      // Reload documents to reflect changes
+      await loadDocuments()
+    } catch (error) {
+      console.error('Failed to submit review:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to submit review. Please try again.', type: 'error' })
+    }
+  }
+
+  const handleApprove = (doc) => {
+    setSelectedDocument(doc)
+    // Check if this is a supersede request
+    if (doc.type === 'supersede-request') {
+      setApproveSupersedeModalOpen(true)
+    } else {
+      setApproveModalOpen(true)
+    }
+  }
+
+  const handleApproveSubmit = async (formData) => {
+    try {
+      console.log('Approval submitted:', formData)
+      
+      // Determine if this is first or second approval
+      // Support legacy statuses: 'Pending Approval' and stage 'Approval' are treated as first approval
+      const isFirstApproval = 
+        selectedDocument?.status === 'PENDING_FIRST_APPROVAL' || 
+        selectedDocument?.status === 'IN_FIRST_APPROVAL' ||
+        selectedDocument?.status === 'Pending Approval' ||
+        selectedDocument?.stage === 'Approval'
+      const isSecondApproval = selectedDocument?.status === 'PENDING_SECOND_APPROVAL' || selectedDocument?.status === 'IN_SECOND_APPROVAL'
+      
+      // Prepare form data for API
+      const apiFormData = new FormData()
+      
+      // Add fields based on approval decision
+      if (formData.approvalDecision === 'approved') {
+        apiFormData.append('action', 'APPROVE')
+      } else if (formData.approvalDecision === 'amendments') {
+        apiFormData.append('action', 'RETURN')
+      }
+      
+      apiFormData.append('comments', formData.comments || '')
+      
+      // Add second approver if first approval and provided
+      if (isFirstApproval && formData.assignedSecondApprover) {
+        apiFormData.append('secondApproverId', formData.assignedSecondApprover)
+      }
+      
+      // Add approved file if uploaded
+      if (formData.approvedFile) {
+        apiFormData.append('approvedFile', formData.approvedFile)
+      }
+      
+      // Determine the correct endpoint
+      const endpoint = isFirstApproval ? `/workflow/approve/first/${selectedDocument.id}` : `/workflow/approve/second/${selectedDocument.id}`
+      
+      // Call API
+      await api.post(endpoint, apiFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      
+      setAlertModal({ show: true, title: 'Success', message: 'Approval submitted successfully!', type: 'success' })
+      setApproveModalOpen(false)
+      setSelectedDocument(null)
+      
+      // Reload documents to reflect changes
+      await loadDocuments()
+    } catch (error) {
+      console.error('Failed to submit approval:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to submit approval. Please try again.', type: 'error' })
+    }
+  }
+
+  const handleAcknowledge = (doc) => {
+    setSelectedDocument(doc)
+    setAcknowledgeModalOpen(true)
+  }
+
+  const handleAcknowledgeSubmit = async (formData) => {
+    console.log('Acknowledgement submitted:', formData)
+    // TODO: Call API to submit acknowledgement
+    // await api.post(`/documents/${selectedDocument.id}/acknowledge`, formData)
+    
+    setAcknowledgeModalOpen(false)
+    setSelectedDocument(null)
+    setAlertModal({ show: true, title: 'Success', message: 'Acknowledgement submitted successfully!', type: 'success' })
+    // Optionally reload documents
+    // loadDocuments()
+  }
+
+  const handlePublish = (doc) => {
+    setSelectedDocument(doc)
+    setPublishModalOpen(true)
+  }
+
+  const handlePublishSubmit = async (updatedDocument) => {
+    setAlertModal({ show: true, title: 'Success', message: 'Document published successfully!', type: 'success' })
+    setPublishModalOpen(false)
+    setSelectedDocument(null)
+    
+    // Reload documents to reflect changes
+    await loadDocuments()
+  }
+
+  const handleReviewSupersedeSubmit = async (formData) => {
+    try {
+      console.log('Supersede review submitted:', formData)
+      // API call handled by ReviewSupersedeModal
+      setReviewSupersedeModalOpen(false)
+      setSelectedDocument(null)
+      // Reload documents to reflect changes
+      await loadDocuments()
+    } catch (error) {
+      console.error('Failed to submit supersede review:', error)
+    }
+  }
+
+  const handleApproveSupersedeSubmit = async (formData) => {
+    try {
+      console.log('Supersede approval submitted:', formData)
+      // API call handled by ApproveSupersedeModal
+      setApproveSupersedeModalOpen(false)
+      setSelectedDocument(null)
+      // Reload documents to reflect changes
+      await loadDocuments()
+    } catch (error) {
+      console.error('Failed to submit supersede approval:', error)
+    }
+  }
+
+  return (
+    <>
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
+      />
+      <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="card p-6">
+        <h1 className="text-2xl font-bold text-gray-900">{t('review_approval_title')}</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          {t('review_approval_desc')}
+        </p>
+      </div>
+
+      {/* Document List */}
+      <div className="card p-6">
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">{t('review_approval_list')}</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                List of Documents to be acknowledged, reviewed and approved. ({filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''})
+              </p>
+            </div>
+            
+            {/* Actions */}
+            <PermissionGate module="documents.draft" action="create">
+              <button 
+                onClick={() => navigate('/drafts')}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  {t('upload_new_draft')}
+                </span>
+              </button>
+            </PermissionGate>
+          </div>
+
+          {/* Search and Filter */}
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder={t('search_docs_placeholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Stage Filter */}
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white min-w-[200px]"
+            >
+              {allStages.map(stage => (
+                <option key={stage} value={stage}>{stage}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('doc_title')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('version')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('stage')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('submitted_by')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('reviewer')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('approver')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('second_approver')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_updated')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="11" className="text-center py-8 text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span>{t('loading_docs')}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentDocuments.length === 0 ? (
+                <tr>
+                  <td colSpan="11">
+                    <EmptyState 
+                      message={t('no_docs_found')} 
+                      description={searchQuery || stageFilter !== 'All' ? t('try_adjusting') : t('no_pending_review')}
+                      actionLabel={searchQuery ? t('clear_search') : null}
+                      onAction={searchQuery ? () => setSearchQuery('') : null}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                currentDocuments.map((doc) => (
+                  <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-4">
+                      <a href="#" className="text-gray-900 font-medium hover:text-blue-600">
+                        {doc.fileCode}
+                      </a>
+                    </td>
+                    <td className="py-4 px-4">
+                      <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
+                        {doc.title}
+                      </a>
+                    </td>
+                    <td className="py-4 px-4 text-gray-700">{doc.version}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.stage}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.submittedBy}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.reviewerName || '-'}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.firstApproverName || '-'}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.secondApproverName || '-'}</td>
+                    <td className="py-4 px-4 text-gray-700">{doc.lastUpdated}</td>
+                    <td className="py-4 px-4">
+                      <StatusBadge status={doc.status} />
+                    </td>
+                    <td className="py-4 px-4">
+                      <ActionMenu
+                        actions={[
+                          ...(hasPermission('documents.review', 'read')
+                            ? [{ label: t('view'), onClick: () => handleView(doc) }]
+                            : []
+                          ),
+                          ...(doc.stage === 'Review' && hasPermission('documents.review', 'review') && !isDocumentOwner(doc) && isAssignedReviewer(doc)
+                            ? [{ label: t('review_action'), onClick: () => handleReview(doc) }]
+                            : []
+                          ),
+                          ...((doc.stage === 'Approval' || doc.stage === 'FIRST_APPROVAL' || doc.stage === 'SECOND_APPROVAL') && hasPermission('documents.review', 'approve') && !isDocumentOwner(doc) && isAssignedApprover(doc)
+                            ? [{ label: t('approve_action'), onClick: () => handleApprove(doc) }]
+                            : []
+                          ),
+                          ...(doc.stage === 'Acknowledge' && hasPermission('documents.published', 'acknowledge')
+                            ? [{ label: t('acknowledge_action'), onClick: () => handleAcknowledge(doc) }]
+                            : []
+                          ),
+                          ...(doc.status === 'READY_TO_PUBLISH' && hasPermission('documents.published', 'create')
+                            ? [{ label: t('publish_action'), onClick: () => handlePublish(doc) }]
+                            : []
+                          )
+                        ]}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span>{t('loading_docs')}</span>
+              </div>
+            </div>
+          ) : currentDocuments.length === 0 ? (
+            <EmptyState 
+              message={t('no_docs_found')} 
+              description={searchQuery || stageFilter !== 'All' ? t('try_adjusting') : t('no_pending_review')}
+              actionLabel={searchQuery ? t('clear_search') : null}
+              onAction={searchQuery ? () => setSearchQuery('') : null}
+            />
+          ) : (
+            currentDocuments.map((doc) => (
+              <div key={doc.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <a href="#" className="text-gray-900 font-semibold hover:text-blue-600">
+                      {doc.fileCode}
+                    </a>
+                    <div className="text-sm text-gray-600 mt-1">{doc.title}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={doc.status} />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">{t('version')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.version}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('stage')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.stage}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('submitted_by')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.submittedBy}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('reviewer')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.reviewerName || '-'}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('approver')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.firstApproverName || '-'}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('second_approver')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.secondApproverName || '-'}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">{t('last_updated')}:</span>
+                    <div className="text-gray-900 font-medium">{doc.lastUpdated}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  {hasPermission('documents.review', 'read') && (
+                    <button
+                      onClick={() => handleView(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                    >
+                      {t('view')}
+                    </button>
+                  )}
+                  {doc.stage === 'Review' && hasPermission('documents.review', 'review') && !isDocumentOwner(doc) && isAssignedReviewer(doc) && (
+                    <button
+                      onClick={() => handleReview(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-gray-600 rounded-lg hover:bg-gray-700"
+                    >
+                      {t('review_action')}
+                    </button>
+                  )}
+                  {(doc.stage === 'Approval' || doc.stage === 'FIRST_APPROVAL' || doc.stage === 'SECOND_APPROVAL') && hasPermission('documents.review', 'approve') && !isDocumentOwner(doc) && isAssignedApprover(doc) && (
+                    <button
+                      onClick={() => handleApprove(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700"
+                    >
+                      {t('approve_action')}
+                    </button>
+                  )}
+                  {doc.stage === 'Acknowledge' && (
+                    <button
+                      onClick={() => handleAcknowledge(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    >
+                      {t('acknowledge_action')}
+                    </button>
+                  )}
+                  {doc.status === 'READY_TO_PUBLISH' && (
+                    <button
+                      onClick={() => handlePublish(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+                    >
+                      {t('publish_action')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+      </div>
+
+      {/* Pagination */}
+      {!loading && filteredDocuments.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalRecords={filteredDocuments.length}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      )}
+      </div>
+
+      {/* Review Document Modal */}
+      {reviewModalOpen && selectedDocument && (
+        <ReviewDocumentModal
+          document={selectedDocument}
+          onClose={() => {
+            setReviewModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onSubmit={handleReviewSubmit}
+        />
+      )}
+
+      {/* Approve Document Modal */}
+      {approveModalOpen && selectedDocument && (
+        <ApproveDocumentModal
+          document={selectedDocument}
+          onClose={() => {
+            setApproveModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onSubmit={handleApproveSubmit}
+        />
+      )}
+
+      {/* Acknowledge Document Modal */}
+      {acknowledgeModalOpen && selectedDocument && (
+        <AcknowledgeDocumentModal
+          document={selectedDocument}
+          onClose={() => {
+            setAcknowledgeModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onSubmit={handleAcknowledgeSubmit}
+        />
+      )}
+
+      {/* Document Viewer Modal */}
+      {viewModalOpen && selectedDocument && (
+        <DocumentViewerModal
+          document={selectedDocument}
+          onClose={() => {
+            setViewModalOpen(false)
+            setSelectedDocument(null)
+          }}
+        />
+      )}
+
+      {/* Publish Document Modal */}
+      {publishModalOpen && selectedDocument && (
+        <PublishDocumentModal
+          isOpen={publishModalOpen}
+          document={selectedDocument}
+          onClose={() => {
+            setPublishModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onPublish={handlePublishSubmit}
+        />
+      )}
+
+      {/* Review Supersede Request Modal */}
+      {reviewSupersedeModalOpen && selectedDocument && (
+        <ReviewSupersedeModal
+          document={selectedDocument}
+          onClose={() => {
+            setReviewSupersedeModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onSubmit={handleReviewSupersedeSubmit}
+        />
+      )}
+
+      {/* Approve Supersede Request Modal */}
+      {approveSupersedeModalOpen && selectedDocument && (
+        <ApproveSupersedeModal
+          document={selectedDocument}
+          onClose={() => {
+            setApproveSupersedeModalOpen(false)
+            setSelectedDocument(null)
+          }}
+          onSubmit={handleApproveSupersedeSubmit}
+        />
+      )}
+    </>
+  )
+}

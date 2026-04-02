@@ -1,0 +1,948 @@
+import React, { useState, useEffect } from 'react'
+import api from '../api/axios'
+import BulkImportModal from './BulkImportModal'
+import DocumentViewerModal from './DocumentViewerModal'
+import SupersedeObsoleteModal from './SupersedeObsoleteModal'
+import StatusBadge from './StatusBadge'
+import ActionMenu from './ActionMenu'
+import EmptyState from './EmptyState'
+import Pagination from './Pagination'
+import { PermissionGate } from './PermissionGate'
+import { hasPermission } from '../utils/permissions'
+import ConfirmModal, { AlertModal } from './ConfirmModal'
+import { usePreferences } from '../contexts/PreferencesContext'
+
+export default function PublishedDocuments() {
+  const { itemsPerPage, formatDate, t } = usePreferences()
+  const [documents, setDocuments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedFolder, setSelectedFolder] = useState(null)
+  const [expandedFolders, setExpandedFolders] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(itemsPerPage)
+  const [totalDocuments, setTotalDocuments] = useState(0)
+  const [breadcrumbs, setBreadcrumbs] = useState([])
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
+  const [showCreateSubFolderModal, setShowCreateSubFolderModal] = useState(false)
+  const [showUploadFileModal, setShowUploadFileModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [showSupersedeObsoleteModal, setShowSupersedeObsoleteModal] = useState(false)
+  const [actionType, setActionType] = useState(null)
+  const [selectedDocument, setSelectedDocument] = useState(null)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [parentFolderForSub, setParentFolderForSub] = useState(null)
+  const [userRole, setUserRole] = useState('Admin') // Get from localStorage/context
+  const [contextMenuFolder, setContextMenuFolder] = useState(null)
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+
+  // Folder structure
+  const [folders, setFolders] = useState([])
+
+  // Helper function to flatten folder hierarchy for display
+  const flattenFolders = (folderList, level = 0, parentPath = []) => {
+    let result = []
+    folderList.forEach(folder => {
+      const currentPath = [...parentPath, folder.name]
+      const hasChildren = folder.children && folder.children.length > 0
+      
+      // Create proper indentation with tree characters
+      let prefix = ''
+      if (level > 0) {
+        prefix = '\u00A0\u00A0'.repeat(level - 1) + '\u2514\u2500 '
+      }
+      
+      result.push({
+        id: folder.id,
+        name: folder.name,
+        displayName: prefix + folder.name,
+        level: level,
+        path: currentPath.join(' › '),
+        fullPath: currentPath,
+        hasChildren: hasChildren,
+        icon: level === 0 ? '📁' : '📂'
+      })
+      if (hasChildren) {
+        result = result.concat(flattenFolders(folder.children, level + 1, currentPath))
+      }
+    })
+    return result
+  }
+
+  // Build breadcrumbs for a folder
+  const buildBreadcrumbs = (folderId) => {
+    const crumbs = []
+    const findFolder = (folders, id, path = []) => {
+      for (const folder of folders) {
+        const currentPath = [...path, folder.name]
+        if (folder.id === id) {
+          return currentPath
+        }
+        if (folder.children && folder.children.length > 0) {
+          const found = findFolder(folder.children, id, currentPath)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    return findFolder(folders, folderId) || []
+  }
+
+  // Get flattened folders for dropdown
+  const flatFolders = flattenFolders(folders)
+
+  useEffect(() => {
+    loadFolders()
+    loadUserRole()
+  }, [])
+
+  useEffect(() => {
+    loadDocuments()
+  }, [selectedFolder, searchQuery, currentPage, pageSize])
+
+  const loadUserRole = () => {
+    // Get user role from localStorage
+    const savedUser = localStorage.getItem('user')
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser)
+        console.log('User data from localStorage:', user) // Debug log
+        const role = user.role || user.roles?.[0]?.role?.name || 'Viewer'
+        console.log('Detected role:', role) // Debug log
+        setUserRole(role)
+      } catch (e) {
+        console.error('Failed to parse user data', e)
+        setUserRole('Viewer')
+      }
+    } else {
+      console.log('No user data in localStorage') // Debug log
+    }
+  }
+
+  // Check if user has admin permissions
+  const isAdmin = ['Admin', 'Administrator', 'ADMIN', 'admin'].includes(userRole)
+
+  const loadFolders = async () => {
+    try {
+      const res = await api.get('/folders')
+      setFolders(res.data.data.folders || [])
+    } catch (error) {
+      console.error('Failed to load folders:', error)
+    }
+  }
+
+  // Get child folders of current folder
+  const getChildFolders = (folderId) => {
+    if (!folderId) {
+      // No folder selected - return empty array (don't show root folders)
+      return []
+    }
+    
+    // Find the folder and return its children
+    const findChildren = (folderList) => {
+      for (const folder of folderList) {
+        if (folder.id === folderId) {
+          return folder.children || []
+        }
+        if (folder.children) {
+          const found = findChildren(folder.children)
+          if (found) return found
+        }
+      }
+      return []
+    }
+    
+    return findChildren(folders)
+  }
+
+  const loadDocuments = async () => {
+    // Don't load anything if no folder is selected
+    if (!selectedFolder) {
+      setDocuments([])
+      setTotalDocuments(0)
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: pageSize,
+        folderId: selectedFolder
+      })
+
+      if (searchQuery) {
+        params.append('search', searchQuery)
+      }
+
+      const res = await api.get(`/documents/published?${params}`)
+      
+      // Get child folders for current location
+      const childFolders = getChildFolders(selectedFolder)
+      
+              // Convert folders to table format
+              const folderItems = childFolders.map(folder => ({
+                id: `folder-${folder.id}`,
+                folderId: folder.id,
+                isFolder: true,
+                fileCode: '-',
+                fileName: folder.name,
+                type: 'File folder',
+                size: '-',
+                lastModified: folder.createdAt ? formatDate(folder.createdAt) : '-',
+                status: '-'
+              }))
+      
+      // Combine folders (first) and files
+      const combinedItems = [...folderItems, ...(res.data.data || [])]
+      
+      setDocuments(combinedItems)
+      setTotalDocuments(res.data.pagination?.totalItems || 0)
+    } catch (error) {
+      console.error('Failed to load published documents:', error)
+      setDocuments([])
+      setTotalDocuments(0)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleFolder = (folderId) => {
+    setExpandedFolders(prev =>
+      prev.includes(folderId)
+        ? prev.filter(f => f !== folderId)
+        : [...prev, folderId]
+    )
+  }
+
+  // Auto-expand folder tree to show the path to selected folder
+  const expandPathToFolder = (folderId) => {
+    const findPathIds = (folders, targetId, path = []) => {
+      for (const folder of folders) {
+        const currentPath = [...path, folder.id]
+        if (folder.id === targetId) {
+          return currentPath.slice(0, -1) // Return all parent IDs, not including the target itself
+        }
+        if (folder.children && folder.children.length > 0) {
+          const found = findPathIds(folder.children, targetId, currentPath)
+          if (found) return found
+        }
+      }
+      return null
+    }
+    
+    const pathIds = findPathIds(folders, folderId)
+    if (pathIds) {
+      setExpandedFolders(prev => {
+        // Add all parent folder IDs to expanded folders
+        const newExpanded = new Set([...prev, ...pathIds])
+        return Array.from(newExpanded)
+      })
+    }
+  }
+
+  const handleDownload = async (doc) => {
+    try {
+      const res = await api.get(`/documents/${doc.id}/download`, {
+        responseType: 'blob'
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', doc.fileName)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download document:', error)
+      setAlertModal({ show: true, title: 'Error', message: 'Failed to download document', type: 'error' })
+    }
+  }
+  
+  const handleView = (doc) => {
+    setSelectedDocument(doc)
+    setShowViewModal(true)
+  }
+  
+  const handleObsolete = (doc) => {
+    if (!isAdmin) {
+      setAlertModal({ show: true, title: 'Permission Denied', message: 'You do not have permission to obsolete documents. Only Admins can perform this action.', type: 'warning' })
+      return
+    }
+    
+    setSelectedDocument(doc)
+    setActionType('OBSOLETE')
+    setShowSupersedeObsoleteModal(true)
+  }
+  
+  const handleSupersede = (doc) => {
+    if (!isAdmin) {
+      setAlertModal({ show: true, title: 'Permission Denied', message: 'You do not have permission to supersede documents. Only Admins can perform this action.', type: 'warning' })
+      return
+    }
+    
+    setSelectedDocument(doc)
+    setActionType('SUPERSEDE')
+    setShowSupersedeObsoleteModal(true)
+  }
+  
+  const handleSupersedeObsoleteSubmit = () => {
+    setAlertModal({ show: true, title: 'Success', message: 'Supersede/Obsolete request submitted successfully! It will go through review and approval.', type: 'success' })
+    loadDocuments()
+  }
+
+  const handleDelete = async (doc) => {
+    if (!isAdmin) {
+      setAlertModal({ show: true, title: 'Permission Denied', message: 'You do not have permission to delete files. Only Admins can delete files.', type: 'warning' })
+      return
+    }
+    
+    setConfirmModal({
+      show: true,
+      title: 'Confirm Delete',
+      message: `Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/documents/${doc.id}`)
+          setAlertModal({ show: true, title: 'Success', message: `${doc.fileName} has been deleted successfully`, type: 'success' })
+          loadDocuments()
+        } catch (error) {
+          console.error('Failed to delete document:', error)
+          setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to delete document', type: 'error' })
+        }
+      }
+    })
+  }
+
+  const handleDeleteFolder = async (folderId, folderName) => {
+    if (!isAdmin) {
+      setAlertModal({ show: true, title: 'Permission Denied', message: 'You do not have permission to delete folders. Only Admins can delete folders.', type: 'warning' })
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: 'Confirm Delete',
+      message: `Are you sure you want to delete the folder "${folderName}"? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/folders/${folderId}`)
+          setAlertModal({ show: true, title: 'Success', message: `Folder "${folderName}" has been deleted successfully`, type: 'success' })
+          loadFolders()
+          if (selectedFolder === folderId) {
+            setSelectedFolder(null)
+          }
+        } catch (error) {
+          console.error('Failed to delete folder:', error)
+          setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to delete folder', type: 'error' })
+        }
+      }
+    })
+  }
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please enter a folder name', type: 'warning' })
+      return
+    }
+
+    try {
+      await api.post('/folders', { name: newFolderName })
+      const folderNameCopy = newFolderName
+      setNewFolderName('')
+      setShowCreateFolderModal(false)
+      setAlertModal({ show: true, title: 'Success', message: `Folder "${folderNameCopy}" created successfully!`, type: 'success' })
+      loadFolders()
+    } catch (error) {
+      console.error('Failed to create folder:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create folder', type: 'error' })
+    }
+  }
+
+  const handleCreateSubFolder = async () => {
+    if (!parentFolderForSub) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please select a parent folder', type: 'warning' })
+      return
+    }
+    if (!newFolderName.trim()) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please enter a subfolder name', type: 'warning' })
+      return
+    }
+
+    try {
+      await api.post('/folders', { 
+        name: newFolderName,
+        parentId: parentFolderForSub 
+      })
+      const folderNameCopy = newFolderName
+      setNewFolderName('')
+      setParentFolderForSub(null)
+      setShowCreateSubFolderModal(false)
+      setAlertModal({ show: true, title: 'Success', message: `Subfolder "${folderNameCopy}" created successfully!`, type: 'success' })
+      loadFolders()
+    } catch (error) {
+      console.error('Failed to create subfolder:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create subfolder', type: 'error' })
+    }
+  }
+
+  const handleUploadFile = async (uploadData) => {
+    try {
+      const formData = new FormData()
+      formData.append('folderId', uploadData.folderId)
+      formData.append('documentTypeId', '1')
+      if (uploadData.title) formData.append('title', uploadData.title)
+      if (uploadData.description) formData.append('description', uploadData.description)
+      uploadData.files.forEach((file) => formData.append('files', file))
+
+      const importResponse = await api.post('/documents/bulk-import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      setShowUploadFileModal(false)
+      const counts = importResponse?.data?.data?.counts
+      const importedCount = counts?.imported ?? 0
+      const failedCount = counts?.failed ?? 0
+      const msg = failedCount > 0
+        ? `Imported ${importedCount} file(s). Failed ${failedCount} file(s).`
+        : `Imported ${importedCount} file(s) successfully.`
+      setAlertModal({ show: true, title: 'Success', message: msg, type: failedCount > 0 ? 'warning' : 'success' })
+
+      if (selectedFolder === parseInt(uploadData.folderId)) loadDocuments()
+    } catch (error) {
+      console.error('Error:', error)
+      console.error('Response:', error.response?.data)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to upload file. Please try again.', type: 'error' })
+    }
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(totalDocuments / pageSize)
+  const currentDocuments = documents
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handlePageSizeChange = (newPageSize) => {
+    setPageSize(newPageSize)
+    setCurrentPage(1)
+  }
+
+  // Recursive component for rendering folder tree
+  const FolderTreeItem = ({ folder, level = 0 }) => {
+    const hasChildren = folder.children && folder.children.length > 0
+    const isExpanded = expandedFolders.includes(folder.id)
+    const isSelected = selectedFolder === folder.id
+    const [showContextMenu, setShowContextMenu] = useState(false)
+    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
+
+    const handleContextMenu = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (isAdmin) {
+        setContextMenuPosition({ x: e.clientX, y: e.clientY })
+        setShowContextMenu(true)
+        setContextMenuFolder(folder.id)
+      }
+    }
+
+    const handleClick = (e) => {
+      e.stopPropagation()
+      setSelectedFolder(folder.id)
+      setBreadcrumbs(buildBreadcrumbs(folder.id))
+      // Expand this folder when clicked
+      if (hasChildren && !isExpanded) {
+        toggleFolder(folder.id)
+      }
+    }
+
+    return (
+      <div key={folder.id}>
+        <div
+          className={`flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer group relative ${
+            isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+          }`}
+          onClick={handleClick}
+          onContextMenu={handleContextMenu}
+          style={{ paddingLeft: `${12 + level * 20}px` }}
+        >
+          <span className="text-gray-500">{level === 0 ? '📁' : '📂'}</span>
+          <span className="flex-1">{folder.name}</span>
+          <div className="flex items-center gap-1">
+            {hasChildren && (
+              <svg
+                className={`w-4 h-4 transition-transform ${
+                  isExpanded ? 'rotate-90' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </div>
+        </div>
+        {isExpanded && hasChildren && (
+          <div>
+            {folder.children.map((child) => (
+              <FolderTreeItem key={child.id} folder={child} level={level + 1} />
+            ))}
+          </div>
+        )}
+
+        {/* Right-click Context Menu */}
+        {showContextMenu && contextMenuFolder === folder.id && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setShowContextMenu(false)}
+            />
+            <div 
+              className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[160px]"
+              style={{ 
+                left: `${contextMenuPosition.x}px`, 
+                top: `${contextMenuPosition.y}px` 
+              }}
+            >
+              <button
+                onClick={() => {
+                  setShowContextMenu(false)
+                  handleDeleteFolder(folder.id, folder.name)
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {t('delete_folder')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* Modal Components */}
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false })}
+      />
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false })}
+      />
+
+      {/* Left Sidebar - Folder Tree */}
+      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+        <div className="p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
+          <div className="space-y-1">
+            {folders.map((folder) => (
+              <FolderTreeItem key={folder.id} folder={folder} level={0} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
+          {/* Page Header */}
+          <div className="mb-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{t('published_documents')}</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {t('pub_desc')}
+                </p>
+              </div>
+              {!isAdmin && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="text-xs font-medium text-amber-800">{t('view_only_mode')}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons and Search */}
+          <div className="card p-4 mb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              {/* Breadcrumbs */}
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                {breadcrumbs.map((crumb, index) => (
+                  <React.Fragment key={index}>
+                    {index > 0 && <span>›</span>}
+                    <span className={index === breadcrumbs.length - 1 ? 'font-medium text-gray-900' : ''}>
+                      {crumb}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <PermissionGate module="documents.published" action="create">
+                  <button 
+                    onClick={() => setShowCreateFolderModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('create_new_folder')}
+                  </button>
+                </PermissionGate>
+                <PermissionGate module="documents.published" action="create">
+                  <button 
+                    onClick={() => setShowCreateSubFolderModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('create_new_subfolder')}
+                  </button>
+                </PermissionGate>
+                <PermissionGate module="documents.published" action="create">
+                  <button 
+                    onClick={() => setShowUploadFileModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {t('upload_file')}
+                  </button>
+                </PermissionGate>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="mt-4 relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder={t('search_files')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Documents Table */}
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_name')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('type')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('size')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_modified')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <span>{t('loading_documents')}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : currentDocuments.length === 0 ? (
+                    <tr>
+                      <td colSpan="7">
+                        <EmptyState 
+                          message={selectedFolder ? t('no_documents') : t('select_folder_view')} 
+                          description={searchQuery ? t('adjust_search') : selectedFolder ? t('no_published_in_folder') : t('click_folder_view')}
+                          actionLabel={searchQuery ? t('clear_search') : selectedFolder ? t('upload_file') : null}
+                          onAction={searchQuery ? () => setSearchQuery('') : selectedFolder ? () => setShowUploadFileModal(true) : null}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    currentDocuments.map((doc) => (
+                      <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (doc.isFolder) {
+                            setSelectedFolder(doc.folderId)
+                            setBreadcrumbs(buildBreadcrumbs(doc.folderId))
+                            // Auto-expand the entire path to this folder in the sidebar tree
+                            expandPathToFolder(doc.folderId)
+                            // Also expand the folder itself if it has children
+                            if (!expandedFolders.includes(doc.folderId)) {
+                              setExpandedFolders(prev => [...prev, doc.folderId])
+                            }
+                          }
+                        }}
+                      >
+                        <td className="py-4 px-4">
+                          <span className="text-gray-900 font-medium text-sm">
+                            {doc.fileCode || '-'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center">
+                            <span className={doc.isFolder ? "text-gray-900 font-medium" : "text-blue-600 hover:text-blue-700 font-medium"}>
+                              {doc.fileName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-gray-700">{doc.type}</td>
+                        <td className="py-4 px-4 text-gray-700">{doc.size}</td>
+                        <td className="py-4 px-4 text-gray-700 text-sm">{doc.lastModified}</td>
+                        <td className="py-4 px-4">
+                          {doc.status !== '-' ? <StatusBadge status={doc.status} /> : <span className="text-gray-500">-</span>}
+                        </td>
+                        <td className="py-4 px-4">
+                          {!doc.isFolder && (
+                            <ActionMenu
+                              actions={[
+                                ...(hasPermission('documents.published', 'read')
+                                  ? [
+                                      { label: t('download'), onClick: () => handleDownload(doc) },
+                                      { label: t('view'), onClick: () => handleView(doc) }
+                                    ]
+                                  : []
+                                ),
+                                ...(hasPermission('documents.published', 'update') && !['OBSOLETE', 'SUPERSEDED'].includes(doc.status)
+                                  ? [
+                                      { label: t('obsolete_action'), onClick: () => handleObsolete(doc) },
+                                      { label: t('supersede_action'), onClick: () => handleSupersede(doc) }
+                                    ]
+                                  : []
+                                ),
+                                ...(hasPermission('documents.published', 'delete')
+                                  ? [
+                                      { label: t('delete'), onClick: () => handleDelete(doc), variant: 'destructive' }
+                                    ]
+                                  : []
+                                )
+                              ]}
+                            />
+                          )}
+                          {/* Folder actions are only available in sidebar to prevent accidental deletion */}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {!loading && totalDocuments > 0 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalRecords={totalDocuments}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Create Folder Modal */}
+      {showCreateFolderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">{t('create_new_folder')}</h3>
+            </div>
+            <div className="px-6 py-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('folder_name_label')}
+              </label>
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder={t('enter_folder_name')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateFolderModal(false)
+                  setNewFolderName('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                {t('create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload File Modal */}
+      {showUploadFileModal && (
+        <BulkImportModal
+          isOpen={showUploadFileModal}
+          onClose={() => setShowUploadFileModal(false)}
+          onSubmit={handleUploadFile}
+          folders={flatFolders}
+          selectedFolderId={selectedFolder}
+        />
+      )}
+
+      {/* Create Sub Folder Modal */}
+      {showCreateSubFolderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">{t('create_new_subfolder')}</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('select_parent_folder')}
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  </div>
+                  <select
+                    value={parentFolderForSub || ''}
+                    onChange={(e) => setParentFolderForSub(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm appearance-none bg-white cursor-pointer hover:border-gray-400 transition-colors"
+                    style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                  >
+                    <option value="" className="text-gray-500">{t('select_a_folder')}</option>
+                    {flatFolders.map((folder) => (
+                      <option 
+                        key={folder.id} 
+                        value={folder.id}
+                        className="py-2"
+                        style={{ 
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+                        }}
+                      >
+                        {folder.icon} {folder.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {parentFolderForSub && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-blue-900">{t('creating_subfolder_in')}</p>
+                        <p className="text-xs text-blue-700 mt-0.5 font-mono">
+                          {flatFolders.find(f => f.id === parentFolderForSub)?.path}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('subfolder_name')}
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder={t('enter_subfolder_name')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  disabled={!parentFolderForSub}
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateSubFolderModal(false)
+                  setNewFolderName('')
+                  setParentFolderForSub('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleCreateSubFolder}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                {t('create')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Document Viewer Modal */}
+      {showViewModal && selectedDocument && (
+        <DocumentViewerModal
+          document={selectedDocument}
+          onClose={() => {
+            setShowViewModal(false)
+            setSelectedDocument(null)
+          }}
+        />
+      )}
+      
+      {/* Supersede/Obsolete Modal */}
+      {showSupersedeObsoleteModal && selectedDocument && (
+        <SupersedeObsoleteModal
+          isOpen={showSupersedeObsoleteModal}
+          document={selectedDocument}
+          actionType={actionType}
+          onClose={() => {
+            setShowSupersedeObsoleteModal(false)
+            setSelectedDocument(null)
+            setActionType(null)
+          }}
+          onSubmit={handleSupersedeObsoleteSubmit}
+        />
+      )}
+    </div>
+  )
+}

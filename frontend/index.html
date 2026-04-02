@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FileNix DMS</title>
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>📄</text></svg>" id="favicon" />
+    <script>
+      // Load custom favicon from localStorage on initial page load
+      (function() {
+        try {
+          const savedTheme = localStorage.getItem('dms_theme_settings');
+          if (savedTheme) {
+            const theme = JSON.parse(savedTheme);
+            if (theme.favicon) {
+              const link = document.getElementById('favicon');
+              if (link) {
+                link.href = theme.favicon;
+              }
+            }
+          }
+          // Load custom title from company info
+          const savedCompanyInfo = localStorage.getItem('dms_company_info');
+          if (savedCompanyInfo) {
+            const companyInfo = JSON.parse(savedCompanyInfo);
+            if (companyInfo.companyName) {
+              document.title = companyInfo.companyName + ' DMS';
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load custom favicon/title', e);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

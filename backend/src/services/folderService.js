@@ -1,0 +1,329 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+class FolderService {
+  /**
+   * List all folders with hierarchy
+   */
+  async listFolders() {
+    const folders = await prisma.folder.findMany({
+      orderBy: [
+        { parentId: 'asc' },
+        { name: 'asc' }
+      ],
+      include: {
+        _count: {
+          select: { documents: true, children: true }
+        }
+      }
+    });
+
+    // Build hierarchy
+    return this.buildFolderTree(folders);
+  }
+
+  /**
+   * Build folder tree structure
+   */
+  buildFolderTree(folders, parentId = null) {
+    const tree = [];
+    
+    folders
+      .filter(folder => folder.parentId === parentId)
+      .forEach(folder => {
+        const node = {
+          id: folder.id,
+          name: folder.name,
+          parentId: folder.parentId,
+          documentsCount: folder._count.documents,
+          createdAt: folder.createdAt,
+          updatedAt: folder.updatedAt,
+          children: this.buildFolderTree(folders, folder.id)
+        };
+        tree.push(node);
+      });
+
+    return tree;
+  }
+
+  /**
+   * Create new folder
+   */
+  async createFolder(data, userId) {
+    const { name, parentId } = data;
+
+    // Validate parent folder exists if provided
+    if (parentId) {
+      const parentFolder = await prisma.folder.findUnique({
+        where: { id: parentId }
+      });
+
+      if (!parentFolder) {
+        throw new Error('Parent folder not found');
+      }
+    }
+
+    // Check for duplicate folder name at the same level
+    const existingFolder = await prisma.folder.findFirst({
+      where: {
+        name,
+        parentId: parentId || null
+      }
+    });
+
+    if (existingFolder) {
+      throw new Error('A folder with this name already exists at this level');
+    }
+
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        parentId,
+        createdById: userId
+      },
+      include: {
+        _count: {
+          select: { documents: true, children: true }
+        }
+      }
+    });
+
+    return folder;
+  }
+
+  /**
+   * Update folder
+   */
+  async updateFolder(folderId, data, userId) {
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId }
+    });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    // Prevent moving folder into itself or its children
+    if (data.parentId === folderId) {
+      throw new Error('Cannot move folder into itself');
+    }
+
+    if (data.parentId) {
+      const isDescendant = await this.isDescendant(folderId, data.parentId);
+      if (isDescendant) {
+        throw new Error('Cannot move folder into its own descendant');
+      }
+    }
+
+    // Check for duplicate name if renaming
+    if (data.name && data.name !== folder.name) {
+      const existingFolder = await prisma.folder.findFirst({
+        where: {
+          name: data.name,
+          parentId: data.parentId !== undefined ? data.parentId : folder.parentId,
+          id: { not: folderId }
+        }
+      });
+
+      if (existingFolder) {
+        throw new Error('A folder with this name already exists at this level');
+      }
+    }
+
+    const updateData = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.parentId !== undefined) updateData.parentId = data.parentId;
+
+    const updatedFolder = await prisma.folder.update({
+      where: { id: folderId },
+      data: updateData,
+      include: {
+        _count: {
+          select: { documents: true, children: true }
+        }
+      }
+    });
+
+    return updatedFolder;
+  }
+
+  /**
+   * Check if targetId is a descendant of folderId
+   */
+  async isDescendant(folderId, targetId) {
+    let currentId = targetId;
+    
+    while (currentId) {
+      if (currentId === folderId) {
+        return true;
+      }
+
+      const folder = await prisma.folder.findUnique({
+        where: { id: currentId },
+        select: { parentId: true }
+      });
+
+      if (!folder) break;
+      currentId = folder.parentId;
+    }
+
+    return false;
+  }
+
+  /**
+   * Delete folder
+   */
+  async deleteFolder(folderId, userId) {
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId },
+      include: {
+        _count: {
+          select: { documents: true, children: true }
+        }
+      }
+    });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    // Check if folder has documents or subfolders
+    if (folder._count.documents > 0) {
+      throw new Error('Cannot delete folder with documents. Please move or delete documents first.');
+    }
+
+    if (folder._count.children > 0) {
+      throw new Error('Cannot delete folder with subfolders. Please delete subfolders first.');
+    }
+
+    await prisma.folder.delete({
+      where: { id: folderId }
+    });
+
+    return true;
+  }
+
+  /**
+   * Get documents in a folder
+   */
+  async getFolderDocuments(folderId, options = {}) {
+    const { search, page = 1, limit = 15 } = options;
+
+    // Verify folder exists
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId }
+    });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    const where = {
+      folderId,
+      status: { in: ['PUBLISHED', 'OBSOLETE', 'SUPERSEDED'] } // Show published and archived documents
+    };
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { fileCode: { contains: search } }
+      ];
+    }
+
+    const [documents, total] = await Promise.all([
+      prisma.document.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          documentType: true,
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true
+            }
+          },
+          versions: {
+            where: { isPublished: true },
+            orderBy: { uploadedAt: 'desc' },
+            take: 1
+          }
+        }
+      }),
+      prisma.document.count({ where })
+    ]);
+
+    // Format documents for frontend
+    const formattedDocuments = documents.map(doc => {
+      const latestVersion = doc.versions[0];
+      
+      return {
+        id: doc.id,
+        fileName: latestVersion ? latestVersion.fileName : doc.title,
+        fileCode: doc.fileCode,
+        title: doc.title,
+        type: latestVersion ? this.getFileExtension(latestVersion.fileName) : 'UNKNOWN',
+        size: latestVersion ? this.formatFileSize(latestVersion.fileSize) : '0 KB',
+        lastModified: doc.updatedAt.toLocaleString('en-GB', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
+        status: this.formatDocumentStatus(doc.status, doc.stage),
+        version: doc.version,
+        owner: doc.owner ? `${doc.owner.firstName || ''} ${doc.owner.lastName || ''}`.trim() || doc.owner.email : '',
+        documentType: doc.documentType?.name || '',
+        filePath: latestVersion?.filePath
+      };
+    });
+
+    return {
+      documents: formattedDocuments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get file extension from filename
+   */
+  getFileExtension(fileName) {
+    const ext = fileName.split('.').pop().toUpperCase();
+    return ext;
+  }
+
+  /**
+   * Format file size to human readable
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Format document status
+   */
+  formatDocumentStatus(status, stage) {
+    if (status === 'DRAFT') return 'Draft';
+    if (stage === 'REVIEW') return 'In Review';
+    if (stage === 'APPROVAL') return 'Pending Approval';
+    if (status === 'PUBLISHED') return 'Approved';
+    if (status === 'OBSOLETE') return 'Obsolete';
+    return 'In Process';
+  }
+}
+
+module.exports = new FolderService();

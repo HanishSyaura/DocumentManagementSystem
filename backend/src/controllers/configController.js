@@ -1,0 +1,465 @@
+const asyncHandler = require('../utils/asyncHandler');
+const ResponseFormatter = require('../utils/responseFormatter');
+const configService = require('../services/configService');
+const { ValidationError } = require('../utils/errors');
+
+/**
+ * @desc    Get all document types
+ * @route   GET /api/config/document-types
+ * @access  Private
+ */
+exports.getDocumentTypes = asyncHandler(async (req, res) => {
+  const documentTypes = await configService.getDocumentTypes();
+  
+  return ResponseFormatter.success(
+    res,
+    { documentTypes },
+    'Document types retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Create new document type
+ * @route   POST /api/config/document-types
+ * @access  Private (Admin only)
+ */
+exports.createDocumentType = asyncHandler(async (req, res) => {
+  const { name, prefix, description } = req.body;
+
+  // Validation
+  if (!name || !prefix) {
+    throw new ValidationError('Name and prefix are required');
+  }
+
+  const documentType = await configService.createDocumentType({
+    name,
+    prefix,
+    description
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { documentType },
+    'Document type created successfully',
+    201
+  );
+});
+
+/**
+ * @desc    Update document type
+ * @route   PUT /api/config/document-types/:id
+ * @access  Private (Admin only)
+ */
+exports.updateDocumentType = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, prefix, description, isActive } = req.body;
+
+  const documentType = await configService.updateDocumentType(id, {
+    name,
+    prefix,
+    description,
+    isActive
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { documentType },
+    'Document type updated successfully'
+  );
+});
+
+/**
+ * @desc    Delete document type (soft delete)
+ * @route   DELETE /api/config/document-types/:id
+ * @access  Private (Admin only)
+ */
+exports.deleteDocumentType = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  await configService.deleteDocumentType(id);
+
+  return ResponseFormatter.success(
+    res,
+    null,
+    'Document type deleted successfully'
+  );
+});
+
+/**
+ * @desc    Get all project categories
+ * @route   GET /api/config/project-categories
+ * @access  Private
+ */
+exports.getProjectCategories = asyncHandler(async (req, res) => {
+  const projectCategories = await configService.getProjectCategories();
+  
+  return ResponseFormatter.success(
+    res,
+    { projectCategories },
+    'Project categories retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Create new project category
+ * @route   POST /api/config/project-categories
+ * @access  Private (Admin only)
+ */
+exports.createProjectCategory = asyncHandler(async (req, res) => {
+  const { name, code, description } = req.body;
+
+  // Validation
+  if (!name || !code) {
+    throw new ValidationError('Name and code are required');
+  }
+
+  const projectCategory = await configService.createProjectCategory({
+    name,
+    code,
+    description
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { projectCategory },
+    'Project category created successfully',
+    201
+  );
+});
+
+/**
+ * @desc    Update project category
+ * @route   PUT /api/config/project-categories/:id
+ * @access  Private (Admin only)
+ */
+exports.updateProjectCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, code, description, isActive } = req.body;
+
+  const projectCategory = await configService.updateProjectCategory(id, {
+    name,
+    code,
+    description,
+    isActive
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { projectCategory },
+    'Project category updated successfully'
+  );
+});
+
+/**
+ * @desc    Delete project category (soft delete)
+ * @route   DELETE /api/config/project-categories/:id
+ * @access  Private (Admin only)
+ */
+exports.deleteProjectCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  await configService.deleteProjectCategory(id);
+
+  return ResponseFormatter.success(
+    res,
+    null,
+    'Project category deleted successfully'
+  )
+});
+
+/**
+ * @desc    Get all departments
+ * @route   GET /api/config/departments
+ * @access  Private
+ */
+exports.getDepartments = asyncHandler(async (req, res) => {
+  const departments = await configService.getDepartments();
+  
+  return ResponseFormatter.success(
+    res,
+    { departments },
+    'Departments retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Create new department
+ * @route   POST /api/config/departments
+ * @access  Private (Admin only)
+ */
+exports.createDepartment = asyncHandler(async (req, res) => {
+  const { name, code, description } = req.body;
+
+  // Validation
+  if (!name || !code) {
+    throw new ValidationError('Name and code are required');
+  }
+
+  const department = await configService.createDepartment({
+    name,
+    code,
+    description
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { department },
+    'Department created successfully',
+    201
+  );
+});
+
+/**
+ * @desc    Update department
+ * @route   PUT /api/config/departments/:id
+ * @access  Private (Admin only)
+ */
+exports.updateDepartment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, code, description, isActive } = req.body;
+
+  const department = await configService.updateDepartment(id, {
+    name,
+    code,
+    description,
+    isActive
+  });
+
+  return ResponseFormatter.success(
+    res,
+    { department },
+    'Department updated successfully'
+  );
+});
+
+/**
+ * @desc    Delete department (soft delete)
+ * @route   DELETE /api/config/departments/:id
+ * @access  Private (Admin only)
+ */
+exports.deleteDepartment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  await configService.deleteDepartment(id);
+
+  return ResponseFormatter.success(
+    res,
+    null,
+    'Department deleted successfully'
+  )
+});
+
+/**
+ * @desc    Get document numbering settings
+ * @route   GET /api/config/document-numbering
+ * @access  Private
+ */
+exports.getDocumentNumberingSettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getDocumentNumberingSettings();
+  
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Document numbering settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update document numbering settings
+ * @route   PUT /api/config/document-numbering
+ * @access  Private (Admin only)
+ */
+exports.updateDocumentNumberingSettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  // Validation
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateDocumentNumberingSettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Document numbering settings updated successfully'
+  );
+});
+
+/**
+ * @desc    Get file upload settings
+ * @route   GET /api/config/file-upload
+ * @access  Private
+ */
+exports.getFileUploadSettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getFileUploadSettings();
+  
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'File upload settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update file upload settings
+ * @route   PUT /api/config/file-upload
+ * @access  Private (Admin only)
+ */
+exports.updateFileUploadSettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  // Validation
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateFileUploadSettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'File upload settings updated successfully'
+  );
+});
+
+/**
+ * @desc    Get version control settings
+ * @route   GET /api/config/version-control
+ * @access  Private
+ */
+exports.getVersionControlSettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getVersionControlSettings();
+  
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Version control settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update version control settings
+ * @route   PUT /api/config/version-control
+ * @access  Private (Admin only)
+ */
+exports.updateVersionControlSettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  // Validation
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateVersionControlSettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Version control settings updated successfully'
+  );
+});
+
+/**
+ * @desc    Get retention policy settings
+ * @route   GET /api/config/retention-policy
+ * @access  Private
+ */
+exports.getRetentionPolicySettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getRetentionPolicySettings();
+  
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Retention policy settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update retention policy settings
+ * @route   PUT /api/config/retention-policy
+ * @access  Private (Admin only)
+ */
+exports.updateRetentionPolicySettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  // Validation
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateRetentionPolicySettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Retention policy settings updated successfully'
+  );
+});
+
+/**
+ * @desc    Get notification settings
+ * @route   GET /api/config/notification-settings
+ * @access  Private
+ */
+exports.getNotificationSettings = asyncHandler(async (req, res) => {
+  const settings = await configService.getNotificationSettings();
+  
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Notification settings retrieved successfully'
+  );
+});
+
+/**
+ * @desc    Update notification settings
+ * @route   PUT /api/config/notification-settings
+ * @access  Private (Admin only)
+ */
+exports.updateNotificationSettings = asyncHandler(async (req, res) => {
+  const settings = req.body;
+
+  // Validation
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data');
+  }
+
+  const updatedSettings = await configService.updateNotificationSettings(settings);
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Notification settings updated successfully'
+  );
+});
+
+/**
+ * @desc    Test email configuration
+ * @route   POST /api/config/notification-settings/test-email
+ * @access  Private (Admin only)
+ */
+exports.testEmailSettings = asyncHandler(async (req, res) => {
+  const { testEmail } = req.body;
+
+  if (!testEmail) {
+    throw new ValidationError('Test email address is required');
+  }
+
+  const result = await configService.testEmailConfiguration(testEmail);
+
+  if (result.success) {
+    return ResponseFormatter.success(
+      res,
+      { result },
+      result.message
+    );
+  } else {
+    return ResponseFormatter.error(
+      res,
+      result.message,
+      400,
+      { error: result.error }
+    );
+  }
+});

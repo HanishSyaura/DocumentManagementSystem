@@ -1,0 +1,832 @@
+// Prisma Schema for Document Management System (DMS)
+// Database: MySQL
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  phone         String?
+  department    String?
+  position      String?
+  employeeId    String?   @unique
+  dateJoined    DateTime  @default(now())
+  profileImage  String?
+  status        UserStatus @default(ACTIVE)
+  lastLogin     DateTime?
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  // Two-Factor Authentication
+  twoFactorEnabled Boolean @default(false)
+  twoFactorCode    String?
+  twoFactorCodeExpiry DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  roles         UserRole[]
+  sessions      UserSession[]
+  preferences   UserPreference?
+  createdDocuments Document[] @relation("DocumentCreator")
+  ownedDocuments Document[] @relation("DocumentOwner")
+  reviewingDocuments Document[] @relation("DocumentReviewer")
+  firstApprovingDocuments Document[] @relation("DocumentFirstApprover")
+  secondApprovingDocuments Document[] @relation("DocumentSecondApprover")
+  createdFolders Folder[] @relation("FolderCreator")
+  approvalHistory ApprovalHistory[]
+  comments      DocumentComment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  versionUploads DocumentVersion[] @relation("VersionUploader")
+  generatedReports GeneratedReport[]
+  backups       Backup[]
+  createdSupersedeRequests  SupersedeObsoleteRequest[] @relation("RequestCreator")
+  reviewedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestReviewer")
+  approvedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestApprover")
+  rejectedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestRejector")
+  createdVersionRequests    VersionRequest[] @relation("VersionRequestCreator")
+  reviewedVersionRequests   VersionRequest[] @relation("VersionRequestReviewer")
+  approvedVersionRequests   VersionRequest[] @relation("VersionRequestApprover")
+  rejectedVersionRequests   VersionRequest[] @relation("VersionRequestRejector")
+  documentAssignments       DocumentAssignment[]
+
+  @@index([email])
+  @@index([employeeId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  displayName String
+  description String?
+  permissions Json?     // Store permissions as JSON
+  isSystem    Boolean   @default(false) // System roles cannot be deleted
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  users       UserRole[]
+  workflowSteps WorkflowStep[]
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  roleId    Int
+  assignedAt DateTime @default(now())
+  assignedBy Int?
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model UserSession {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  token       String   @unique @db.VarChar(512)
+  refreshToken String? @unique @db.VarChar(512)
+  device      String?
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model UserPreference {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  language        String   @default("en")
+  timezone        String   @default("Asia/Kuala_Lumpur")
+  dateFormat      String   @default("DD/MM/YYYY")
+  timeFormat      String   @default("24h")
+  itemsPerPage    Int      @default(15)
+  defaultView     String   @default("list")
+  emailDigest     String   @default("daily")
+  notifications   Json?    // Email and in-app notification preferences
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+
+model DocumentType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  prefix      String   @unique // e.g., "DOC", "MoM", "PP"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  documents   Document[]
+  templates   Template[]
+  workflows   Workflow[]
+}
+
+model ProjectCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique // e.g., "INT", "EXT", "CLIENT"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  documents   Document[]
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique // e.g., "IT", "HR", "FIN"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Folder {
+  id          Int      @id @default(autoincrement())
+  name        String
+  parentId    Int?
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent      Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Folder[]  @relation("FolderHierarchy")
+  documents   Document[]
+  createdBy   User      @relation("FolderCreator", fields: [createdById], references: [id])
+
+  @@index([parentId])
+  @@index([createdById])
+}
+
+model Document {
+  id              Int      @id @default(autoincrement())
+  fileCode        String   @unique // e.g., DOC-2025-001
+  title           String
+  description     String?  @db.Text
+  documentTypeId  Int
+  projectCategoryId Int?
+  folderId        Int?     // Folder assignment
+  status          DocStatus @default(DRAFT)
+  stage           WorkflowStage @default(DRAFT)
+  version         String   @default("1.0")
+  
+  // User references
+  createdById     Int
+  ownerId         Int      // Current document owner
+  submittedById   Int?
+  reviewerId      Int?     // Assigned reviewer
+  reviewedById    Int?     // User who completed the review
+  firstApproverId Int?     // First level approver
+  secondApproverId Int?    // Second level approver
+  publishedById   Int?     // User who published the document
+  acknowledgedById Int?
+  
+  // Supersede/Obsolete
+  supersededById  Int?     // Document that supersedes this one
+  obsoleteReason  String?  @db.Text
+  obsoleteDate    DateTime?
+  
+  // Document date (for file code generation)
+  dateOfDocument  DateTime? // User-specified document date (used in file code)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  firstApprovedAt   DateTime?
+  secondApprovedAt  DateTime?
+  acknowledgedAt    DateTime?
+  publishedAt       DateTime?
+
+  // Relations
+  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+  projectCategory ProjectCategory? @relation(fields: [projectCategoryId], references: [id], onDelete: SetNull)
+  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdBy       User     @relation("DocumentCreator", fields: [createdById], references: [id])
+  owner           User     @relation("DocumentOwner", fields: [ownerId], references: [id])
+  reviewer        User?    @relation("DocumentReviewer", fields: [reviewerId], references: [id])
+  firstApprover   User?    @relation("DocumentFirstApprover", fields: [firstApproverId], references: [id])
+  secondApprover  User?    @relation("DocumentSecondApprover", fields: [secondApproverId], references: [id])
+  versions        DocumentVersion[]
+  approvalHistory ApprovalHistory[]
+  comments        DocumentComment[]
+  metadata        DocumentMetadata[]
+  supersededBy    Document? @relation("DocumentSupersede", fields: [supersededById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  supersedes      Document[] @relation("DocumentSupersede")
+  supersedeRequests      SupersedeObsoleteRequest[] @relation("DocumentToObsolete")
+  supersedingForRequests SupersedeObsoleteRequest[] @relation("SupersedingDocument")
+  versionRequests        VersionRequest[] @relation("VersionRequestSource")
+  newVersionRequests     VersionRequest[] @relation("VersionRequestNew")
+  assignments            DocumentAssignment[]
+
+  @@index([fileCode])
+  @@index([status])
+  @@index([stage])
+  @@index([documentTypeId])
+  @@index([projectCategoryId])
+  @@index([folderId])
+  @@index([createdById])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+enum DocStatus {
+  DRAFT
+  PENDING_REVIEW
+  IN_REVIEW
+  PENDING_FIRST_APPROVAL
+  IN_FIRST_APPROVAL
+  PENDING_SECOND_APPROVAL
+  IN_SECOND_APPROVAL
+  READY_TO_PUBLISH
+  PENDING_ACKNOWLEDGMENT
+  ACKNOWLEDGED
+  APPROVED
+  PUBLISHED
+  REJECTED
+  RETURNED
+  SUPERSEDED
+  OBSOLETE
+  ARCHIVED
+  
+  // Legacy statuses (deprecated but kept for backward compatibility)
+  PENDING_APPROVAL
+  IN_APPROVAL
+}
+
+enum WorkflowStage {
+  DRAFT
+  REVIEW
+  FIRST_APPROVAL
+  SECOND_APPROVAL
+  READY_TO_PUBLISH
+  ACKNOWLEDGMENT
+  PUBLISHED
+  SUPERSEDED
+  OBSOLETE
+  
+  // Legacy stage (deprecated but kept for backward compatibility)
+  APPROVAL
+}
+
+model DocumentVersion {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  version     String   // e.g., "1.0", "1.1", "2.0"
+  filePath    String
+  fileName    String
+  mimeType    String
+  fileSize    Int      // in bytes
+  uploadedById Int
+  isPublished Boolean  @default(false)
+  isEncrypted Boolean  @default(false)  // Whether file is AES-256 encrypted
+  uploadedAt  DateTime @default(now())
+  
+  // Relations
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy  User     @relation("VersionUploader", fields: [uploadedById], references: [id])
+
+  @@index([documentId])
+  @@index([version])
+}
+
+model DocumentMetadata {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  key         String
+  value       String   @db.Text
+  createdAt   DateTime @default(now())
+
+  // Relations
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, key])
+  @@index([documentId])
+}
+
+model DocumentComment {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  userId      Int
+  comment     String   @db.Text
+  commentType CommentType @default(GENERAL)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+}
+
+enum CommentType {
+  GENERAL
+  REVIEW
+  APPROVAL
+  REJECTION
+  AMENDMENT
+}
+
+model DocumentAssignment {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  userId      Int
+  assignmentType AssignmentType
+  assignedById Int?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?  // Optional: auto-cleanup after workflow completion
+
+  // Relations
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([documentId, userId, assignmentType])
+  @@index([documentId])
+  @@index([userId])
+  @@index([assignmentType])
+}
+
+enum AssignmentType {
+  REVIEW
+  FIRST_APPROVAL
+  SECOND_APPROVAL
+  ACKNOWLEDGMENT
+}
+
+// ============================================
+// VERSION REQUEST WORKFLOW
+// ============================================
+
+model VersionRequest {
+  id                Int      @id @default(autoincrement())
+  documentId        Int      // Original document to create new version for
+  reasonForRevision String   @db.Text
+  proposedChanges   String   @db.Text
+  targetDate        DateTime?
+  priority          String   @default("Normal") // Low, Normal, High, Critical
+  remarks           String?  @db.Text
+  filePath          String?  // Optional draft file uploaded with request
+  fileName          String?
+  requestedById     Int
+  status            RequestStatus @default(PENDING_REVIEW)
+  stage             RequestWorkflowStage @default(REVIEW)
+  
+  // Review stage
+  reviewedById      Int?
+  reviewedAt        DateTime?
+  reviewComments    String?  @db.Text
+  
+  // Approval stage
+  approvedById      Int?
+  approvedAt        DateTime?
+  approvalComments  String?  @db.Text
+  
+  // Rejection
+  rejectedById      Int?
+  rejectedAt        DateTime?
+  rejectionReason   String?  @db.Text
+  
+  // New document created after approval
+  newDocumentId     Int?     // Links to the newly created document
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  document          Document @relation("VersionRequestSource", fields: [documentId], references: [id], onDelete: Cascade)
+  newDocument       Document? @relation("VersionRequestNew", fields: [newDocumentId], references: [id], onDelete: SetNull)
+  requestedBy       User @relation("VersionRequestCreator", fields: [requestedById], references: [id])
+  reviewedBy        User? @relation("VersionRequestReviewer", fields: [reviewedById], references: [id])
+  approvedBy        User? @relation("VersionRequestApprover", fields: [approvedById], references: [id])
+  rejectedBy        User? @relation("VersionRequestRejector", fields: [rejectedById], references: [id])
+  
+  @@index([documentId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([createdAt])
+}
+
+// ============================================
+// SUPERSEDE/OBSOLETE REQUEST WORKFLOW
+// ============================================
+
+model SupersedeObsoleteRequest {
+  id                Int      @id @default(autoincrement())
+  documentId        Int      // Document to be obsoleted/superseded
+  actionType        SupersedeAction // SUPERSEDE or OBSOLETE
+  supersedingDocId  Int?     // For SUPERSEDE only - the new document replacing this one
+  reason            String   @db.Text
+  requestedById     Int
+  status            RequestStatus @default(PENDING_REVIEW)
+  stage             RequestWorkflowStage @default(REVIEW)
+  
+  // Review stage
+  reviewedById      Int?
+  reviewedAt        DateTime?
+  reviewComments    String?  @db.Text
+  
+  // Approval stage
+  approvedById      Int?
+  approvedAt        DateTime?
+  approvalComments  String?  @db.Text
+  
+  // Rejection
+  rejectedById      Int?
+  rejectedAt        DateTime?
+  rejectionReason   String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  document          Document @relation("DocumentToObsolete", fields: [documentId], references: [id], onDelete: Cascade)
+  supersedingDoc    Document? @relation("SupersedingDocument", fields: [supersedingDocId], references: [id], onDelete: SetNull)
+  requestedBy       User @relation("RequestCreator", fields: [requestedById], references: [id])
+  reviewedBy        User? @relation("RequestReviewer", fields: [reviewedById], references: [id])
+  approvedBy        User? @relation("RequestApprover", fields: [approvedById], references: [id])
+  rejectedBy        User? @relation("RequestRejector", fields: [rejectedById], references: [id])
+  
+  @@index([documentId])
+  @@index([status])
+  @@index([requestedById])
+  @@index([createdAt])
+}
+
+enum SupersedeAction {
+  SUPERSEDE
+  OBSOLETE
+}
+
+enum RequestStatus {
+  PENDING_REVIEW
+  IN_REVIEW
+  PENDING_APPROVAL
+  IN_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum RequestWorkflowStage {
+  REVIEW
+  APPROVAL
+  COMPLETED
+}
+
+// ============================================
+// WORKFLOW MANAGEMENT
+// ============================================
+
+model Workflow {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String?  @db.Text
+  documentTypeId  Int      @unique
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+  steps           WorkflowStep[]
+
+  @@index([documentTypeId])
+}
+
+model WorkflowStep {
+  id          Int      @id @default(autoincrement())
+  workflowId  Int
+  stepOrder   Int
+  stepName    String   // e.g., "Review", "Approval", "Acknowledgment"
+  roleId      Int
+  isRequired  Boolean  @default(true)
+  dueInDays   Int?     // Optional SLA in days
+
+  // Relations
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  role        Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([workflowId, stepOrder])
+  @@index([workflowId])
+  @@index([roleId])
+}
+
+model ApprovalHistory {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  userId      Int
+  action      ApprovalAction
+  stage       WorkflowStage
+  comments    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  // Relations
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum ApprovalAction {
+  SUBMITTED
+  REVIEWED
+  FIRST_APPROVED
+  SECOND_APPROVED
+  READY_FOR_PUBLISH
+  PUBLISHED
+  REJECTED
+  ACKNOWLEDGED
+  RETURNED
+  SUPERSEDED
+  OBSOLETED
+  ARCHIVED
+  
+  // Legacy action (deprecated)
+  APPROVED
+}
+
+// ============================================
+// TEMPLATE MANAGEMENT
+// ============================================
+
+model Template {
+  id              Int      @id @default(autoincrement())
+  documentTypeId  Int
+  templateName    String
+  version         String
+  filePath        String
+  fileName        String
+  uploadedBy      String
+  uploadedOn      DateTime @default(now())
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+
+  @@index([documentTypeId])
+}
+
+// ============================================
+// NOTIFICATION SYSTEM
+// ============================================
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        NotificationType
+  title       String
+  message     String   @db.Text
+  link        String?
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  DOCUMENT_ASSIGNED
+  REVIEW_REQUIRED
+  APPROVAL_REQUIRED
+  ACKNOWLEDGMENT_REQUIRED
+  STATUS_CHANGED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
+  DOCUMENT_RETURNED
+  VERSION_UPDATE
+  SYSTEM_ALERT
+}
+
+// ============================================
+// MASTER RECORDS & ARCHIVES
+// ============================================
+
+model DocumentRegister {
+  id              Int      @id @default(autoincrement())
+  fileCode        String   @unique
+  documentTitle   String
+  documentType    String
+  version         String
+  registeredDate  DateTime @default(now())
+  owner           String
+  department      String?
+  status          String
+
+  @@index([fileCode])
+  @@index([registeredDate])
+}
+
+model VersionRegister {
+  id              Int      @id @default(autoincrement())
+  fileCode        String
+  documentTitle   String
+  previousVersion String
+  newVersion      String
+  versionDate     DateTime
+  updatedBy       String
+  changeSummary   String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([fileCode])
+  @@index([versionDate])
+}
+
+model ObsoleteRegister {
+  id              Int      @id @default(autoincrement())
+  fileCode        String
+  documentTitle   String
+  documentType    String
+  obsoleteDate    DateTime
+  reason          String   @db.Text
+  replacedBy      String?
+  lastOwner       String
+  createdAt       DateTime @default(now())
+
+  @@index([fileCode])
+  @@index([obsoleteDate])
+}
+
+model ArchiveRegister {
+  id              Int      @id @default(autoincrement())
+  fileCode        String
+  documentTitle   String
+  version         String
+  archivedDate    DateTime
+  archivedBy      String
+  currentVersion  String
+  retentionUntil  DateTime?
+  filePath        String
+  createdAt       DateTime @default(now())
+
+  @@index([fileCode])
+  @@index([archivedDate])
+  @@index([retentionUntil])
+}
+
+// ============================================
+// AUDIT LOGGING
+// ============================================
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  action      String
+  entity      String?  // e.g., "Document", "User", "Template"
+  entityId    Int?
+  description String?  @db.Text
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  isArchived  Boolean  @default(false)  // For log archiving functionality
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@index([isArchived])
+}
+
+// ============================================
+// REPORTS & ANALYTICS
+// ============================================
+
+model GeneratedReport {
+  id            Int      @id @default(autoincrement())
+  reportType    String   // e.g., 'document-stats', 'user-activity'
+  reportName    String
+  filePath      String?
+  format        String   // PDF, EXCEL, CSV
+  fileSize      Int?     // in bytes
+  status        ReportStatus @default(PENDING)
+  config        Json?    // Report configuration (date range, filters, etc)
+  generatedById Int?
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+  
+  // Relations
+  generatedBy   User?    @relation(fields: [generatedById], references: [id], onDelete: SetNull)
+  
+  @@index([generatedById])
+  @@index([reportType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ReportStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// SYSTEM CONFIGURATION
+// ============================================
+
+model Configuration {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// BACKUP & RECOVERY
+// ============================================
+
+model Backup {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  fileName    String
+  filePath    String
+  size        BigInt   @default(0) // File size in bytes
+  status      String   @default("completed") // completed, failed, in_progress
+  createdById Int
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+// ============================================
+// PUBLIC INQUIRIES
+// ============================================
+
+model Inquiry {
+  id                Int      @id @default(autoincrement())
+  name              String
+  email             String
+  subject           String   @default("General Inquiry")
+  message           String   @db.Text
+  organizationType  String?  // e.g., "Corporate", "Government", "SME", "Other"
+  status            String   @default("new") // new, in_progress, resolved, closed
+  submittedAt       DateTime @default(now())
+  respondedAt       DateTime?
+  respondedBy       Int?
+  notes             String?  @db.Text
+  
+  @@index([email])
+  @@index([status])
+  @@index([submittedAt])
+}

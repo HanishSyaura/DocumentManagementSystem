@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { 
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background-color: var(--dms-main-bg);
+  background-image: var(--dms-bg-image);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+.app-topbar { background-color: var(--dms-primary); }
+.app-sidebar { 
+  background-color: var(--dms-sidebar-bg); 
+  border-right: 1px solid rgba(0,0,0,0.08); 
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+}
+.app-rightpanel { background-color: var(--dms-sidebar-bg); border-left: 1px solid rgba(0,0,0,0.04); }
+.app-main-content { 
+  background: transparent;
+  min-height: 100%;
+}
+
+:root{
+	--dms-primary: #003366;
+	--dms-primary-dark: #002244;
+	--dms-secondary: #0066CC;
+	--dms-accent: #FF9900;
+	--dms-sidebar-bg: #003366;
+	--dms-sidebar-text: #E3F2FD;
+	--dms-main-bg: #F5F7FA;
+	--dms-tab-text: #64748B;
+	--dms-tab-active: #0066CC;
+	--dms-bg-image: none;
+	--dms-muted: #6b7280;
+	--dms-card-bg: #ffffff;
+	--dms-panel-bg: #f8fafc;
+}
+
+.card { background: rgba(255, 255, 255, 0.95); border-radius: 0.5rem; box-shadow: 0 8px 20px rgba(21,25,40,0.06); backdrop-filter: blur(10px); }
+.muted { color: var(--dms-muted) }
+
+/* Metric card tweaks */
+.metric-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
+.metric-title { color: var(--dms-muted); font-size: 0.875rem }
+.metric-value { font-size: 1.5rem; font-weight: 600 }
+
+/* Table tweaks */
+.recent-table th { font-weight: 600; color: #6b7280; }
+.recent-table td { vertical-align: middle }
+.recent-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover }
+
+/* Footer style */
+.dms-footer { text-align:center; font-size: 12px; color: #9ca3af; padding: 16px 0 }
+
+/* Progress Tracker Arrow Styles */
+.clip-arrow-right {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+}
+
+.clip-arrow-left {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 50%);
+}
+
+.clip-arrow-left.clip-arrow-right {
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
+}
+
+/* Enhanced Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.8s ease-out; }
+.animate-fade-in { animation: fadeIn 0.6s ease-out; }
+.animate-slide-in-left { animation: slideInLeft 0.8s ease-out; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+html { 
+  scroll-behavior: smooth; 
+  scroll-padding-top: 4rem;
+}
