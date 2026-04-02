@@ -3299,7 +3299,7 @@ function ThemeBranding() {
                 <div className="flex gap-2">
                   <input
                     type="color"
-                    value={theme.landingButtonSecondary}
+                    value={theme.landingButtonSecondary?.startsWith('#') ? theme.landingButtonSecondary : '#FFFFFF'}
                     onChange={(e) => handleThemeChange('landingButtonSecondary', e.target.value)}
                     className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
                   />
