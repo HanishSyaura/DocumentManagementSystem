@@ -68,6 +68,24 @@ app.get('/', (req, res) => {
   }, 'Service is healthy');
 });
 
+app.get(['/api', '/api/'], (req, res) => {
+  return ResponseFormatter.success(res, {
+    service: 'DMS Backend API',
+    endpoints: {
+      health: '/api/system/health',
+      auth: '/api/auth',
+      users: '/api/users',
+      roles: '/api/roles',
+      documents: '/api/documents',
+      folders: '/api/folders',
+      workflow: '/api/workflow',
+      reports: '/api/reports',
+      templates: '/api/templates',
+      notifications: '/api/notifications'
+    }
+  }, 'API root');
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', docRoutes);
