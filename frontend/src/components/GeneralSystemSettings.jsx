@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
 import { applyTheme } from '../utils/branding'
+import MarkdownEditor from './MarkdownEditor'
 
 // Sub-tab Navigation
 function SubTabNavigation({ activeTab, onTabChange }) {
@@ -35,7 +36,7 @@ function SubTabNavigation({ activeTab, onTabChange }) {
       </nav>
     </div>
   )
-}
+};
 
 // Tab 1: Company Information
 function CompanyInfo() {
@@ -223,14 +224,14 @@ function LandingPageSettings() {
     
     // Key Features (8 features)
     features: [
-      { title: 'New Document Request (NDR) and Code Generation', iconImage: null, iconBgColor: 'bg-blue-100', textColor: 'text-blue-800', description: 'Initiate new document requests, auto-generate file codes, and select document templates by type.' },
-      { title: 'Drafting, Review & Approval Flow', iconImage: null, iconBgColor: 'bg-green-100', textColor: 'text-green-800', description: 'Structured document routing between Document Owner, Reviewer, and Approver with version tracking.' },
-      { title: 'Publishing & Archiving', iconImage: null, iconBgColor: 'bg-purple-100', textColor: 'text-purple-800', description: 'Automatically move approved documents to Published, Supersede, or Obsolete folders with controlled duplication.' },
-      { title: 'Notification & Acknowledgement', iconImage: null, iconBgColor: 'bg-yellow-100', textColor: 'text-yellow-800', description: 'Real-time system alerts for submission, review, approval, and publication status.' },
-      { title: 'Role-Based Access', iconImage: null, iconBgColor: 'bg-cyan-100', textColor: 'text-cyan-800', description: 'Access and permissions are granted based on roles — Document Owner, Reviewer, Approver, Document Controller, and Admin.' },
-      { title: 'System Configuration', iconImage: null, iconBgColor: 'bg-orange-100', textColor: 'text-orange-800', description: 'Upload templates, define document types, and manage approval flows per project or department.' },
-      { title: 'Log & Audit Trail', iconImage: null, iconBgColor: 'bg-pink-100', textColor: 'text-pink-800', description: 'Every activity and version is recorded for compliance and audit reference.' },
-      { title: 'Security & Profile Control', iconImage: null, iconBgColor: 'bg-red-100', textColor: 'text-red-800', description: 'Change password, manage profile settings, and maintain secure document ownership.' }
+      { title: 'New Document Request (NDR) and Code Generation', iconImage: null, iconBgColor: '#DBEAFE', textColor: '#1E40AF', description: 'Initiate new document requests, auto-generate file codes, and select document templates by type.' },
+      { title: 'Drafting, Review & Approval Flow', iconImage: null, iconBgColor: '#D1FAE5', textColor: '#065F46', description: 'Structured document routing between Document Owner, Reviewer, and Approver with version tracking.' },
+      { title: 'Publishing & Archiving', iconImage: null, iconBgColor: '#EDE9FE', textColor: '#5B21B6', description: 'Automatically move approved documents to Published, Supersede, or Obsolete folders with controlled duplication.' },
+      { title: 'Notification & Acknowledgement', iconImage: null, iconBgColor: '#FEF3C7', textColor: '#92400E', description: 'Real-time system alerts for submission, review, approval, and publication status.' },
+      { title: 'Role-Based Access', iconImage: null, iconBgColor: '#CFFAFE', textColor: '#155E75', description: 'Access and permissions are granted based on roles — Document Owner, Reviewer, Approver, Document Controller, and Admin.' },
+      { title: 'System Configuration', iconImage: null, iconBgColor: '#FFEDD5', textColor: '#9A3412', description: 'Upload templates, define document types, and manage approval flows per project or department.' },
+      { title: 'Log & Audit Trail', iconImage: null, iconBgColor: '#FCE7F3', textColor: '#9D174D', description: 'Every activity and version is recorded for compliance and audit reference.' },
+      { title: 'Security & Profile Control', iconImage: null, iconBgColor: '#FEE2E2', textColor: '#991B1B', description: 'Change password, manage profile settings, and maintain secure document ownership.' }
     ],
     
     // User Roles Section
@@ -329,10 +330,13 @@ function LandingPageSettings() {
     }
   }
 
+  const isHexColor = (v) => typeof v === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
+  const hexOr = (v, fallback) => (isHexColor(v) ? v : fallback)
+
   const handleAddFeature = () => {
     setContent(prev => ({
       ...prev,
-      features: [...prev.features, { title: '', iconImage: null, iconBgColor: 'bg-gray-100', textColor: 'text-gray-800', description: '' }]
+      features: [...prev.features, { title: '', iconImage: null, iconBgColor: '#F3F4F6', textColor: '#1F2937', description: '' }]
     }))
   }
 
@@ -507,7 +511,11 @@ function LandingPageSettings() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">{t('gss_lp_subheadline')}</label>
-            <textarea value={content.heroSubheadline} onChange={(e) => setContent(prev => ({ ...prev, heroSubheadline: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+            <MarkdownEditor
+              value={content.heroSubheadline}
+              onChange={(val) => setContent(prev => ({ ...prev, heroSubheadline: val }))}
+              rows={2}
+            />
           </div>
 
           <div className="border-t pt-4">
@@ -566,11 +574,19 @@ function LandingPageSettings() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">Main Description</label>
-            <textarea value={content.aboutDescription} onChange={(e) => setContent(prev => ({ ...prev, aboutDescription: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <MarkdownEditor
+              value={content.aboutDescription}
+              onChange={(val) => setContent(prev => ({ ...prev, aboutDescription: val }))}
+              rows={3}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">Sub Description</label>
-            <textarea value={content.aboutSubDescription} onChange={(e) => setContent(prev => ({ ...prev, aboutSubDescription: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <MarkdownEditor
+              value={content.aboutSubDescription}
+              onChange={(val) => setContent(prev => ({ ...prev, aboutSubDescription: val }))}
+              rows={2}
+            />
           </div>
           <div className="border-t pt-4">
             <label className="block text-sm font-medium text-gray-900 mb-2">Section Image (Optional)</label>
@@ -637,7 +653,11 @@ function LandingPageSettings() {
                   </div>
                   <div className="md:col-span-7">
                     <label className="block text-xs text-gray-600 mb-1">Description</label>
-                    <input type="text" value={feature.description} onChange={(e) => handleFeatureChange(idx, 'description', e.target.value)} placeholder="Description" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
+                    <MarkdownEditor
+                      value={feature.description}
+                      onChange={(val) => handleFeatureChange(idx, 'description', val)}
+                      rows={2}
+                    />
                   </div>
                   <div className="md:col-span-1 flex items-end">
                     <button onClick={() => handleRemoveFeature(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded w-full" title="Remove">
@@ -660,43 +680,55 @@ function LandingPageSettings() {
                   </div>
                   <div className={feature.iconImage ? "md:col-span-3" : "md:col-span-3"}>
                     <label className="block text-xs text-gray-600 mb-1">Background Color</label>
-                    <select value={feature.iconBgColor} onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
-                      <option value="bg-blue-100">Blue</option>
-                      <option value="bg-green-100">Green</option>
-                      <option value="bg-purple-100">Purple</option>
-                      <option value="bg-yellow-100">Yellow</option>
-                      <option value="bg-cyan-100">Cyan</option>
-                      <option value="bg-orange-100">Orange</option>
-                      <option value="bg-pink-100">Pink</option>
-                      <option value="bg-red-100">Red</option>
-                      <option value="bg-gray-100">Gray</option>
-                    </select>
-                  </div>
-                  {!feature.iconImage && (
-                    <div className="md:col-span-3">
-                      <label className="block text-xs text-gray-600 mb-1">Text/Icon Color</label>
-                      <select value={feature.textColor || 'text-gray-800'} onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
-                        <option value="text-blue-800">Blue Dark</option>
-                        <option value="text-green-800">Green Dark</option>
-                        <option value="text-purple-800">Purple Dark</option>
-                        <option value="text-yellow-800">Yellow Dark</option>
-                        <option value="text-cyan-800">Cyan Dark</option>
-                        <option value="text-orange-800">Orange Dark</option>
-                        <option value="text-pink-800">Pink Dark</option>
-                        <option value="text-red-800">Red Dark</option>
-                        <option value="text-gray-800">Gray Dark</option>
-                        <option value="text-white">White</option>
-                        <option value="text-black">Black</option>
-                      </select>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={hexOr(feature.iconBgColor, '#F3F4F6')}
+                        onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={feature.iconBgColor || ''}
+                        onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)}
+                        placeholder="#F3F4F6"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                      />
                     </div>
-                  )}
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="block text-xs text-gray-600 mb-1">Text Color</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={hexOr(feature.textColor, '#1F2937')}
+                        onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)}
+                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={feature.textColor || ''}
+                        onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)}
+                        placeholder="#1F2937"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                      />
+                    </div>
+                  </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs text-gray-600 mb-1">Preview</label>
-                    <div className={`w-full h-10 ${feature.iconBgColor || 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
+                    <div
+                      className={`w-full h-10 ${isHexColor(feature.iconBgColor) ? '' : (feature.iconBgColor || 'bg-gray-100')} rounded-lg flex items-center justify-center`}
+                      style={isHexColor(feature.iconBgColor) ? { backgroundColor: feature.iconBgColor } : undefined}
+                    >
                       {feature.iconImage ? (
                         <img src={feature.iconImage} alt="icon" className="h-6 w-6 object-contain" />
                       ) : (
-                        <span className="text-xs text-gray-400">No icon</span>
+                        <span
+                          className={`text-xs ${isHexColor(feature.textColor) ? '' : (feature.textColor || 'text-gray-400')}`}
+                          style={isHexColor(feature.textColor) ? { color: feature.textColor } : undefined}
+                        >
+                          No icon
+                        </span>
                       )}
                     </div>
                   </div>
@@ -737,7 +769,12 @@ function LandingPageSettings() {
                     <input type="text" value={role.name} onChange={(e) => handleRoleChange(idx, 'name', e.target.value)} placeholder="Role Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
                   </div>
                   <div className="md:col-span-6">
-                    <input type="text" value={role.description} onChange={(e) => handleRoleChange(idx, 'description', e.target.value)} placeholder="Role Description" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
+                    <MarkdownEditor
+                      value={role.description}
+                      onChange={(val) => handleRoleChange(idx, 'description', val)}
+                      rows={2}
+                      placeholder="Role Description"
+                    />
                   </div>
                   <div className="md:col-span-2">
                     <select value={role.position} onChange={(e) => handleRoleChange(idx, 'position', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
@@ -859,7 +896,11 @@ function LandingPageSettings() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">Contact Description</label>
-            <textarea value={content.contactDescription} onChange={(e) => setContent(prev => ({ ...prev, contactDescription: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <MarkdownEditor
+              value={content.contactDescription}
+              onChange={(val) => setContent(prev => ({ ...prev, contactDescription: val }))}
+              rows={3}
+            />
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -996,7 +1037,7 @@ function LandingPageSettings() {
 }
 
 // Tab 3: Theme & Branding
-function ThemeBranding() {
+const ThemeBranding = () => {
   const { t } = usePreferences()
   const [theme, setTheme] = useState({
     // Basic Colors
