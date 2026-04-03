@@ -343,6 +343,26 @@ function LandingPageSettings() {
   const isHexColor = (v) => typeof v === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
   const hexOr = (v, fallback) => (isHexColor(v) ? v : fallback)
 
+  const MAX_LP_IMAGE_BYTES = 2 * 1024 * 1024
+  const formatBytes = (bytes) => {
+    const mb = bytes / (1024 * 1024)
+    if (mb >= 1) return `${Math.round(mb * 10) / 10} MB`
+    const kb = bytes / 1024
+    if (kb >= 1) return `${Math.round(kb)} KB`
+    return `${bytes} B`
+  }
+  const maxLpImageHint = `Max ${formatBytes(MAX_LP_IMAGE_BYTES)} per image`
+
+  const validateImageFile = (file, inputEl) => {
+    if (!file) return false
+    if (file.size > MAX_LP_IMAGE_BYTES) {
+      if (inputEl) inputEl.value = ''
+      alert(`Image too large. ${maxLpImageHint}.`)
+      return false
+    }
+    return true
+  }
+
   const handleAddFeature = () => {
     setContent(prev => ({
       ...prev,
@@ -352,24 +372,24 @@ function LandingPageSettings() {
 
   const handleIconImageUpload = (index, event) => {
     const file = event.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        handleFeatureChange(index, 'iconImage', reader.result)
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+    if (!validateImageFile(file, event.target)) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      handleFeatureChange(index, 'iconImage', reader.result)
     }
+    reader.readAsDataURL(file)
   }
 
   const handleSectionImageUpload = (section, event) => {
     const file = event.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setContent(prev => ({ ...prev, [section]: reader.result }))
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+    if (!validateImageFile(file, event.target)) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setContent(prev => ({ ...prev, [section]: reader.result }))
     }
+    reader.readAsDataURL(file)
   }
 
   const handleFeatureChange = (index, field, value) => {
@@ -564,6 +584,7 @@ function LandingPageSettings() {
                   onChange={(e) => handleSectionImageUpload('heroImage', e)} 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
+                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
                 {content.heroImage && (
                   <button 
                     onClick={() => setContent(prev => ({ ...prev, heroImage: null }))} 
@@ -635,6 +656,7 @@ function LandingPageSettings() {
                   onChange={(e) => handleSectionImageUpload('aboutImage', e)} 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
+                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
                 {content.aboutImage && (
                   <button 
                     onClick={() => setContent(prev => ({ ...prev, aboutImage: null }))} 
@@ -708,6 +730,7 @@ function LandingPageSettings() {
                       onChange={(e) => handleIconImageUpload(idx, e)} 
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
+                    <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
                   </div>
                   <div className={feature.iconImage ? "md:col-span-3" : "md:col-span-3"}>
                     <label className="block text-xs text-gray-600 mb-1">Background Color</label>
@@ -884,6 +907,7 @@ function LandingPageSettings() {
                   onChange={(e) => handleSectionImageUpload('workflowImage', e)} 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
+                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
                 {content.workflowImage && (
                   <button 
                     onClick={() => setContent(prev => ({ ...prev, workflowImage: null }))} 
@@ -970,6 +994,7 @@ function LandingPageSettings() {
                   onChange={(e) => handleSectionImageUpload('contactImage', e)} 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
+                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
                 {content.contactImage && (
                   <button 
                     onClick={() => setContent(prev => ({ ...prev, contactImage: null }))} 

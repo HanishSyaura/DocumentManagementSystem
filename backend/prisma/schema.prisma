@@ -782,7 +782,7 @@ enum ReportStatus {
 model Configuration {
   id          Int      @id @default(autoincrement())
   key         String   @unique
-  value       String   @db.Text
+  value       String   @db.LongText
   description String?
   updatedAt   DateTime @updatedAt
 }
