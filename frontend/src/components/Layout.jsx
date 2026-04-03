@@ -4,6 +4,7 @@ import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import RightPanel from './RightPanel'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { applyTheme } from '../utils/branding'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -14,39 +15,6 @@ export default function Layout({ children }) {
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
   useEffect(() => {
-    // Apply full theme on mount and theme changes
-    const applyTheme = (themeObj) => {
-      const root = document.documentElement
-      root.style.setProperty('--dms-primary', themeObj.primaryColor)
-      root.style.setProperty('--dms-secondary', themeObj.secondaryColor)
-      root.style.setProperty('--dms-accent', themeObj.accentColor)
-      root.style.setProperty('--dms-sidebar-bg', themeObj.sidebarBgColor)
-      root.style.setProperty('--dms-sidebar-text', themeObj.sidebarTextColor)
-      root.style.setProperty('--dms-tab-text', themeObj.tabTextColor)
-      root.style.setProperty('--dms-tab-active', themeObj.tabActiveColor)
-      document.body.style.fontFamily = `'${themeObj.fontFamily}', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial`
-      
-      // Update background image if present
-      if (themeObj.bgImage) {
-        root.style.setProperty('--dms-bg-image', `url('${themeObj.bgImage}')`)
-        root.style.setProperty('--dms-main-bg', themeObj.mainBgColor + 'cc') // Add 80% opacity
-      } else {
-        root.style.setProperty('--dms-bg-image', 'none')
-        root.style.setProperty('--dms-main-bg', themeObj.mainBgColor)
-      }
-      
-      // Update favicon if present
-      if (themeObj.favicon) {
-        let link = document.querySelector("link[rel~='icon']")
-        if (!link) {
-          link = document.createElement('link')
-          link.rel = 'icon'
-          document.head.appendChild(link)
-        }
-        link.href = themeObj.favicon
-      }
-    }
-
     // Load theme settings to get sidebar position and apply theme
     const loadThemeSettings = () => {
       const savedTheme = localStorage.getItem('dms_theme_settings')
