@@ -8,6 +8,7 @@ const config = {
   // Server
   port: process.env.PORT || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
+  jsonBodyLimit: process.env.JSON_BODY_LIMIT || '80mb',
   
   // Database
   databaseUrl: process.env.DATABASE_URL,
