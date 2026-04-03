@@ -298,11 +298,11 @@ const HomePage = () => {
                   <>
                     <div 
                       className="absolute inset-0 rounded-3xl blur-2xl opacity-50 group-hover:opacity-75 transition-opacity"
-                      style={{background: `linear-gradient(to bottom right, ${landingContent?.aboutGradientStart || '#60a5fa'}, ${landingContent?.aboutGradientEnd || '#22d3ee'})`}}
+                      style={{background: `linear-gradient(to bottom right, var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`}}
                     ></div>
                     <div 
                       className="relative p-12 sm:p-16 lg:p-20 rounded-3xl shadow-2xl transform hover:scale-110 transition-all duration-500 cursor-pointer"
-                      style={{background: `linear-gradient(to bottom right, ${landingContent?.aboutGradientStart || '#60a5fa'}, ${landingContent?.aboutGradientEnd || '#22d3ee'})`}}
+                      style={{background: `linear-gradient(to bottom right, var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`}}
                     >
                       <DocumentDuplicateIcon className="h-40 w-40 sm:h-48 sm:w-48 lg:h-56 lg:w-56 text-white animate-float" />
                     </div>
@@ -340,14 +340,10 @@ const HomePage = () => {
               <div key={idx} className={`rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 cursor-pointer group bg-white`}>
                 <div className="flex items-start gap-5">
                   {/* Icon */}
-                  {(feature.iconImage || feature.icon) && (
+                  {feature.iconImage && (
                     <div className="flex-shrink-0">
                       <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${feature.iconBgColor || 'bg-gray-200'} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}>
-                        {feature.iconImage ? (
-                          <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
-                        ) : feature.icon ? (
-                          <span className={`text-4xl lg:text-5xl ${feature.textColor || 'text-gray-800'}`}>{feature.icon}</span>
-                        ) : null}
+                        <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
                       </div>
                     </div>
                   )}
@@ -379,14 +375,10 @@ const HomePage = () => {
               <div key={idx} className={`rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 cursor-pointer group bg-white`}>
                 <div className="flex items-start gap-5">
                   {/* Icon */}
-                  {(feature.iconImage || feature.icon) && (
+                  {feature.iconImage && (
                     <div className="flex-shrink-0">
                       <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${feature.iconBgColor || 'bg-gray-200'} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}>
-                        {feature.iconImage ? (
-                          <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
-                        ) : feature.icon ? (
-                          <span className={`text-4xl lg:text-5xl ${feature.textColor || 'text-gray-800'}`}>{feature.icon}</span>
-                        ) : null}
+                        <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
                       </div>
                     </div>
                   )}

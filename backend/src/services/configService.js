@@ -567,7 +567,21 @@ class ConfigService {
   }
 
   async updateLandingPageSettings(settings) {
-    const settingsJson = JSON.stringify(settings);
+    const sanitized = settings && typeof settings === 'object' ? { ...settings } : settings
+    if (sanitized && typeof sanitized === 'object') {
+      delete sanitized.aboutGradientStart
+      delete sanitized.aboutGradientEnd
+      if (Array.isArray(sanitized.features)) {
+        sanitized.features = sanitized.features.map((f) => {
+          if (!f || typeof f !== 'object') return f
+          const nf = { ...f }
+          delete nf.icon
+          return nf
+        })
+      }
+    }
+
+    const settingsJson = JSON.stringify(sanitized);
 
     const config = await prisma.configuration.upsert({
       where: { key: 'landing_page_settings' },

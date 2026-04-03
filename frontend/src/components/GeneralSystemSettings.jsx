@@ -220,19 +220,17 @@ function LandingPageSettings() {
     aboutSubDescription: 'It ensures traceability, accountability, and version control for all controlled documents across departments.',
     aboutImage: null,
     aboutImagePosition: 'left',
-    aboutGradientStart: '#60a5fa',
-    aboutGradientEnd: '#22d3ee',
     
     // Key Features (8 features)
     features: [
-      { title: 'New Document Request (NDR) and Code Generation', icon: '', iconImage: null, iconBgColor: 'bg-blue-100', textColor: 'text-blue-800', description: 'Initiate new document requests, auto-generate file codes, and select document templates by type.' },
-      { title: 'Drafting, Review & Approval Flow', icon: '', iconImage: null, iconBgColor: 'bg-green-100', textColor: 'text-green-800', description: 'Structured document routing between Document Owner, Reviewer, and Approver with version tracking.' },
-      { title: 'Publishing & Archiving', icon: '', iconImage: null, iconBgColor: 'bg-purple-100', textColor: 'text-purple-800', description: 'Automatically move approved documents to Published, Supersede, or Obsolete folders with controlled duplication.' },
-      { title: 'Notification & Acknowledgement', icon: '', iconImage: null, iconBgColor: 'bg-yellow-100', textColor: 'text-yellow-800', description: 'Real-time system alerts for submission, review, approval, and publication status.' },
-      { title: 'Role-Based Access', icon: '', iconImage: null, iconBgColor: 'bg-cyan-100', textColor: 'text-cyan-800', description: 'Access and permissions are granted based on roles — Document Owner, Reviewer, Approver, Document Controller, and Admin.' },
-      { title: 'System Configuration', icon: '', iconImage: null, iconBgColor: 'bg-orange-100', textColor: 'text-orange-800', description: 'Upload templates, define document types, and manage approval flows per project or department.' },
-      { title: 'Log & Audit Trail', icon: '', iconImage: null, iconBgColor: 'bg-pink-100', textColor: 'text-pink-800', description: 'Every activity and version is recorded for compliance and audit reference.' },
-      { title: 'Security & Profile Control', icon: '', iconImage: null, iconBgColor: 'bg-red-100', textColor: 'text-red-800', description: 'Change password, manage profile settings, and maintain secure document ownership.' }
+      { title: 'New Document Request (NDR) and Code Generation', iconImage: null, iconBgColor: 'bg-blue-100', textColor: 'text-blue-800', description: 'Initiate new document requests, auto-generate file codes, and select document templates by type.' },
+      { title: 'Drafting, Review & Approval Flow', iconImage: null, iconBgColor: 'bg-green-100', textColor: 'text-green-800', description: 'Structured document routing between Document Owner, Reviewer, and Approver with version tracking.' },
+      { title: 'Publishing & Archiving', iconImage: null, iconBgColor: 'bg-purple-100', textColor: 'text-purple-800', description: 'Automatically move approved documents to Published, Supersede, or Obsolete folders with controlled duplication.' },
+      { title: 'Notification & Acknowledgement', iconImage: null, iconBgColor: 'bg-yellow-100', textColor: 'text-yellow-800', description: 'Real-time system alerts for submission, review, approval, and publication status.' },
+      { title: 'Role-Based Access', iconImage: null, iconBgColor: 'bg-cyan-100', textColor: 'text-cyan-800', description: 'Access and permissions are granted based on roles — Document Owner, Reviewer, Approver, Document Controller, and Admin.' },
+      { title: 'System Configuration', iconImage: null, iconBgColor: 'bg-orange-100', textColor: 'text-orange-800', description: 'Upload templates, define document types, and manage approval flows per project or department.' },
+      { title: 'Log & Audit Trail', iconImage: null, iconBgColor: 'bg-pink-100', textColor: 'text-pink-800', description: 'Every activity and version is recorded for compliance and audit reference.' },
+      { title: 'Security & Profile Control', iconImage: null, iconBgColor: 'bg-red-100', textColor: 'text-red-800', description: 'Change password, manage profile settings, and maintain secure document ownership.' }
     ],
     
     // User Roles Section
@@ -334,7 +332,7 @@ function LandingPageSettings() {
   const handleAddFeature = () => {
     setContent(prev => ({
       ...prev,
-      features: [...prev.features, { title: '', icon: '', iconImage: null, iconBgColor: 'bg-gray-100', textColor: 'text-gray-800', description: '' }]
+      features: [...prev.features, { title: '', iconImage: null, iconBgColor: 'bg-gray-100', textColor: 'text-gray-800', description: '' }]
     }))
   }
 
@@ -575,47 +573,6 @@ function LandingPageSettings() {
             <textarea value={content.aboutSubDescription} onChange={(e) => setContent(prev => ({ ...prev, aboutSubDescription: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
           </div>
           <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-900 mb-3">Default Icon Gradient Colors</label>
-            <p className="text-xs text-gray-600 mb-3">These colors apply to the default icon when no custom image is uploaded</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-2">Gradient Start Color</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={content.aboutGradientStart || '#60a5fa'}
-                    onChange={(e) => setContent(prev => ({ ...prev, aboutGradientStart: e.target.value }))}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={content.aboutGradientStart || '#60a5fa'}
-                    onChange={(e) => setContent(prev => ({ ...prev, aboutGradientStart: e.target.value }))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
-                    placeholder="#60a5fa"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-2">Gradient End Color</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={content.aboutGradientEnd || '#22d3ee'}
-                    onChange={(e) => setContent(prev => ({ ...prev, aboutGradientEnd: e.target.value }))}
-                    className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={content.aboutGradientEnd || '#22d3ee'}
-                    onChange={(e) => setContent(prev => ({ ...prev, aboutGradientEnd: e.target.value }))}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
-                    placeholder="#22d3ee"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="border-t pt-4">
             <label className="block text-sm font-medium text-gray-900 mb-2">Section Image (Optional)</label>
             <p className="text-xs text-gray-600 mb-2">Upload a custom image to replace the default gradient icon</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -659,7 +616,6 @@ function LandingPageSettings() {
               </div>
             </div>
           </div>
-          </div>
         </div>
       </div>
 
@@ -702,13 +658,7 @@ function LandingPageSettings() {
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                   </div>
-                  {!feature.iconImage && (
-                    <div className="md:col-span-1">
-                      <label className="block text-xs text-gray-600 mb-1">Fallback Icon</label>
-                      <input type="text" value={feature.icon} onChange={(e) => handleFeatureChange(idx, 'icon', e.target.value)} placeholder="🎯" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none text-center" />
-                    </div>
-                  )}
-                  <div className={feature.iconImage ? "md:col-span-3" : "md:col-span-2"}>
+                  <div className={feature.iconImage ? "md:col-span-3" : "md:col-span-3"}>
                     <label className="block text-xs text-gray-600 mb-1">Background Color</label>
                     <select value={feature.iconBgColor} onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
                       <option value="bg-blue-100">Blue</option>
@@ -723,7 +673,7 @@ function LandingPageSettings() {
                     </select>
                   </div>
                   {!feature.iconImage && (
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                       <label className="block text-xs text-gray-600 mb-1">Text/Icon Color</label>
                       <select value={feature.textColor || 'text-gray-800'} onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
                         <option value="text-blue-800">Blue Dark</option>
@@ -745,8 +695,6 @@ function LandingPageSettings() {
                     <div className={`w-full h-10 ${feature.iconBgColor || 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
                       {feature.iconImage ? (
                         <img src={feature.iconImage} alt="icon" className="h-6 w-6 object-contain" />
-                      ) : feature.icon ? (
-                        <span className={`text-2xl ${feature.textColor || 'text-gray-800'}`}>{feature.icon}</span>
                       ) : (
                         <span className="text-xs text-gray-400">No icon</span>
                       )}
