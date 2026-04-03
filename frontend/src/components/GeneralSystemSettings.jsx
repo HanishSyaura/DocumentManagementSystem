@@ -212,8 +212,6 @@ function LandingPageSettings() {
     heroSubheadline: 'A unified system to create, review, approve, and publish all organizational documents — securely and efficiently.',
     heroImage: null,
     heroImagePosition: 'right',
-    heroBgColor: '',
-    heroTextColor: '',
     
     // What is DMS Section
     aboutTitle: 'What is DMS?',
@@ -511,46 +509,6 @@ function LandingPageSettings() {
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">{t('gss_lp_subheadline')}</label>
             <textarea value={content.heroSubheadline} onChange={(e) => setContent(prev => ({ ...prev, heroSubheadline: e.target.value }))} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Background Color</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={content.heroBgColor || '#2563EB'}
-                  onChange={(e) => setContent(prev => ({ ...prev, heroBgColor: e.target.value }))}
-                  className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  placeholder="Optional (e.g. #2563EB or leave blank)"
-                  value={content.heroBgColor}
-                  onChange={(e) => setContent(prev => ({ ...prev, heroBgColor: e.target.value }))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">If set, this overrides the theme gradient.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Text Color</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={content.heroTextColor || '#FFFFFF'}
-                  onChange={(e) => setContent(prev => ({ ...prev, heroTextColor: e.target.value }))}
-                  className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  placeholder="Optional (e.g. #FFFFFF or leave blank)"
-                  value={content.heroTextColor}
-                  onChange={(e) => setContent(prev => ({ ...prev, heroTextColor: e.target.value }))}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
-                />
-              </div>
-            </div>
           </div>
 
           <div className="border-t pt-4">
