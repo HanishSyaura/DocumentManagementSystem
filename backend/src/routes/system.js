@@ -9,6 +9,7 @@ const backupController = require('../controllers/backupController');
 const configController = require('../controllers/configController');
 const cleanupController = require('../controllers/cleanupController');
 const securityService = require('../services/securityService');
+const { uploadLandingPdf } = require('../middleware/upload');
 
 /**
  * @route   GET /api/system/info
@@ -199,6 +200,7 @@ router.post('/config/notification-settings/test-email', authenticate, configCont
 // Landing Page Settings (global)
 router.get('/config/landing-page-settings', authenticate, configController.getLandingPageSettings);
 router.put('/config/landing-page-settings', authenticate, configController.updateLandingPageSettings);
+router.post('/config/landing-page/footer-pdf', authenticate, uploadLandingPdf, configController.uploadLandingFooterPdf);
 
 // Branding (global)
 router.get('/config/company-info', authenticate, configController.getCompanyInfo);

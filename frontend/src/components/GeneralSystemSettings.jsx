@@ -273,6 +273,7 @@ function LandingPageSettings() {
       { label: 'Privacy Policy', pdf: null }
     ]
   })
+  const [maxUploadMB, setMaxUploadMB] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -289,6 +290,15 @@ function LandingPageSettings() {
     }
 
     const load = async () => {
+      try {
+        const res = await api.get('/system/config/file-upload')
+        const settings = res.data?.data?.settings
+        if (settings && typeof settings === 'object' && mounted) {
+          const mb = Number(settings.maxFileSize)
+          if (!Number.isNaN(mb) && Number.isFinite(mb)) setMaxUploadMB(mb)
+        }
+      } catch {}
+
       try {
         const res = await api.get('/system/config/landing-page-settings')
         const serverSettings = res.data?.data?.settings
@@ -462,15 +472,36 @@ function LandingPageSettings() {
 
   const handleFooterPdfUpload = (index, event) => {
     const file = event.target.files[0]
-    if (file && file.type === 'application/pdf') {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        handleFooterLinkChange(index, 'pdf', reader.result)
-      }
-      reader.readAsDataURL(file)
-    } else if (file) {
+    if (!file) return
+    if (file.type !== 'application/pdf') {
       alert('Please upload a PDF file')
+      return
     }
+
+    if (typeof maxUploadMB === 'number' && Number.isFinite(maxUploadMB)) {
+      const maxBytes = maxUploadMB * 1024 * 1024
+      if (file.size > maxBytes) {
+        alert(`File too large. Max upload size is ${maxUploadMB}MB`)
+        return
+      }
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+    api
+      .post('/system/config/landing-page/footer-pdf', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      .then((res) => {
+        const url = res.data?.data?.url
+        if (url) handleFooterLinkChange(index, 'pdf', url)
+      })
+      .catch((error) => {
+        const msg = error?.response?.status === 413
+          ? (typeof maxUploadMB === 'number' ? `File too large. Max upload size is ${maxUploadMB}MB` : 'File too large')
+          : (error?.response?.data?.message || 'Failed to upload PDF')
+        alert(msg)
+      })
   }
 
   const handlePreview = () => {
@@ -1001,6 +1032,9 @@ function LandingPageSettings() {
                       <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
                         ✓ PDF uploaded
                       </div>
+                    )}
+                    {typeof maxUploadMB === 'number' && Number.isFinite(maxUploadMB) && (
+                      <div className="mb-2 text-xs text-gray-600">Max upload size: {maxUploadMB}MB</div>
                     )}
                     <input 
                       type="file" 

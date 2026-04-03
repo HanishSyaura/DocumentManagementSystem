@@ -10,7 +10,7 @@ const port = process.env.PORT || 4000;
 
 // Ensure upload directories exist
 const uploadsDir = path.join(__dirname, '../uploads');
-const uploadSubDirs = ['temp', 'templates', 'documents', 'profiles'];
+const uploadSubDirs = ['temp', 'templates', 'documents', 'profiles', 'landing'];
 
 // Ensure backups directory exists
 const backupsDir = path.join(__dirname, '../backups');

@@ -239,8 +239,54 @@ const uploadProfileImage = multer({
   fileFilter: imageFileFilter
 });
 
+const landingPdfStorage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadPath = path.join(config.uploadDir, 'landing');
+    try {
+      const fs = require('fs').promises;
+      await fs.mkdir(uploadPath, { recursive: true });
+      cb(null, uploadPath);
+    } catch (error) {
+      cb(error);
+    }
+  },
+  filename: (req, file, cb) => {
+    const uniqueFileName = fileStorageService.generateUniqueFileName(file.originalname);
+    cb(null, uniqueFileName);
+  }
+});
+
+const landingPdfFileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (file.mimetype === 'application/pdf' || ext === '.pdf') {
+    cb(null, true);
+    return;
+  }
+  cb(new Error('Invalid file type. Only PDF files are allowed'), false);
+};
+
+const uploadLandingPdf = async (req, res, next) => {
+  try {
+    const settings = await getFileUploadSettings();
+    const upload = multer({
+      storage: landingPdfStorage,
+      limits: { fileSize: settings.maxFileSize * 1024 * 1024, files: 1 },
+      fileFilter: landingPdfFileFilter
+    }).single('file');
+    upload(req, res, next);
+  } catch (error) {
+    const upload = multer({
+      storage: landingPdfStorage,
+      limits: { fileSize: config.maxFileSize || 10 * 1024 * 1024, files: 1 },
+      fileFilter: landingPdfFileFilter
+    }).single('file');
+    upload(req, res, next);
+  }
+};
+
 module.exports = {
   uploadDocument,
   uploadTemplate,
-  uploadProfileImage
+  uploadProfileImage,
+  uploadLandingPdf
 };

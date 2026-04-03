@@ -53,8 +53,8 @@ if (config.nodeEnv === 'development') {
 }
 
 // Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Static file serving for uploads
 app.use('/uploads', express.static(config.uploadDir));

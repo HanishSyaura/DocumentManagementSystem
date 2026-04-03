@@ -500,6 +500,20 @@ exports.updateLandingPageSettings = asyncHandler(async (req, res) => {
   );
 });
 
+exports.uploadLandingFooterPdf = asyncHandler(async (req, res) => {
+  const file = req.file;
+  if (!file) {
+    throw new ValidationError('No file uploaded');
+  }
+
+  const url = `/uploads/landing/${file.filename}`;
+  return ResponseFormatter.success(
+    res,
+    { url, fileName: file.originalname, size: file.size },
+    'PDF uploaded successfully'
+  );
+});
+
 exports.getCompanyInfo = asyncHandler(async (req, res) => {
   const companyInfo = await configService.getCompanyInfo();
   return ResponseFormatter.success(res, { companyInfo }, 'Company info retrieved successfully');
