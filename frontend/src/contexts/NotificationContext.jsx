@@ -65,6 +65,14 @@ export const NotificationProvider = ({ children }) => {
   const [preferences, setPreferences] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const hasAccessToken = () => {
+    try {
+      return Boolean(localStorage.getItem('token'))
+    } catch {
+      return false
+    }
+  }
+
   // Load user notification preferences
   const loadPreferences = useCallback(async () => {
     try {
@@ -73,6 +81,15 @@ export const NotificationProvider = ({ children }) => {
       if (savedPreferences) {
         setPreferences(JSON.parse(savedPreferences))
         setLoading(false)
+      }
+
+      if (!hasAccessToken()) {
+        if (!savedPreferences) {
+          const defaults = getDefaultPreferences()
+          setPreferences(defaults)
+          localStorage.setItem('notificationPreferences', JSON.stringify(defaults))
+        }
+        return
       }
       
       // Backend sync enabled
@@ -102,6 +119,19 @@ export const NotificationProvider = ({ children }) => {
   // Load notifications from backend
   const loadNotifications = useCallback(async () => {
     try {
+      if (!hasAccessToken()) {
+        const savedNotifications = localStorage.getItem('notifications')
+        if (savedNotifications) {
+          const parsed = JSON.parse(savedNotifications)
+          setNotifications(parsed)
+          setUnreadCount(parsed.filter(n => !n.read).length)
+        } else {
+          setNotifications([])
+          setUnreadCount(0)
+        }
+        return
+      }
+
       // Always fetch from backend first for fresh data
       const res = await silentApi.get('/notifications')
       const backendNotifications = res.data.data?.notifications || res.data.notifications || []
@@ -126,7 +156,6 @@ export const NotificationProvider = ({ children }) => {
       // Save to localStorage as backup only
       localStorage.setItem('notifications', JSON.stringify(mappedNotifications))
     } catch (apiError) {
-      console.log('Backend notifications not available, using localStorage fallback')
       // Fallback to localStorage only if backend fails
       try {
         const savedNotifications = localStorage.getItem('notifications')
@@ -196,9 +225,9 @@ export const NotificationProvider = ({ children }) => {
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications))
 
     // Optionally persist to backend
-    silentApi.post('/notifications', newNotification).catch(() => {
-      // Backend endpoint doesn't exist yet, already saved to localStorage
-    })
+    if (hasAccessToken()) {
+      silentApi.post('/notifications', newNotification).catch(() => {})
+    }
 
     return newNotification
   }, [shouldShowNotification])
@@ -215,7 +244,9 @@ export const NotificationProvider = ({ children }) => {
     localStorage.setItem('notifications', JSON.stringify(updatedNotifications))
 
     try {
-      await silentApi.patch(`/notifications/${notificationId}/read`)
+      if (hasAccessToken()) {
+        await silentApi.patch(`/notifications/${notificationId}/read`)
+      }
     } catch (error) {
       // Backend endpoint doesn't exist yet, already saved to localStorage
     }
