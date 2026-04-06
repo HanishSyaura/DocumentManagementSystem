@@ -676,7 +676,7 @@ const HomePage = () => {
 
       {/* End-to-End Workflow Section */}
       <section id="workflow" className="scroll-mt-20 py-12 sm:py-16" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
               <MarkdownRenderer inline value={landingContent?.workflowTitle || t('hp_workflow_title')} />
@@ -694,33 +694,34 @@ const HomePage = () => {
             </div>
           )}
 
-          <div className={`${landingContent?.workflowImage && (landingContent?.workflowImagePosition === 'left' || landingContent?.workflowImagePosition === 'right') ? 'grid md:grid-cols-2 gap-8 items-center' : ''}`}>
+          <div className={`${landingContent?.workflowImage && (landingContent?.workflowImagePosition === 'left' || landingContent?.workflowImagePosition === 'right') ? 'grid lg:grid-cols-2 gap-10 items-center' : ''}`}>
             {/* Image Left Position */}
             {landingContent?.workflowImage && landingContent?.workflowImagePosition === 'left' && (
-              <div className="flex justify-center order-2 md:order-1">
-                <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-blue-100">
-                  <img src={landingContent.workflowImage} alt="Workflow" className="h-64 w-auto object-contain mx-auto" />
+              <div className="flex justify-center order-2 lg:order-1">
+                <div className="relative bg-white p-8 rounded-2xl shadow-2xl border border-blue-100 w-full max-w-md">
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-blue-200/40 via-cyan-200/30 to-purple-200/40 blur-xl"></div>
+                  <img src={landingContent.workflowImage} alt="Workflow" className="relative h-72 sm:h-80 w-full object-contain mx-auto" />
                 </div>
               </div>
             )}
 
             {/* Workflow Steps - Enhanced Modern Design */}
             <div className={`relative ${landingContent?.workflowImage && landingContent?.workflowImagePosition === 'left' ? 'order-1 md:order-2' : ''}`}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 max-w-4xl mx-auto">
                 {workflowSteps.map((stepObj, idx) => {
                   const stepText = typeof stepObj?.step === 'string' ? stepObj.step : ''
                   const style = workflowStyleFor(stepObj?.color, idx)
-                  const colSpan = idx === workflowSteps.length - 1 && workflowSteps.length % 3 === 1 ? 'md:col-span-3' : ''
+                  const colSpan = idx === workflowSteps.length - 1 && workflowSteps.length % 3 === 1 ? 'lg:col-span-3' : ''
 
                   return (
                     <div key={idx} className={`${colSpan} relative group`}>
-                      <div className={`absolute inset-0 bg-gradient-to-br ${style.from} ${style.to} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition`}></div>
-                      <div className={`relative bg-white rounded-xl p-4 shadow-lg border ${style.border} hover:scale-105 transition-all`}>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${style.from} ${style.to} rounded-2xl blur opacity-70 group-hover:opacity-100 transition`}></div>
+                      <div className={`relative bg-white rounded-2xl p-5 shadow-lg border ${style.border} hover:-translate-y-0.5 hover:shadow-xl transition-all`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 bg-gradient-to-br ${style.badgeFrom} ${style.badgeTo} rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm`}>
+                          <div className={`w-10 h-10 bg-gradient-to-br ${style.badgeFrom} ${style.badgeTo} rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm`}>
                             {idx + 1}
                           </div>
-                          <h4 className="font-bold text-gray-800 text-sm leading-snug">
+                          <h4 className="font-bold text-gray-900 text-sm sm:text-base leading-snug">
                             <MarkdownRenderer inline value={stepText} />
                           </h4>
                         </div>
@@ -734,8 +735,9 @@ const HomePage = () => {
             {/* Image Right Position */}
             {landingContent?.workflowImage && landingContent?.workflowImagePosition === 'right' && (
               <div className="flex justify-center order-2">
-                <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-blue-100">
-                  <img src={landingContent.workflowImage} alt="Workflow" className="h-64 w-auto object-contain mx-auto" />
+                <div className="relative bg-white p-8 rounded-2xl shadow-2xl border border-blue-100 w-full max-w-md">
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-blue-200/40 via-cyan-200/30 to-purple-200/40 blur-xl"></div>
+                  <img src={landingContent.workflowImage} alt="Workflow" className="relative h-72 sm:h-80 w-full object-contain mx-auto" />
                 </div>
               </div>
             )}
