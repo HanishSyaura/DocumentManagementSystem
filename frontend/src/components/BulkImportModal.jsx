@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 
 export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, selectedFolderId }) {
   const [folderId, setFolderId] = useState(selectedFolderId || '')
-  const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [files, setFiles] = useState([])
+  const [fileItems, setFileItems] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [documentTypes, setDocumentTypes] = useState([])
   const fileInputRef = useRef(null)
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
@@ -17,23 +19,67 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     setFolderId(selectedFolderId || '')
   }, [isOpen, selectedFolderId])
 
-  const isSingle = files.length === 1
-  const derivedSingleTitle = useMemo(() => {
-    if (!isSingle) return ''
-    const name = files[0]?.name || ''
-    const dot = name.lastIndexOf('.')
-    const base = dot > 0 ? name.slice(0, dot) : name
-    return base.trim()
-  }, [files, isSingle])
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await api.get('/system/config/document-types')
+        if (cancelled) return
+        setDocumentTypes(res.data?.data?.documentTypes || [])
+      } catch (_) {
+        if (cancelled) return
+        setDocumentTypes([])
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (documentTypes.length === 0) return
+    setFileItems((prev) => prev.map((it) => {
+      if (String(it.documentTypeId || '').trim()) return it
+      const matched = autoMatchDocumentTypeId(it.fileCode)
+      return matched ? { ...it, documentTypeId: matched } : it
+    }))
+  }, [documentTypes, isOpen])
 
   const handleClose = () => {
     setIsDragging(false)
     setSubmitting(false)
-    setFiles([])
-    setTitle('')
+    setFileItems([])
     setDescription('')
+    setFormError('')
+    setDocumentTypes([])
     setFolderId(selectedFolderId || '')
     onClose()
+  }
+
+  const extractFromFilename = (fileName) => {
+    const dot = fileName.lastIndexOf('.')
+    const base = dot > 0 ? fileName.slice(0, dot) : fileName
+    const trimmed = base.trim()
+    const underscore = trimmed.indexOf('_')
+    if (underscore > 0) {
+      const fileCode = trimmed.slice(0, underscore).trim()
+      const title = trimmed.slice(underscore + 1).trim() || trimmed
+      return { fileCode, title, fallbackTitle: trimmed }
+    }
+    return { fileCode: trimmed, title: trimmed, fallbackTitle: trimmed }
+  }
+
+  const autoMatchDocumentTypeId = (fileCode) => {
+    const prefix = String(fileCode || '').match(/^[A-Za-z]+/)?.[0] || ''
+    if (!prefix) return ''
+    const exact = documentTypes.find((dt) => dt?.prefix === prefix)
+    if (exact) return String(exact.id)
+    const lower = prefix.toLowerCase()
+    const ci = documentTypes.find((dt) => String(dt?.prefix || '').toLowerCase() === lower)
+    return ci ? String(ci.id) : ''
   }
 
   const addFiles = (incoming) => {
@@ -41,15 +87,26 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     for (const file of incoming) {
       const validation = validateFile(file)
       if (!validation.valid) {
-        alert(validation.error)
+        setFormError(validation.error)
         continue
       }
       next.push(file)
     }
     if (next.length === 0) return
-    setFiles((prev) => {
-      const byKey = new Map(prev.map((f) => [`${f.name}:${f.size}:${f.lastModified}`, f]))
-      next.forEach((f) => byKey.set(`${f.name}:${f.size}:${f.lastModified}`, f))
+    setFileItems((prev) => {
+      const byKey = new Map(prev.map((it) => [`${it.file.name}:${it.file.size}:${it.file.lastModified}`, it]))
+      next.forEach((f) => {
+        const key = `${f.name}:${f.size}:${f.lastModified}`
+        if (byKey.has(key)) return
+        const extracted = extractFromFilename(f.name)
+        byKey.set(key, {
+          file: f,
+          fileCode: extracted.fileCode,
+          title: extracted.title,
+          documentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
+          collapsed: true
+        })
+      })
       return Array.from(byKey.values())
     })
   }
@@ -78,25 +135,43 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   const handleBrowseClick = () => fileInputRef.current?.click()
 
-  const removeFile = (idx) => setFiles((prev) => prev.filter((_, i) => i !== idx))
+  const removeFile = (idx) => setFileItems((prev) => prev.filter((_, i) => i !== idx))
 
   const handleSubmit = async () => {
+    setFormError('')
     if (!folderId) {
-      alert('Please select a folder')
+      setFormError('Please select a folder')
       return
     }
-    if (files.length === 0) {
-      alert('Please select at least one file')
+    if (fileItems.length === 0) {
+      setFormError('Please select at least one file')
       return
+    }
+    for (let i = 0; i < fileItems.length; i++) {
+      const item = fileItems[i]
+      if (!String(item.fileCode || '').trim()) {
+        setFormError(`File code is required for "${item.file.name}"`)
+        setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
+        return
+      }
+      if (!String(item.documentTypeId || '').trim()) {
+        setFormError(`Please select document type for "${item.file.name}"`)
+        setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
+        return
+      }
     }
 
     setSubmitting(true)
     try {
       const payload = {
         folderId,
-        title: isSingle ? (title.trim() || derivedSingleTitle) : '',
         description,
-        files
+        files: fileItems.map((it) => it.file),
+        filesMeta: fileItems.map((it) => ({
+          fileCode: String(it.fileCode || '').trim(),
+          title: String(it.title || '').trim(),
+          documentTypeId: it.documentTypeId ? parseInt(it.documentTypeId) : null
+        }))
       }
       await onSubmit(payload)
     } finally {
@@ -125,6 +200,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           </div>
 
           <div className="px-6 py-4 space-y-4">
+            {formError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                {formError}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Folder</label>
@@ -140,20 +220,6 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title (single file)</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={derivedSingleTitle || 'Auto from filename'}
-                  disabled={!isSingle}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg outline-none text-sm ${
-                    isSingle ? 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500' : 'bg-gray-100 text-gray-500'
-                  }`}
-                />
               </div>
             </div>
 
@@ -198,34 +264,126 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
               </div>
             </div>
 
-            {files.length > 0 && (
+            {fileItems.length > 0 && (
               <div className="border border-gray-200 rounded-lg">
                 <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                  <div className="text-sm font-medium text-gray-900">Selected files ({files.length})</div>
-                  <button
-                    type="button"
-                    onClick={() => setFiles([])}
-                    className="text-sm text-red-600 hover:text-red-700 font-medium"
-                  >
-                    Clear
-                  </button>
+                  <div className="text-sm font-medium text-gray-900">Files ({fileItems.length})</div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFileItems((prev) => prev.map((it) => ({ ...it, collapsed: true })))}
+                      className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+                    >
+                      Collapse all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFileItems((prev) => prev.map((it) => ({ ...it, collapsed: false })))}
+                      className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+                    >
+                      Expand all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFileItems([])}
+                      className="text-sm text-red-600 hover:text-red-700 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
-                <div className="max-h-56 overflow-auto">
-                  {files.map((f, idx) => (
-                    <div key={`${f.name}:${f.size}:${f.lastModified}`} className="px-4 py-2 flex items-center justify-between border-b border-gray-100 last:border-b-0">
-                      <div className="min-w-0">
-                        <div className="text-sm text-gray-900 truncate">{f.name}</div>
-                        <div className="text-xs text-gray-500">{(f.size / 1024 / 1024).toFixed(2)} MB</div>
+                <div className="max-h-[420px] overflow-auto divide-y divide-gray-100">
+                  {fileItems.map((it, idx) => {
+                    const matchedType = documentTypes.find((dt) => String(dt.id) === String(it.documentTypeId))
+                    const typeLabel = matchedType ? `${matchedType.name} (${matchedType.prefix})` : 'Not selected'
+                    return (
+                      <div key={`${it.file.name}:${it.file.size}:${it.file.lastModified}`} className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, collapsed: !x.collapsed } : x))}
+                          className="w-full flex items-start justify-between gap-3 text-left"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{it.file.name}</div>
+                            <div className="mt-0.5 text-xs text-gray-600">
+                              <span className="font-mono">{it.fileCode || '-'}</span>
+                              <span className="mx-2">•</span>
+                              <span>{typeLabel}</span>
+                              <span className="mx-2">•</span>
+                              <span>{(it.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              it.documentTypeId ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {it.documentTypeId ? 'Ready' : 'Needs attention'}
+                            </span>
+                            <svg className={`w-5 h-5 text-gray-500 transition-transform ${it.collapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {!it.collapsed && (
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">File code</label>
+                              <input
+                                type="text"
+                                value={it.fileCode}
+                                onChange={(e) => {
+                                  const nextCode = e.target.value
+                                  setFileItems((prev) => prev.map((x, i) => {
+                                    if (i !== idx) return x
+                                    return { ...x, fileCode: nextCode, documentTypeId: x.documentTypeId || autoMatchDocumentTypeId(nextCode) }
+                                  }))
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-mono"
+                              />
+                              <p className="mt-1 text-xs text-gray-500">Auto-extracted from filename. You can adjust before upload.</p>
+                            </div>
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Document type</label>
+                              <select
+                                value={it.documentTypeId || ''}
+                                onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, documentTypeId: e.target.value } : x))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                              >
+                                <option value="">Select document type</option>
+                                {documentTypes.map((dt) => (
+                                  <option key={dt.id} value={dt.id}>
+                                    {dt.name} ({dt.prefix})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
+                              <input
+                                type="text"
+                                value={it.title}
+                                onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, title: e.target.value } : x))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                              />
+                            </div>
+
+                            <div className="md:col-span-2 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => removeFile(idx)}
+                                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                              >
+                                Remove file
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(idx)}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}

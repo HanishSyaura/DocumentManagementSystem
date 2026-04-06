@@ -127,6 +127,73 @@ class DocumentService {
     return document;
   }
 
+  async createImportedPublishedDocument(data, creatorId) {
+    const { fileCode, title, description, documentTypeId, folderId } = data
+
+    if (!fileCode || !String(fileCode).trim()) {
+      throw new BadRequestError('File code is required')
+    }
+
+    const normalizedFileCode = String(fileCode).trim()
+
+    const existing = await prisma.document.findUnique({
+      where: { fileCode: normalizedFileCode }
+    })
+    if (existing) {
+      throw new BadRequestError(`File code "${normalizedFileCode}" already exists`)
+    }
+
+    const document = await prisma.document.create({
+      data: {
+        fileCode: normalizedFileCode,
+        title,
+        description,
+        documentTypeId,
+        folderId: folderId ? parseInt(folderId) : null,
+        createdById: creatorId,
+        ownerId: creatorId,
+        status: 'DRAFT',
+        stage: 'DRAFT',
+        version: '1.0'
+      },
+      include: {
+        documentType: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    })
+
+    await fileStorageService.createDocumentDirectory(normalizedFileCode)
+
+    await prisma.documentRegister.create({
+      data: {
+        fileCode: normalizedFileCode,
+        documentTitle: title,
+        documentType: document.documentType.name,
+        version: '1.0',
+        owner: `${document.owner.firstName} ${document.owner.lastName}`,
+        department: document.owner.department || '',
+        status: 'DRAFT'
+      }
+    })
+
+    return document
+  }
+
   /**
    * Upload document file version
    */

@@ -73,7 +73,7 @@ class DocumentController {
   });
 
   bulkImportPublished = asyncHandler(async (req, res) => {
-    const { folderId, documentTypeId, description, title } = req.body;
+    const { folderId, description, title, filesMeta } = req.body;
 
     const errors = [];
     if (!folderId) errors.push({ field: 'folderId', message: 'Folder is required' });
@@ -89,22 +89,76 @@ class DocumentController {
         { field: 'folderId', message: 'Invalid folderId' }
       ]);
     }
-    const documentTypeIdInt = documentTypeId ? parseInt(documentTypeId) : 1;
     const desc = description || '';
     const singleTitle = typeof title === 'string' ? title.trim() : '';
+    let parsedMeta = null
+    if (typeof filesMeta === 'string' && filesMeta.trim()) {
+      try {
+        const v = JSON.parse(filesMeta)
+        if (Array.isArray(v)) parsedMeta = v
+      } catch (_) {
+        parsedMeta = null
+      }
+    }
+
+    const documentTypes = await prisma.documentType.findMany({
+      select: { id: true, prefix: true, isActive: true }
+    })
+    const typeByPrefix = new Map(documentTypes.map((dt) => [dt.prefix, dt]))
+    const typeByPrefixLower = new Map(documentTypes.map((dt) => [String(dt.prefix || '').toLowerCase(), dt]))
+    const typeById = new Map(documentTypes.map((dt) => [dt.id, dt]))
 
     const imported = [];
     const failed = [];
 
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i]
       try {
         const derivedTitle = path.basename(file.originalname, path.extname(file.originalname)).trim() || file.originalname;
-        const docTitle = req.files.length === 1 && singleTitle ? singleTitle : derivedTitle;
+        const meta = parsedMeta?.[i] && typeof parsedMeta[i] === 'object' ? parsedMeta[i] : null
+        const metaTitle = meta && typeof meta.title === 'string' ? meta.title.trim() : ''
+        const docTitle = req.files.length === 1 && singleTitle ? singleTitle : (metaTitle || derivedTitle)
 
-        const document = await documentService.createDocument({
+        const derivedFileCode = (() => {
+          const base = derivedTitle
+          const sepIdx = base.indexOf('_')
+          if (sepIdx > 0) return base.slice(0, sepIdx).trim()
+          return base.trim()
+        })()
+        const metaFileCode = meta && typeof meta.fileCode === 'string' ? meta.fileCode.trim() : ''
+        const fileCodeToUse = metaFileCode || derivedFileCode
+        if (!fileCodeToUse) {
+          throw new Error('File code is required')
+        }
+
+        const metaDocTypeIdRaw = meta?.documentTypeId
+        const metaDocTypeId = Number.isFinite(Number(metaDocTypeIdRaw)) ? parseInt(metaDocTypeIdRaw) : null
+
+        let documentTypeIdToUse = null
+        if (metaDocTypeId) {
+          const dt = typeById.get(metaDocTypeId)
+          if (!dt || !dt.isActive) {
+            throw new Error('Document type not found')
+          }
+          documentTypeIdToUse = dt.id
+        } else {
+          const prefixMatch = String(fileCodeToUse).match(/^[A-Za-z]+/)
+          const prefix = prefixMatch?.[0] || ''
+          if (!prefix) {
+            throw new Error(`Unable to determine document type for "${fileCodeToUse}"`)
+          }
+          const dt = typeByPrefix.get(prefix) || typeByPrefixLower.get(prefix.toLowerCase())
+          if (!dt || !dt.isActive) {
+            throw new Error(`Document type not found for prefix "${prefix}"`)
+          }
+          documentTypeIdToUse = dt.id
+        }
+
+        const document = await documentService.createImportedPublishedDocument({
+          fileCode: fileCodeToUse,
           title: docTitle,
           description: desc,
-          documentTypeId: documentTypeIdInt,
+          documentTypeId: documentTypeIdToUse,
           folderId: folderIdInt
         }, req.user.id);
 

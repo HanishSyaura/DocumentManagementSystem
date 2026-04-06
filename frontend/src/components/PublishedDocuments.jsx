@@ -396,9 +396,8 @@ export default function PublishedDocuments() {
     try {
       const formData = new FormData()
       formData.append('folderId', uploadData.folderId)
-      formData.append('documentTypeId', '1')
-      if (uploadData.title) formData.append('title', uploadData.title)
       if (uploadData.description) formData.append('description', uploadData.description)
+      if (uploadData.filesMeta) formData.append('filesMeta', JSON.stringify(uploadData.filesMeta))
       uploadData.files.forEach((file) => formData.append('files', file))
 
       const importResponse = await api.post('/documents/bulk-import', formData, {
