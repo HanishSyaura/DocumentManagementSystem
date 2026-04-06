@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 
 export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, selectedFolderId }) {
@@ -11,6 +11,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const fileInputRef = useRef(null)
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
+
+  useEffect(() => {
+    if (!isOpen) return
+    setFolderId(selectedFolderId || '')
+  }, [isOpen, selectedFolderId])
 
   const isSingle = files.length === 1
   const derivedSingleTitle = useMemo(() => {

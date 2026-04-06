@@ -22,7 +22,7 @@ export default function PublishedDocuments() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(itemsPerPage)
   const [totalDocuments, setTotalDocuments] = useState(0)
-  const [breadcrumbs, setBreadcrumbs] = useState([])
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: null, name: 'Root' }])
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
   const [showCreateSubFolderModal, setShowCreateSubFolderModal] = useState(false)
   const [showUploadFileModal, setShowUploadFileModal] = useState(false)
@@ -72,13 +72,10 @@ export default function PublishedDocuments() {
 
   // Build breadcrumbs for a folder
   const buildBreadcrumbs = (folderId) => {
-    const crumbs = []
-    const findFolder = (folders, id, path = []) => {
-      for (const folder of folders) {
-        const currentPath = [...path, folder.name]
-        if (folder.id === id) {
-          return currentPath
-        }
+    const findFolder = (foldersList, id, path = []) => {
+      for (const folder of foldersList) {
+        const currentPath = [...path, { id: folder.id, name: folder.name }]
+        if (folder.id === id) return currentPath
         if (folder.children && folder.children.length > 0) {
           const found = findFolder(folder.children, id, currentPath)
           if (found) return found
@@ -86,7 +83,8 @@ export default function PublishedDocuments() {
       }
       return null
     }
-    return findFolder(folders, folderId) || []
+    const path = folderId ? (findFolder(folders, folderId) || []) : []
+    return [{ id: null, name: 'Root' }, ...path]
   }
 
   // Get flattened folders for dropdown
@@ -99,7 +97,7 @@ export default function PublishedDocuments() {
 
   useEffect(() => {
     loadDocuments()
-  }, [selectedFolder, searchQuery, currentPage, pageSize])
+  }, [selectedFolder, searchQuery, currentPage, pageSize, folders])
 
   const loadUserRole = () => {
     // Get user role from localStorage
@@ -135,8 +133,7 @@ export default function PublishedDocuments() {
   // Get child folders of current folder
   const getChildFolders = (folderId) => {
     if (!folderId) {
-      // No folder selected - return empty array (don't show root folders)
-      return []
+      return folders || []
     }
     
     // Find the folder and return its children
@@ -157,47 +154,37 @@ export default function PublishedDocuments() {
   }
 
   const loadDocuments = async () => {
-    // Don't load anything if no folder is selected
-    if (!selectedFolder) {
-      setDocuments([])
-      setTotalDocuments(0)
-      setLoading(false)
-      return
-    }
-
     try {
       setLoading(true)
+      const childFolders = getChildFolders(selectedFolder)
+      const folderItems = childFolders.map(folder => ({
+        id: `folder-${folder.id}`,
+        folderId: folder.id,
+        isFolder: true,
+        fileCode: '-',
+        fileName: folder.name,
+        type: 'File folder',
+        size: '-',
+        lastModified: folder.createdAt ? formatDate(folder.createdAt) : '-',
+        status: '-'
+      }))
+
+      if (!selectedFolder) {
+        setDocuments(folderItems)
+        setTotalDocuments(0)
+        return
+      }
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: pageSize,
         folderId: selectedFolder
       })
-
-      if (searchQuery) {
-        params.append('search', searchQuery)
-      }
+      
+      if (searchQuery) params.append('search', searchQuery)
 
       const res = await api.get(`/documents/published?${params}`)
-      
-      // Get child folders for current location
-      const childFolders = getChildFolders(selectedFolder)
-      
-              // Convert folders to table format
-              const folderItems = childFolders.map(folder => ({
-                id: `folder-${folder.id}`,
-                folderId: folder.id,
-                isFolder: true,
-                fileCode: '-',
-                fileName: folder.name,
-                type: 'File folder',
-                size: '-',
-                lastModified: folder.createdAt ? formatDate(folder.createdAt) : '-',
-                status: '-'
-              }))
-      
-      // Combine folders (first) and files
       const combinedItems = [...folderItems, ...(res.data.data || [])]
-      
       setDocuments(combinedItems)
       setTotalDocuments(res.data.pagination?.totalItems || 0)
     } catch (error) {
@@ -303,13 +290,13 @@ export default function PublishedDocuments() {
     
     setConfirmModal({
       show: true,
-      title: 'Confirm Delete',
-      message: `Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`,
+      title: 'Confirm Admin Delete',
+      message: `Are you sure you want to permanently delete "${doc.fileName}"? This will remove the record from the database. This action cannot be undone.`,
       onConfirm: async () => {
         setConfirmModal({ show: false })
         try {
-          await api.delete(`/documents/${doc.id}`)
-          setAlertModal({ show: true, title: 'Success', message: `${doc.fileName} has been deleted successfully`, type: 'success' })
+          await api.delete(`/documents/${doc.id}/purge`)
+          setAlertModal({ show: true, title: 'Success', message: `${doc.fileName} has been permanently deleted successfully`, type: 'success' })
           loadDocuments()
         } catch (error) {
           console.error('Failed to delete document:', error)
@@ -327,13 +314,13 @@ export default function PublishedDocuments() {
 
     setConfirmModal({
       show: true,
-      title: 'Confirm Delete',
-      message: `Are you sure you want to delete the folder "${folderName}"? This action cannot be undone.`,
+      title: 'Confirm Admin Delete',
+      message: `Are you sure you want to permanently delete the folder "${folderName}" and everything inside it? This will remove folder and file records from the database. This action cannot be undone.`,
       onConfirm: async () => {
         setConfirmModal({ show: false })
         try {
-          await api.delete(`/folders/${folderId}`)
-          setAlertModal({ show: true, title: 'Success', message: `Folder "${folderName}" has been deleted successfully`, type: 'success' })
+          await api.delete(`/folders/${folderId}/purge`)
+          setAlertModal({ show: true, title: 'Success', message: `Folder "${folderName}" has been permanently deleted successfully`, type: 'success' })
           loadFolders()
           if (selectedFolder === folderId) {
             setSelectedFolder(null)
@@ -353,12 +340,18 @@ export default function PublishedDocuments() {
     }
 
     try {
-      await api.post('/folders', { name: newFolderName })
+      const resp = await api.post('/folders', { name: newFolderName })
+      const createdFolder = resp?.data?.data?.folder
       const folderNameCopy = newFolderName
       setNewFolderName('')
       setShowCreateFolderModal(false)
       setAlertModal({ show: true, title: 'Success', message: `Folder "${folderNameCopy}" created successfully!`, type: 'success' })
-      loadFolders()
+      await loadFolders()
+      if (createdFolder?.id) {
+        setSelectedFolder(createdFolder.id)
+        setBreadcrumbs([{ id: null, name: 'Root' }, { id: createdFolder.id, name: createdFolder.name }])
+        setCurrentPage(1)
+      }
     } catch (error) {
       console.error('Failed to create folder:', error)
       setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create folder', type: 'error' })
@@ -376,16 +369,23 @@ export default function PublishedDocuments() {
     }
 
     try {
-      await api.post('/folders', { 
+      const resp = await api.post('/folders', { 
         name: newFolderName,
         parentId: parentFolderForSub 
       })
+      const createdFolder = resp?.data?.data?.folder
       const folderNameCopy = newFolderName
       setNewFolderName('')
       setParentFolderForSub(null)
       setShowCreateSubFolderModal(false)
       setAlertModal({ show: true, title: 'Success', message: `Subfolder "${folderNameCopy}" created successfully!`, type: 'success' })
-      loadFolders()
+      await loadFolders()
+      if (parentFolderForSub) {
+        setExpandedFolders((prev) => prev.includes(parentFolderForSub) ? prev : [...prev, parentFolderForSub])
+      }
+      if (createdFolder?.id && selectedFolder === parentFolderForSub) {
+        setCurrentPage(1)
+      }
     } catch (error) {
       console.error('Failed to create subfolder:', error)
       setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create subfolder', type: 'error' })
@@ -411,8 +411,10 @@ export default function PublishedDocuments() {
       const counts = importResponse?.data?.data?.counts
       const importedCount = counts?.imported ?? 0
       const failedCount = counts?.failed ?? 0
+      const failedList = importResponse?.data?.data?.failed || []
+      const failedPreview = failedList.slice(0, 3).map(f => `${f.fileName}: ${f.message}`).join('\n')
       const msg = failedCount > 0
-        ? `Imported ${importedCount} file(s). Failed ${failedCount} file(s).`
+        ? `Imported ${importedCount} file(s). Failed ${failedCount} file(s).${failedPreview ? `\n\n${failedPreview}` : ''}`
         : `Imported ${importedCount} file(s) successfully.`
       setAlertModal({ show: true, title: 'Success', message: msg, type: failedCount > 0 ? 'warning' : 'success' })
 
@@ -515,18 +517,20 @@ export default function PublishedDocuments() {
                 top: `${contextMenuPosition.y}px` 
               }}
             >
-              <button
-                onClick={() => {
-                  setShowContextMenu(false)
-                  handleDeleteFolder(folder.id, folder.name)
-                }}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                {t('delete_folder')}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false)
+                    handleDeleteFolder(folder.id, folder.name)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete as Admin
+                </button>
+              )}
             </div>
           </>
         )}
@@ -596,9 +600,21 @@ export default function PublishedDocuments() {
                 {breadcrumbs.map((crumb, index) => (
                   <React.Fragment key={index}>
                     {index > 0 && <span>›</span>}
-                    <span className={index === breadcrumbs.length - 1 ? 'font-medium text-gray-900' : ''}>
-                      {crumb}
-                    </span>
+                    {index === breadcrumbs.length - 1 ? (
+                      <span className="font-medium text-gray-900">{crumb.name}</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedFolder(crumb.id)
+                          setBreadcrumbs(buildBreadcrumbs(crumb.id))
+                          setCurrentPage(1)
+                        }}
+                        className="hover:text-gray-900 hover:underline"
+                      >
+                        {crumb.name}
+                      </button>
+                    )}
                   </React.Fragment>
                 ))}
               </div>
@@ -615,7 +631,7 @@ export default function PublishedDocuments() {
                 </PermissionGate>
                 <PermissionGate module="documents.published" action="create">
                   <button 
-                    onClick={() => setShowCreateSubFolderModal(true)}
+                    onClick={() => { setParentFolderForSub(selectedFolder || ''); setShowCreateSubFolderModal(true) }}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {t('create_new_subfolder')}
@@ -737,7 +753,7 @@ export default function PublishedDocuments() {
                                 ),
                                 ...(hasPermission('documents.published', 'delete')
                                   ? [
-                                      { label: t('delete'), onClick: () => handleDelete(doc), variant: 'destructive' }
+                                      ...(isAdmin ? [{ label: 'Delete as Admin', onClick: () => handleDelete(doc), variant: 'destructive' }] : [])
                                     ]
                                   : []
                                 )

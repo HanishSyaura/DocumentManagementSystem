@@ -1,6 +1,6 @@
 const express = require('express');
 const folderController = require('../controllers/folderController');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -11,6 +11,7 @@ router.use(authenticate);
 router.get('/', folderController.listFolders);
 router.post('/', folderController.createFolder);
 router.put('/:id', folderController.updateFolder);
+router.delete('/:id/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), folderController.purgeFolder);
 router.delete('/:id', folderController.deleteFolder);
 
 // Get documents in a folder

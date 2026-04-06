@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const fileStorageService = require('./fileStorageService');
+const path = require('path');
 
 class FolderService {
   /**
@@ -201,6 +203,93 @@ class FolderService {
     });
 
     return true;
+  }
+
+  async purgeFolder(folderId) {
+    const root = await prisma.folder.findUnique({
+      where: { id: folderId },
+      select: { id: true, parentId: true, name: true }
+    });
+
+    if (!root) {
+      throw new Error('Folder not found');
+    }
+
+    const folderDepth = new Map();
+    folderDepth.set(root.id, 0);
+    const folders = [{ id: root.id, parentId: root.parentId, depth: 0 }];
+    let frontier = [root.id];
+
+    while (frontier.length > 0) {
+      const children = await prisma.folder.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true, parentId: true }
+      });
+
+      frontier = [];
+      for (const child of children) {
+        const depth = (folderDepth.get(child.parentId) ?? 0) + 1;
+        folderDepth.set(child.id, depth);
+        folders.push({ id: child.id, parentId: child.parentId, depth });
+        frontier.push(child.id);
+      }
+    }
+
+    const folderIds = folders.map(f => f.id);
+
+    const documents = await prisma.document.findMany({
+      where: { folderId: { in: folderIds } },
+      select: {
+        id: true,
+        fileCode: true,
+        versions: { select: { filePath: true } }
+      }
+    });
+
+    const filePaths = [];
+    for (const d of documents) {
+      for (const v of d.versions || []) {
+        if (v.filePath) filePaths.push(v.filePath);
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (documents.length > 0) {
+        await tx.document.deleteMany({
+          where: { id: { in: documents.map(d => d.id) } }
+        });
+      }
+
+      const folderIdsByDepthDesc = folders
+        .slice()
+        .sort((a, b) => b.depth - a.depth)
+        .map(f => f.id);
+
+      for (const id of folderIdsByDepthDesc) {
+        await tx.folder.delete({ where: { id } });
+      }
+    });
+
+    const dirPaths = new Set();
+    let deletedFiles = 0;
+    for (const fp of filePaths) {
+      const ok = await fileStorageService.deleteFile(fp);
+      if (ok) deletedFiles += 1;
+      dirPaths.add(path.dirname(fp));
+    }
+
+    let deletedDirectories = 0;
+    for (const dir of dirPaths) {
+      const ok = await fileStorageService.deleteDirectory(dir);
+      if (ok) deletedDirectories += 1;
+    }
+
+    return {
+      deletedDocuments: documents.length,
+      deletedFolders: folders.length,
+      deletedFiles,
+      deletedDirectories
+    };
   }
 
   /**

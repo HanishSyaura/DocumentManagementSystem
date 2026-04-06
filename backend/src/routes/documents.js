@@ -46,6 +46,7 @@ router.get('/my-status/:status', documentController.getMyDocumentsByStatus);
 router.get('/code/:fileCode', documentController.getDocumentByCode);
 router.get('/:id', documentController.getDocument);
 router.put('/:id', documentController.updateDocument);
+router.delete('/:id/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), documentController.purgeDocument);
 router.delete('/:id', documentController.deleteDocument);
 
 // Document file operations

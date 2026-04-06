@@ -72,6 +72,39 @@ class FileStorageService {
     return newPath;
   }
 
+  async deleteDocumentDirectory(fileCode) {
+    const baseDir = path.join(config.uploadDir, 'documents');
+    let years = [];
+    try {
+      years = await fs.readdir(baseDir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+
+    let deleted = false;
+    for (const yearEnt of years) {
+      if (!yearEnt.isDirectory()) continue;
+      const yearPath = path.join(baseDir, yearEnt.name);
+      let months = [];
+      try {
+        months = await fs.readdir(yearPath, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const monthEnt of months) {
+        if (!monthEnt.isDirectory()) continue;
+        const candidate = path.join(yearPath, monthEnt.name, fileCode);
+        const exists = await this.fileExists(candidate);
+        if (exists) {
+          const ok = await this.deleteDirectory(candidate);
+          if (ok) deleted = true;
+        }
+      }
+    }
+
+    return deleted;
+  }
+
   /**
    * Save uploaded file
    * @param {Object} file - Multer file object

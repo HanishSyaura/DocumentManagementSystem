@@ -537,6 +537,45 @@ class DocumentService {
     return true;
   }
 
+  async purgeDocument(documentId) {
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      include: {
+        versions: {
+          select: { filePath: true }
+        }
+      }
+    });
+
+    if (!document) {
+      throw new NotFoundError('Document not found');
+    }
+
+    const filePaths = (document.versions || [])
+      .map(v => v.filePath)
+      .filter(Boolean);
+
+    await prisma.document.delete({
+      where: { id: documentId }
+    });
+
+    const dirPaths = new Set();
+    let deletedFiles = 0;
+    for (const fp of filePaths) {
+      const ok = await fileStorageService.deleteFile(fp);
+      if (ok) deletedFiles += 1;
+      dirPaths.add(path.dirname(fp));
+    }
+
+    let deletedDirectories = 0;
+    for (const dir of dirPaths) {
+      const ok = await fileStorageService.deleteDirectory(dir);
+      if (ok) deletedDirectories += 1;
+    }
+
+    return { deletedFiles, deletedDirectories };
+  }
+
   /**
    * Get document version history
    */

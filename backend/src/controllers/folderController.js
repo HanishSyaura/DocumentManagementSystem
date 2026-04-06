@@ -100,6 +100,29 @@ class FolderController {
     );
   });
 
+  purgeFolder = asyncHandler(async (req, res) => {
+    const folderId = parseInt(req.params.id);
+
+    await auditLogService.log({
+      userId: req.user.id,
+      action: 'FOLDER_PURGE',
+      entity: 'Folder',
+      entityId: folderId,
+      description: `Permanently deleted folder tree: ${folderId}`,
+      metadata: { folderId },
+      ipAddress: auditLogService.getClientIP(req),
+      userAgent: req?.headers?.['user-agent']
+    });
+
+    const result = await folderService.purgeFolder(folderId);
+
+    return ResponseFormatter.success(
+      res,
+      { result },
+      'Folder permanently deleted successfully'
+    );
+  });
+
   /**
    * Get documents in a folder
    * GET /api/folders/:id/documents

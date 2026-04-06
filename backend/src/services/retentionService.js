@@ -137,7 +137,7 @@ class RetentionService {
             where: { documentId: archived.id }
           });
 
-          await prisma.comment.deleteMany({
+          await prisma.documentComment.deleteMany({
             where: { documentId: archived.id }
           });
 

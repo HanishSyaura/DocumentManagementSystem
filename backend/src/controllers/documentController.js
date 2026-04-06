@@ -84,6 +84,11 @@ class DocumentController {
     }
 
     const folderIdInt = parseInt(folderId);
+    if (Number.isNaN(folderIdInt)) {
+      return ResponseFormatter.validationError(res, [
+        { field: 'folderId', message: 'Invalid folderId' }
+      ]);
+    }
     const documentTypeIdInt = documentTypeId ? parseInt(documentTypeId) : 1;
     const desc = description || '';
     const singleTitle = typeof title === 'string' ? title.trim() : '';
@@ -779,6 +784,25 @@ class DocumentController {
       res,
       null,
       'Document deleted successfully'
+    );
+  });
+
+  purgeDocument = asyncHandler(async (req, res) => {
+    const documentId = parseInt(req.params.id);
+
+    const document = await documentService.getDocumentById(documentId);
+
+    await auditLogService.logDocument(req.user.id, 'PURGE', document, req, {
+      fileCode: document?.fileCode,
+      title: document?.title
+    });
+
+    await documentService.purgeDocument(documentId);
+
+    return ResponseFormatter.success(
+      res,
+      null,
+      'Document permanently deleted successfully'
     );
   });
 
