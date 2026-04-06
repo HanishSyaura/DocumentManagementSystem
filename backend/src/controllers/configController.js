@@ -97,7 +97,8 @@ exports.deleteDocumentType = asyncHandler(async (req, res) => {
  * @access  Private
  */
 exports.getProjectCategories = asyncHandler(async (req, res) => {
-  const projectCategories = await configService.getProjectCategories();
+  const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
+  const projectCategories = await configService.getProjectCategories({ includeInactive });
   
   return ResponseFormatter.success(
     res,
@@ -119,9 +120,15 @@ exports.createProjectCategory = asyncHandler(async (req, res) => {
     throw new ValidationError('Name and code are required');
   }
 
+  const normalizedName = String(name).trim();
+  const normalizedCode = String(code).trim();
+  if (!normalizedName || !normalizedCode) {
+    throw new ValidationError('Name and code are required');
+  }
+
   const projectCategory = await configService.createProjectCategory({
-    name,
-    code,
+    name: normalizedName,
+    code: normalizedCode,
     description
   });
 

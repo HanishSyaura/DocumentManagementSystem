@@ -151,9 +151,9 @@ class ConfigService {
   /**
    * Get all project categories
    */
-  async getProjectCategories() {
+  async getProjectCategories({ includeInactive = false } = {}) {
     return await prisma.projectCategory.findMany({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       orderBy: { name: 'asc' }
     });
   }

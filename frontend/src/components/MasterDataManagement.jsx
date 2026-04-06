@@ -523,6 +523,7 @@ function ProjectCategoriesManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
@@ -530,12 +531,14 @@ function ProjectCategoriesManagement() {
 
   useEffect(() => {
     loadProjectCategories()
-  }, [])
+  }, [showInactive])
 
   const loadProjectCategories = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/system/config/project-categories')
+      const res = await api.get('/system/config/project-categories', {
+        params: showInactive ? { includeInactive: true } : undefined
+      })
       setProjectCategories(res.data.data.projectCategories || [])
     } catch (error) {
       console.error('Failed to load project categories:', error)
@@ -599,7 +602,7 @@ function ProjectCategoriesManagement() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery])
+  }, [searchQuery, showInactive])
 
   const totalRecords = filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -664,6 +667,15 @@ function ProjectCategoriesManagement() {
           className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
         />
       </div>
+      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={(e) => setShowInactive(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        {t('show_inactive')}
+      </label>
 
       {/* Table */}
       <div className="overflow-x-auto">

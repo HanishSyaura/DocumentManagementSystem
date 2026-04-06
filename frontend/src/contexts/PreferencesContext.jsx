@@ -667,6 +667,7 @@ const translations = {
     'mdm_confirm_delete_dept': 'Are you sure you want to delete this department?',
     'mdm_active': 'Active',
     'mdm_inactive': 'Inactive',
+    'show_inactive': 'Show inactive',
 
     // Role & Permission
     'rp_title': 'Role & Permission Management',
@@ -1537,6 +1538,7 @@ const translations = {
     'mdm_confirm_delete_dept': 'Adakah anda pasti mahu memadam jabatan ini?',
     'mdm_active': 'Aktif',
     'mdm_inactive': 'Tidak Aktif',
+    'show_inactive': 'Papar rekod tidak aktif',
 
     // Role & Permission
     'rp_title': 'Pengurusan Peranan & Kebenaran',
@@ -2407,6 +2409,7 @@ const translations = {
     'mdm_confirm_delete_dept': '您确定要删除此部门吗？',
     'mdm_active': '活跃',
     'mdm_inactive': '未启用',
+    'show_inactive': '显示未启用',
 
     // Role & Permission
     'rp_title': '角色与权限管理',
