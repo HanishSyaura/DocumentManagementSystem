@@ -312,11 +312,32 @@ function DocumentTypesManagement() {
 
   const handleSubmit = async (formData) => {
     try {
+      const trimmed = {
+        ...formData,
+        name: (formData.name || '').trim(),
+        prefix: (formData.prefix || '').trim()
+      }
+
+      if (!trimmed.name || !trimmed.prefix) {
+        setAlertModal({ show: true, title: 'Error', message: 'Name and prefix are required', type: 'error' })
+        return
+      }
+
+      const prefixExists = documentTypes.some((dt) => {
+        if (editingItem && dt.id === editingItem.id) return false
+        return dt.prefix === trimmed.prefix
+      })
+
+      if (prefixExists) {
+        setAlertModal({ show: true, title: 'Error', message: `Prefix "${trimmed.prefix}" already exists`, type: 'error' })
+        return
+      }
+
       if (editingItem) {
-        await api.put(`/system/config/document-types/${editingItem.id}`, formData)
+        await api.put(`/system/config/document-types/${editingItem.id}`, trimmed)
         setAlertModal({ show: true, title: 'Success', message: 'Document type updated successfully', type: 'success' })
       } else {
-        await api.post('/system/config/document-types', formData)
+        await api.post('/system/config/document-types', trimmed)
         setAlertModal({ show: true, title: 'Success', message: 'Document type created successfully', type: 'success' })
       }
       setShowModal(false)

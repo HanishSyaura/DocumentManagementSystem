@@ -31,9 +31,15 @@ exports.createDocumentType = asyncHandler(async (req, res) => {
     throw new ValidationError('Name and prefix are required');
   }
 
+  const normalizedName = String(name).trim();
+  const normalizedPrefix = String(prefix).trim();
+  if (!normalizedName || !normalizedPrefix) {
+    throw new ValidationError('Name and prefix are required');
+  }
+
   const documentType = await configService.createDocumentType({
-    name,
-    prefix,
+    name: normalizedName,
+    prefix: normalizedPrefix,
     description
   });
 
@@ -55,8 +61,8 @@ exports.updateDocumentType = asyncHandler(async (req, res) => {
   const { name, prefix, description, isActive } = req.body;
 
   const documentType = await configService.updateDocumentType(id, {
-    name,
-    prefix,
+    name: typeof name === 'string' ? name.trim() : name,
+    prefix: typeof prefix === 'string' ? prefix.trim() : prefix,
     description,
     isActive
   });
