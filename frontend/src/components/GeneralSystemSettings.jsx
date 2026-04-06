@@ -3591,7 +3591,9 @@ function DocumentSettings() {
     allowedTypes: {
       pdf: true,
       docx: true,
+      dotx: false,
       xlsx: true,
+      xltx: false,
       png: true,
       jpg: true,
       txt: true

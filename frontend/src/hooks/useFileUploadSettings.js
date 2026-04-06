@@ -6,8 +6,10 @@ const MIME_TYPE_MAP = {
   PDF: ['application/pdf'],
   DOC: ['application/msword'],
   DOCX: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  DOTX: ['application/vnd.openxmlformats-officedocument.wordprocessingml.template'],
   XLS: ['application/vnd.ms-excel'],
   XLSX: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  XLTX: ['application/vnd.openxmlformats-officedocument.spreadsheetml.template'],
   PPT: ['application/vnd.ms-powerpoint'],
   PPTX: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
   TXT: ['text/plain'],
@@ -23,8 +25,10 @@ const EXTENSION_MAP = {
   PDF: '.pdf',
   DOC: '.doc',
   DOCX: '.docx',
+  DOTX: '.dotx',
   XLS: '.xls',
   XLSX: '.xlsx',
+  XLTX: '.xltx',
   PPT: '.ppt',
   PPTX: '.pptx',
   TXT: '.txt',
@@ -38,7 +42,7 @@ const EXTENSION_MAP = {
 // Default settings (fallback)
 const DEFAULT_SETTINGS = {
   maxFileSize: 10, // MB
-  allowedTypes: ['PDF', 'DOC', 'DOCX', 'XLS', 'XLSX', 'TXT'],
+  allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'TXT'],
   bulkUploadLimit: 10
 }
 

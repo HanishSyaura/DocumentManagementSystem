@@ -165,6 +165,7 @@ const templateFileFilter = (req, file, cb) => {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.template', // .dotx
     // Excel documents
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.template', // .xltx
     'text/csv', // .csv
     'application/csv', // .csv alternate
     // PowerPoint documents
@@ -173,12 +174,12 @@ const templateFileFilter = (req, file, cb) => {
 
   // Also check by file extension as a fallback
   const ext = path.extname(file.originalname).toLowerCase();
-  const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.csv', '.pptx'];
+  const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.xltx', '.csv', '.pptx'];
 
   if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only DOCX, DOTX, XLSX, CSV, and PPTX files are allowed for templates'), false);
+    cb(new Error('Invalid file type. Only DOCX, DOTX, XLSX, XLTX, CSV, and PPTX files are allowed for templates'), false);
   }
 };
 

@@ -65,14 +65,14 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
     const selectedFiles = Array.from(e.target.files)
     
     // Validate file types
-    const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.csv', '.pptx']
+    const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.xltx', '.csv', '.pptx']
     const invalidFiles = selectedFiles.filter(file => {
       const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
       return !allowedExtensions.includes(ext)
     })
     
     if (invalidFiles.length > 0) {
-      alert(`Invalid file type. Only DOCX, DOTX, XLSX, CSV, and PPTX files are allowed.\n\nInvalid files: ${invalidFiles.map(f => f.name).join(', ')}`)
+      alert(`Invalid file type. Only DOCX, DOTX, XLSX, XLTX, CSV, and PPTX files are allowed.\n\nInvalid files: ${invalidFiles.map(f => f.name).join(', ')}`)
       return
     }
     
@@ -92,14 +92,14 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
     const droppedFiles = Array.from(e.dataTransfer.files)
     
     // Validate file types
-    const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.csv', '.pptx']
+    const allowedExtensions = ['.docx', '.dotx', '.xlsx', '.xltx', '.csv', '.pptx']
     const invalidFiles = droppedFiles.filter(file => {
       const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
       return !allowedExtensions.includes(ext)
     })
     
     if (invalidFiles.length > 0) {
-      alert(`Invalid file type. Only DOCX, DOTX, XLSX, CSV, and PPTX files are allowed.\n\nInvalid files: ${invalidFiles.map(f => f.name).join(', ')}`)
+      alert(`Invalid file type. Only DOCX, DOTX, XLSX, XLTX, CSV, and PPTX files are allowed.\n\nInvalid files: ${invalidFiles.map(f => f.name).join(', ')}`)
       return
     }
     
@@ -225,10 +225,10 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
                   </svg>
                 </div>
                 <p className="text-gray-700 font-medium mb-1">Drop files here</p>
-                <p className="text-sm text-gray-500 mb-3">Supported formats: DOCX, DOTX, XLSX, CSV, PPTX</p>
+                <p className="text-sm text-gray-500 mb-3">Supported formats: DOCX, DOTX, XLSX, XLTX, CSV, PPTX</p>
                 <div className="text-sm text-gray-500 mb-3">OR</div>
                 <button type="button" onClick={handleBrowseClick} className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">Browse files</button>
-                <input ref={fileInputRef} type="file" accept=".docx,.dotx,.xlsx,.csv,.pptx" multiple onChange={handleFileSelect} className="hidden" />
+                <input ref={fileInputRef} type="file" accept=".docx,.dotx,.xlsx,.xltx,.csv,.pptx" multiple onChange={handleFileSelect} className="hidden" />
               </div>
             </div>
 
