@@ -58,6 +58,13 @@ const handlePrismaError = (err, res) => {
     case 'P2002':
       // Unique constraint violation
       const field = err.meta?.target?.[0] || 'field';
+      if (field === 'prefix') {
+        return ResponseFormatter.error(
+          res,
+          'This prefix is already in use. Please choose a different prefix.',
+          409
+        );
+      }
       return ResponseFormatter.error(
         res,
         `A record with this ${field} already exists`,

@@ -694,13 +694,13 @@ const HomePage = () => {
             </div>
           )}
 
-          <div className={`${landingContent?.workflowImage && (landingContent?.workflowImagePosition === 'left' || landingContent?.workflowImagePosition === 'right') ? 'grid lg:grid-cols-2 gap-8 xl:gap-12 items-center' : ''}`}>
+          <div className={`${landingContent?.workflowImage && (landingContent?.workflowImagePosition === 'left' || landingContent?.workflowImagePosition === 'right') ? 'grid lg:grid-cols-2 gap-8 xl:gap-12 items-stretch' : ''}`}>
             {/* Image Left Position */}
             {landingContent?.workflowImage && landingContent?.workflowImagePosition === 'left' && (
               <div className="flex justify-center order-2 lg:order-1">
-                <div className="relative bg-white p-6 rounded-2xl shadow-xl border border-blue-100 inline-flex">
+                <div className="relative bg-white p-6 rounded-2xl shadow-xl border border-blue-100 w-full max-w-md h-full flex items-center justify-center">
                   <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-blue-200/35 via-cyan-200/25 to-purple-200/35 blur-xl"></div>
-                  <img src={landingContent.workflowImage} alt="Workflow" className="relative h-56 sm:h-64 w-auto object-contain mx-auto" />
+                  <img src={landingContent.workflowImage} alt="Workflow" className="relative max-h-[260px] sm:max-h-[300px] w-auto object-contain mx-auto" />
                 </div>
               </div>
             )}
@@ -743,9 +743,9 @@ const HomePage = () => {
             {/* Image Right Position */}
             {landingContent?.workflowImage && landingContent?.workflowImagePosition === 'right' && (
               <div className="flex justify-center order-2">
-                <div className="relative bg-white p-6 rounded-2xl shadow-xl border border-blue-100 inline-flex">
+                <div className="relative bg-white p-6 rounded-2xl shadow-xl border border-blue-100 w-full max-w-md h-full flex items-center justify-center">
                   <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-blue-200/35 via-cyan-200/25 to-purple-200/35 blur-xl"></div>
-                  <img src={landingContent.workflowImage} alt="Workflow" className="relative h-56 sm:h-64 w-auto object-contain mx-auto" />
+                  <img src={landingContent.workflowImage} alt="Workflow" className="relative max-h-[260px] sm:max-h-[300px] w-auto object-contain mx-auto" />
                 </div>
               </div>
             )}

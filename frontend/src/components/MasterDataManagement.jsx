@@ -319,7 +319,7 @@ function DocumentTypesManagement() {
       }
 
       if (!trimmed.name || !trimmed.prefix) {
-        setAlertModal({ show: true, title: 'Error', message: 'Name and prefix are required', type: 'error' })
+        setAlertModal({ show: true, title: 'Error', message: 'Please enter a name and a prefix.', type: 'error' })
         return
       }
 
@@ -329,7 +329,7 @@ function DocumentTypesManagement() {
       })
 
       if (prefixExists) {
-        setAlertModal({ show: true, title: 'Error', message: `Prefix "${trimmed.prefix}" already exists`, type: 'error' })
+        setAlertModal({ show: true, title: 'Error', message: `This prefix "${trimmed.prefix}" is already in use. Please choose a different prefix.`, type: 'error' })
         return
       }
 
