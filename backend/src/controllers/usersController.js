@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const auditLogService = require('../services/auditLogService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
-const { generateEmployeeId } = require('../utils/employeeIdGenerator');
 
 const prisma = new PrismaClient();
 const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'Password123!';
@@ -97,16 +96,35 @@ class UsersController {
     });
 
     if (existingUser) {
-      return ResponseFormatter.error(res, 'User with this email already exists', 400);
+      return ResponseFormatter.error(res, 'User with this email already exists', 409);
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
+    const latest = await prisma.user.findFirst({
+      where: {
+        employeeId: {
+          startsWith: 'EMP'
+        }
+      },
+      orderBy: {
+        employeeId: 'desc'
+      },
+      select: {
+        employeeId: true
+      }
+    })
+
+    const latestEmployeeId = latest?.employeeId || null
+    const latestNumber = latestEmployeeId && /^EMP\d{5}$/.test(latestEmployeeId)
+      ? parseInt(latestEmployeeId.slice(3), 10)
+      : 0
+
     let user = null
     let lastCreateError = null
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const generatedEmployeeId = await generateEmployeeId()
+    for (let attempt = 1; attempt <= 25; attempt++) {
+      const generatedEmployeeId = `EMP${String(latestNumber + attempt).padStart(5, '0')}`
       try {
         user = await prisma.user.create({
           data: {
@@ -126,13 +144,32 @@ class UsersController {
       } catch (e) {
         lastCreateError = e
         if (e?.code === 'P2002') {
+          const target = e?.meta?.target
+          const fields = Array.isArray(target) ? target : []
+          if (fields.includes('email')) {
+            return ResponseFormatter.error(res, 'User with this email already exists', 409)
+          }
+          if (fields.includes('employeeId')) {
+            continue
+          }
           continue
         }
         throw e
       }
     }
-    if (!user && lastCreateError?.code === 'P2002') {
-      return ResponseFormatter.error(res, 'User with this email already exists', 409)
+
+    if (!user && lastCreateError) {
+      if (lastCreateError?.code === 'P2002') {
+        const target = lastCreateError?.meta?.target
+        const fields = Array.isArray(target) ? target : []
+        if (fields.includes('email')) {
+          return ResponseFormatter.error(res, 'User with this email already exists', 409)
+        }
+        if (fields.includes('employeeId')) {
+          return ResponseFormatter.error(res, 'Failed to create user due to employee ID collision. Please try again.', 409)
+        }
+      }
+      throw lastCreateError
     }
 
     // Assign roles if provided
