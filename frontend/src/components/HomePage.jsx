@@ -707,30 +707,36 @@ const HomePage = () => {
 
             {/* Workflow Steps - Enhanced Modern Design */}
             <div className={`relative ${landingContent?.workflowImage && landingContent?.workflowImagePosition === 'left' ? 'order-1 md:order-2' : ''}`}>
-              <div className="rounded-2xl bg-white/70 backdrop-blur border border-white/70 shadow-sm p-4 sm:p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 max-w-3xl mx-auto">
+              <div className="rounded-2xl bg-white/80 backdrop-blur border border-white/80 shadow-md p-4 sm:p-5">
+                <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-4xl mx-auto">
                   {workflowSteps.map((stepObj, idx) => {
                     const stepText = typeof stepObj?.step === 'string' ? stepObj.step : ''
                     const style = workflowStyleFor(stepObj?.color, idx)
-                    const colSpan = idx === workflowSteps.length - 1 && workflowSteps.length % 3 === 1 ? 'lg:col-span-3' : ''
+                    const isLast = idx === workflowSteps.length - 1
+                    const colSpan = isLast ? 'sm:col-span-2' : ''
 
                     return (
-                      <div key={idx} className={`${colSpan} relative group`}>
-                        <div className={`absolute inset-0 bg-gradient-to-br ${style.from} ${style.to} rounded-2xl blur opacity-60 group-hover:opacity-100 transition`}></div>
-                        <div className={`relative bg-white rounded-2xl p-5 shadow-md border ${style.border} hover:-translate-y-0.5 hover:shadow-lg transition-all`}>
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 bg-gradient-to-br ${style.badgeFrom} ${style.badgeTo} rounded-full flex items-center justify-center text-white font-bold shadow-md text-sm`}>
+                      <li key={idx} className={`${colSpan} relative group`}>
+                        <div className={`absolute inset-0 bg-gradient-to-br ${style.from} ${style.to} rounded-2xl blur opacity-50 group-hover:opacity-90 transition`}></div>
+                        <div className={`relative bg-white rounded-2xl px-5 py-4 sm:px-6 sm:py-5 shadow-sm border ${style.border} hover:-translate-y-0.5 hover:shadow-md transition-all`}>
+                          <div className="flex items-start gap-4">
+                            <div className={`w-10 h-10 shrink-0 bg-gradient-to-br ${style.badgeFrom} ${style.badgeTo} rounded-full flex items-center justify-center text-white font-bold shadow text-sm`}>
                               {idx + 1}
                             </div>
-                            <h4 className="font-bold text-gray-900 text-sm sm:text-base leading-snug">
-                              <MarkdownRenderer inline value={stepText} />
-                            </h4>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-gray-500 tracking-wide uppercase">
+                                Step {idx + 1}
+                              </div>
+                              <div className="mt-1 font-semibold text-gray-900 text-base sm:text-lg leading-snug break-words">
+                                <MarkdownRenderer inline value={stepText} />
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </li>
                     )
                   })}
-                </div>
+                </ol>
               </div>
             </div>
 
