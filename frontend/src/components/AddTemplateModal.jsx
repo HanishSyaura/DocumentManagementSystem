@@ -8,6 +8,7 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
     version: initialData?.version || '',
     prefixCode: initialData?.prefixCode || ''
   })
+  const [templateNameTouched, setTemplateNameTouched] = useState(!!initialData?.templateName)
   const [files, setFiles] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [documentTypesData, setDocumentTypesData] = useState([])
@@ -39,6 +40,7 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    if (name === 'templateName') setTemplateNameTouched(true)
     
     // If document type is changed, auto-populate prefix code
     if (name === 'documentType') {
@@ -51,6 +53,12 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
     }
+  }
+
+  const fileNameToTemplateName = (fileName) => {
+    const dot = fileName.lastIndexOf('.')
+    const base = dot > 0 ? fileName.slice(0, dot) : fileName
+    return base.trim()
   }
 
   const handleFileSelect = (e) => {
@@ -68,6 +76,12 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
       return
     }
     
+    if (!templateNameTouched && selectedFiles[0]) {
+      const derived = fileNameToTemplateName(selectedFiles[0].name)
+      if (derived) {
+        setFormData(prev => ({ ...prev, templateName: derived }))
+      }
+    }
     setFiles(prev => [...prev, ...selectedFiles])
   }
 
@@ -89,6 +103,12 @@ export default function AddTemplateModal({ onClose, onSubmit, initialData, docum
       return
     }
     
+    if (!templateNameTouched && droppedFiles[0]) {
+      const derived = fileNameToTemplateName(droppedFiles[0].name)
+      if (derived) {
+        setFormData(prev => ({ ...prev, templateName: derived }))
+      }
+    }
     setFiles(prev => [...prev, ...droppedFiles])
   }
 
