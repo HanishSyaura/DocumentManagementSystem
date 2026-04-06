@@ -5,9 +5,9 @@ class ConfigService {
   /**
    * Get all document types
    */
-  async getDocumentTypes() {
+  async getDocumentTypes({ includeInactive = false } = {}) {
     return await prisma.documentType.findMany({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       orderBy: { name: 'asc' }
     });
   }
@@ -144,6 +144,13 @@ class ConfigService {
     });
   }
 
+  async restoreDocumentType(id) {
+    return await prisma.documentType.update({
+      where: { id: parseInt(id) },
+      data: { isActive: true }
+    })
+  }
+
   // ============================================
   // PROJECT CATEGORY MANAGEMENT
   // ============================================
@@ -205,11 +212,11 @@ class ConfigService {
   /**
    * Get all departments
    */
-  async getDepartments() {
+  async getDepartments({ includeInactive = false } = {}) {
     return await prisma.department.findMany({
-      where: { isActive: true },
+      where: includeInactive ? {} : { isActive: true },
       orderBy: { name: 'asc' }
-    });
+    })
   }
 
   /**
@@ -251,6 +258,13 @@ class ConfigService {
       where: { id: parseInt(id) },
       data: { isActive: false }
     });
+  }
+
+  async restoreDepartment(id) {
+    return await prisma.department.update({
+      where: { id: parseInt(id) },
+      data: { isActive: true }
+    })
   }
 
   // ============================================

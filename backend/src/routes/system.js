@@ -162,6 +162,7 @@ router.delete('/backups/:id', authenticate, backupController.deleteBackup);
 router.get('/config/document-types', authenticate, configController.getDocumentTypes);
 router.post('/config/document-types', authenticate, configController.createDocumentType);
 router.put('/config/document-types/:id', authenticate, configController.updateDocumentType);
+router.patch('/config/document-types/:id/restore', authenticate, configController.restoreDocumentType);
 router.delete('/config/document-types/:id', authenticate, configController.deleteDocumentType);
 
 // Project Categories
@@ -174,6 +175,7 @@ router.delete('/config/project-categories/:id', authenticate, configController.d
 router.get('/config/departments', authenticate, configController.getDepartments);
 router.post('/config/departments', authenticate, configController.createDepartment);
 router.put('/config/departments/:id', authenticate, configController.updateDepartment);
+router.patch('/config/departments/:id/restore', authenticate, configController.restoreDepartment);
 router.delete('/config/departments/:id', authenticate, configController.deleteDepartment);
 
 // Document Numbering Settings

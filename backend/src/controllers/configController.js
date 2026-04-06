@@ -2,6 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const ResponseFormatter = require('../utils/responseFormatter');
 const configService = require('../services/configService');
 const { ValidationError } = require('../utils/errors');
+const prisma = require('../config/database');
 
 /**
  * @desc    Get all document types
@@ -9,7 +10,8 @@ const { ValidationError } = require('../utils/errors');
  * @access  Private
  */
 exports.getDocumentTypes = asyncHandler(async (req, res) => {
-  const documentTypes = await configService.getDocumentTypes();
+  const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
+  const documentTypes = await configService.getDocumentTypes({ includeInactive });
   
   return ResponseFormatter.success(
     res,
@@ -35,6 +37,23 @@ exports.createDocumentType = asyncHandler(async (req, res) => {
   const normalizedPrefix = String(prefix).trim();
   if (!normalizedName || !normalizedPrefix) {
     throw new ValidationError('Name and prefix are required');
+  }
+
+  const existing = await prisma.documentType.findFirst({
+    where: {
+      OR: [
+        { name: normalizedName },
+        { prefix: normalizedPrefix }
+      ]
+    },
+    select: { id: true, isActive: true }
+  })
+  if (existing && existing.isActive === false) {
+    return ResponseFormatter.error(
+      res,
+      'A document type with the same name or prefix already exists but is inactive. Enable "Show inactive" and restore it instead of creating a new one.',
+      409
+    )
   }
 
   const documentType = await configService.createDocumentType({
@@ -90,6 +109,12 @@ exports.deleteDocumentType = asyncHandler(async (req, res) => {
     'Document type deleted successfully'
   );
 });
+
+exports.restoreDocumentType = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const documentType = await configService.restoreDocumentType(id)
+  return ResponseFormatter.success(res, { documentType }, 'Document type restored successfully')
+})
 
 /**
  * @desc    Get all project categories
@@ -186,7 +211,8 @@ exports.deleteProjectCategory = asyncHandler(async (req, res) => {
  * @access  Private
  */
 exports.getDepartments = asyncHandler(async (req, res) => {
-  const departments = await configService.getDepartments();
+  const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
+  const departments = await configService.getDepartments({ includeInactive });
   
   return ResponseFormatter.success(
     res,
@@ -261,6 +287,12 @@ exports.deleteDepartment = asyncHandler(async (req, res) => {
     'Department deleted successfully'
   )
 });
+
+exports.restoreDepartment = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const department = await configService.restoreDepartment(id)
+  return ResponseFormatter.success(res, { department }, 'Department restored successfully')
+})
 
 /**
  * @desc    Get document numbering settings

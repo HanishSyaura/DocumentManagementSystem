@@ -281,6 +281,7 @@ function DocumentTypesManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
@@ -288,12 +289,14 @@ function DocumentTypesManagement() {
 
   useEffect(() => {
     loadDocumentTypes()
-  }, [])
+  }, [showInactive])
 
   const loadDocumentTypes = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/system/config/document-types')
+      const res = await api.get('/system/config/document-types', {
+        params: showInactive ? { includeInactive: true } : undefined
+      })
       setDocumentTypes(res.data.data.documentTypes || [])
     } catch (error) {
       console.error('Failed to load document types:', error)
@@ -371,6 +374,17 @@ function DocumentTypesManagement() {
     })
   }
 
+  const handleRestore = async (id) => {
+    try {
+      await api.patch(`/system/config/document-types/${id}/restore`)
+      setAlertModal({ show: true, title: 'Success', message: 'Document type restored successfully', type: 'success' })
+      loadDocumentTypes()
+    } catch (error) {
+      console.error('Failed to restore document type:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to restore document type', type: 'error' })
+    }
+  }
+
   const filteredItems = documentTypes.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.prefix.toLowerCase().includes(searchQuery.toLowerCase())
@@ -378,7 +392,7 @@ function DocumentTypesManagement() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery])
+  }, [searchQuery, showInactive])
 
   const totalRecords = filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -443,6 +457,15 @@ function DocumentTypesManagement() {
           className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
         />
       </div>
+      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={(e) => setShowInactive(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        {t('show_inactive')}
+      </label>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -491,9 +514,11 @@ function DocumentTypesManagement() {
                   </td>
                   <td className="py-4 px-4 text-right">
                     <ActionMenu
-                      actions={[
+                      actions={item.isActive ? [
                         { label: t('rp_edit'), onClick: () => handleEdit(item) },
                         { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
+                      ] : [
+                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) }
                       ]}
                     />
                   </td>
@@ -875,6 +900,7 @@ function DepartmentsManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
@@ -882,12 +908,14 @@ function DepartmentsManagement() {
 
   useEffect(() => {
     loadDepartments()
-  }, [])
+  }, [showInactive])
 
   const loadDepartments = async () => {
     setLoading(true)
     try {
-      const res = await api.get('/system/config/departments')
+      const res = await api.get('/system/config/departments', {
+        params: showInactive ? { includeInactive: true } : undefined
+      })
       setDepartments(res.data.data.departments || [])
     } catch (error) {
       console.error('Failed to load departments:', error)
@@ -944,6 +972,17 @@ function DepartmentsManagement() {
     })
   }
 
+  const handleRestore = async (id) => {
+    try {
+      await api.patch(`/system/config/departments/${id}/restore`)
+      setAlertModal({ show: true, title: 'Success', message: 'Department restored successfully', type: 'success' })
+      loadDepartments()
+    } catch (error) {
+      console.error('Failed to restore department:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to restore department', type: 'error' })
+    }
+  }
+
   const filteredItems = departments.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -951,7 +990,7 @@ function DepartmentsManagement() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery])
+  }, [searchQuery, showInactive])
 
   const totalRecords = filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
@@ -1016,6 +1055,15 @@ function DepartmentsManagement() {
           className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
         />
       </div>
+      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={(e) => setShowInactive(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        {t('show_inactive')}
+      </label>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1064,9 +1112,11 @@ function DepartmentsManagement() {
                   </td>
                   <td className="py-4 px-4 text-right">
                     <ActionMenu
-                      actions={[
+                      actions={item.isActive ? [
                         { label: t('rp_edit'), onClick: () => handleEdit(item) },
                         { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
+                      ] : [
+                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) }
                       ]}
                     />
                   </td>
