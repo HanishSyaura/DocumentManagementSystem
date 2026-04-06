@@ -190,13 +190,12 @@ class ConfigService {
   }
 
   /**
-   * Delete (soft delete) project category
+   * Delete project category (hard delete)
    */
   async deleteProjectCategory(id) {
-    return await prisma.projectCategory.update({
-      where: { id: parseInt(id) },
-      data: { isActive: false }
-    });
+    return await prisma.projectCategory.delete({
+      where: { id: parseInt(id) }
+    })
   }
 
   // ============================================

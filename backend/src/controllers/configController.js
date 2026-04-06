@@ -157,7 +157,7 @@ exports.updateProjectCategory = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Delete project category (soft delete)
+ * @desc    Delete project category
  * @route   DELETE /api/config/project-categories/:id
  * @access  Private (Admin only)
  */
