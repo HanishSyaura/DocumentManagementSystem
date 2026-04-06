@@ -1,5 +1,5 @@
 const prisma = require('../config/database');
-const { NotFoundError } = require('../utils/errors');
+const { NotFoundError, ConflictError } = require('../utils/errors');
 
 class ConfigService {
   /**
@@ -135,13 +135,23 @@ class ConfigService {
   }
 
   /**
-   * Delete (soft delete) document type
+   * Delete document type
    */
   async deleteDocumentType(id) {
-    return await prisma.documentType.update({
-      where: { id: parseInt(id) },
-      data: { isActive: false }
-    });
+    const documentTypeId = parseInt(id)
+    const [documentsCount, templatesCount, workflowsCount] = await Promise.all([
+      prisma.document.count({ where: { documentTypeId } }),
+      prisma.template.count({ where: { documentTypeId } }),
+      prisma.workflow.count({ where: { documentTypeId } })
+    ])
+
+    if (documentsCount > 0 || templatesCount > 0 || workflowsCount > 0) {
+      throw new ConflictError('Cannot delete this document type because it is currently in use.')
+    }
+
+    return await prisma.documentType.delete({
+      where: { id: documentTypeId }
+    })
   }
 
   async restoreDocumentType(id) {
@@ -251,13 +261,12 @@ class ConfigService {
   }
 
   /**
-   * Delete (soft delete) department
+   * Delete department
    */
   async deleteDepartment(id) {
-    return await prisma.department.update({
-      where: { id: parseInt(id) },
-      data: { isActive: false }
-    });
+    return await prisma.department.delete({
+      where: { id: parseInt(id) }
+    })
   }
 
   async restoreDepartment(id) {

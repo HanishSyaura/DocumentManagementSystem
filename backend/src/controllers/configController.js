@@ -51,7 +51,7 @@ exports.createDocumentType = asyncHandler(async (req, res) => {
   if (existing && existing.isActive === false) {
     return ResponseFormatter.error(
       res,
-      'A document type with the same name or prefix already exists but is inactive. Enable "Show inactive" and restore it instead of creating a new one.',
+      'A document type with the same name or prefix already exists but is inactive. Enable "Show inactive" and delete it permanently (or restore it) before creating a new one.',
       409
     )
   }
@@ -94,7 +94,7 @@ exports.updateDocumentType = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Delete document type (soft delete)
+ * @desc    Delete document type
  * @route   DELETE /api/config/document-types/:id
  * @access  Private (Admin only)
  */
@@ -234,9 +234,32 @@ exports.createDepartment = asyncHandler(async (req, res) => {
     throw new ValidationError('Name and code are required');
   }
 
+  const normalizedName = String(name).trim()
+  const normalizedCode = String(code).trim()
+  if (!normalizedName || !normalizedCode) {
+    throw new ValidationError('Name and code are required');
+  }
+
+  const existing = await prisma.department.findFirst({
+    where: {
+      OR: [
+        { name: normalizedName },
+        { code: normalizedCode }
+      ]
+    },
+    select: { id: true, isActive: true }
+  })
+  if (existing && existing.isActive === false) {
+    return ResponseFormatter.error(
+      res,
+      'A department with the same name or code already exists but is inactive. Enable "Show inactive" and delete it permanently (or restore it) before creating a new one.',
+      409
+    )
+  }
+
   const department = await configService.createDepartment({
-    name,
-    code,
+    name: normalizedName,
+    code: normalizedCode,
     description
   });
 
@@ -272,7 +295,7 @@ exports.updateDepartment = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Delete department (soft delete)
+ * @desc    Delete department
  * @route   DELETE /api/config/departments/:id
  * @access  Private (Admin only)
  */

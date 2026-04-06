@@ -518,7 +518,8 @@ function DocumentTypesManagement() {
                         { label: t('rp_edit'), onClick: () => handleEdit(item) },
                         { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
                       ] : [
-                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) }
+                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) },
+                        { label: t('rp_delete'), onClick: () => handleDelete(item.id), variant: 'destructive' }
                       ]}
                     />
                   </td>
@@ -1116,7 +1117,8 @@ function DepartmentsManagement() {
                         { label: t('rp_edit'), onClick: () => handleEdit(item) },
                         { label: t('rp_delete'), onClick: () => handleDelete(item.id) }
                       ] : [
-                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) }
+                        { label: t('mr_restore'), onClick: () => handleRestore(item.id) },
+                        { label: t('rp_delete'), onClick: () => handleDelete(item.id), variant: 'destructive' }
                       ]}
                     />
                   </td>
