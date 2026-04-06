@@ -293,7 +293,7 @@ const HomePage = () => {
                 {t('hp_features')}
               </a>
               <a href="#workflow" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_workflow_title')}
+                Overview
               </a>
               <a href="#contact" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_contact')}
@@ -331,7 +331,7 @@ const HomePage = () => {
                 {t('hp_features')}
               </a>
               <a href="#workflow" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_workflow_title')}
+                Overview
               </a>
               <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_contact')}
