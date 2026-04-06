@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
+import Pagination from './Pagination'
 
 export default function BackupRecovery() {
   const { t } = usePreferences()
@@ -10,6 +11,8 @@ export default function BackupRecovery() {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false)
   const [backupName, setBackupName] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
 
@@ -29,6 +32,14 @@ export default function BackupRecovery() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [backups.length])
+
+  const totalRecords = backups.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = backups.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const handleCreateBackup = async () => {
     if (!backupName.trim()) {
@@ -239,7 +250,7 @@ export default function BackupRecovery() {
                   </td>
                 </tr>
               ) : (
-                backups.map((backup) => (
+                pageItems.map((backup) => (
                   <tr key={backup.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
@@ -317,7 +328,7 @@ export default function BackupRecovery() {
               <span>No backups found</span>
             </div>
           ) : (
-            backups.map((backup) => (
+            pageItems.map((backup) => (
               <div key={backup.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-start gap-3">
                   <svg className="w-6 h-6 text-blue-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,6 +383,15 @@ export default function BackupRecovery() {
             ))
           )}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalRecords={totalRecords}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+        />
       </div>
 
       {/* Create Backup Modal */}

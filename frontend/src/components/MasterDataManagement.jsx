@@ -3,6 +3,7 @@ import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
 import ActionMenu from './ActionMenu'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
+import Pagination from './Pagination'
 
 // Tab Navigation for Master Data
 function MasterDataTabs({ activeTab, onTabChange }) {
@@ -280,6 +281,8 @@ function DocumentTypesManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
 
@@ -373,6 +376,14 @@ function DocumentTypesManagement() {
     item.prefix.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalRecords = filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
   return (
     <div className="space-y-6">
       <ConfirmModal
@@ -462,7 +473,7 @@ function DocumentTypesManagement() {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              pageItems.map((item) => (
                 <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
                   <td className="py-4 px-4">
@@ -492,6 +503,14 @@ function DocumentTypesManagement() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+      />
     </div>
   )
 }
@@ -504,6 +523,8 @@ function ProjectCategoriesManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
 
@@ -575,6 +596,14 @@ function ProjectCategoriesManagement() {
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.code.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalRecords = filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
     <div className="space-y-6">
@@ -665,7 +694,7 @@ function ProjectCategoriesManagement() {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              pageItems.map((item) => (
                 <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
                   <td className="py-4 px-4">
@@ -695,6 +724,14 @@ function ProjectCategoriesManagement() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+      />
     </div>
   )
 }
@@ -826,6 +863,8 @@ function DepartmentsManagement() {
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
 
@@ -897,6 +936,14 @@ function DepartmentsManagement() {
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.code.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalRecords = filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   return (
     <div className="space-y-6">
@@ -987,7 +1034,7 @@ function DepartmentsManagement() {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
+              pageItems.map((item) => (
                 <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
                   <td className="py-4 px-4">
@@ -1017,6 +1064,14 @@ function DepartmentsManagement() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import AddUserModal from './AddUserModal'
 import ActionMenu from './ActionMenu'
 import EditSystemRolePermissionsModal from './EditSystemRolePermissionsModal'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
+import Pagination from './Pagination'
 
 // Sub-tab Navigation Component
 function SubTabNavigation({ activeTab, onTabChange }) {
@@ -43,6 +44,8 @@ function RolesManagement() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [showAddRoleModal, setShowAddRoleModal] = useState(false)
   const [editingRole, setEditingRole] = useState(null)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
@@ -86,6 +89,14 @@ function RolesManagement() {
     const matchesStatus = statusFilter === 'all' || role.status.toLowerCase() === statusFilter.toLowerCase()
     return matchesSearch && matchesStatus
   })
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter])
+
+  const totalRecords = filteredRoles.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = filteredRoles.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const handleAddRole = () => {
     setEditingRole(null)
@@ -317,7 +328,7 @@ function RolesManagement() {
             ) : filteredRoles.length === 0 ? (
               <tr><td colSpan="6" className="text-center py-12 text-gray-500">{t('rp_no_roles')}</td></tr>
             ) : (
-              filteredRoles.map((role) => (
+              pageItems.map((role) => (
                 <tr key={role.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 font-medium text-gray-900">{role.roleName}</td>
                   <td className="py-4 px-4 text-gray-600">{role.description}</td>
@@ -357,6 +368,14 @@ function RolesManagement() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+      />
     </div>
   )
 }
@@ -369,6 +388,8 @@ function UsersManagement() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
@@ -472,6 +493,14 @@ function UsersManagement() {
     const matchesRole = roleFilter === 'all' || (Array.isArray(user.roles) && user.roles.includes(roleFilter))
     return matchesSearch && matchesRole
   })
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, roleFilter])
+
+  const totalRecords = filteredUsers.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const pageItems = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const handleAddUser = () => {
     setEditingUser(null)
@@ -704,7 +733,7 @@ function UsersManagement() {
             ) : filteredUsers.length === 0 ? (
               <tr><td colSpan="7" className="text-center py-12 text-gray-500">{t('rp_no_users')}</td></tr>
             ) : (
-              filteredUsers.map((user) => (
+              pageItems.map((user) => (
                 <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 font-medium text-gray-900">{user.userName}</td>
                   <td className="py-4 px-4 text-gray-600">{user.email}</td>
@@ -747,6 +776,14 @@ function UsersManagement() {
           </tbody>
         </table>
       </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+      />
     </div>
   )
 }

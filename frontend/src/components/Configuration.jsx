@@ -12,6 +12,7 @@ import ActionMenu from './ActionMenu'
 import { PermissionGate } from './PermissionGate'
 import { hasPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
+import Pagination from './Pagination'
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange }) {
@@ -58,12 +59,12 @@ function TemplateManagement() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [showAddTemplateModal, setShowAddTemplateModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState(null)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [documentTypes, setDocumentTypes] = useState([])
-  const itemsPerPage = 10
 
   useEffect(() => {
     loadTemplates()
@@ -167,9 +168,14 @@ function TemplateManagement() {
     template.prefixCode.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  const totalRecords = filteredTemplates.length
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
   const currentTemplates = filteredTemplates.slice(startIndex, endIndex)
 
   const handlePageChange = (page) => {
@@ -484,62 +490,14 @@ function TemplateManagement() {
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-600">
-              {t('showing')} {startIndex + 1} {t('to')} {Math.min(endIndex, filteredTemplates.length)} {t('of')} {filteredTemplates.length} {t('cfg_templates')}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              
-              {[...Array(totalPages)].map((_, index) => {
-                const page = index + 1
-                if (
-                  page === 1 ||
-                  page === totalPages ||
-                  (page >= currentPage - 1 && page <= currentPage + 1)
-                ) {
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`w-8 h-8 rounded ${
-                        page === currentPage
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                } else if (page === currentPage - 2 || page === currentPage + 2) {
-                  return <span key={page} className="text-gray-500 px-1">...</span>
-                }
-                return null
-              })}
-              
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalRecords={totalRecords}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+        />
       </div>
     </div>
   )
