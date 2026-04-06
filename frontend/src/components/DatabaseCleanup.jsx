@@ -7,6 +7,7 @@ export default function DatabaseCleanup() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   
   // Modal states
   const [showCleanupModal, setShowCleanupModal] = useState(false);
@@ -25,6 +26,18 @@ export default function DatabaseCleanup() {
   useEffect(() => {
     loadStats();
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user')
+      const user = raw ? JSON.parse(raw) : null
+      const roles = Array.isArray(user?.roles) ? user.roles : []
+      const hasAdmin = roles.some((r) => r?.role?.name === 'admin' || r?.name === 'admin')
+      setIsAdminUser(!!hasAdmin)
+    } catch {
+      setIsAdminUser(false)
+    }
+  }, [])
 
   const loadStats = async () => {
     try {
@@ -141,6 +154,10 @@ export default function DatabaseCleanup() {
   };
 
   const openCleanupModal = () => {
+    if (!isAdminUser) {
+      setError('Only administrators can perform database cleanup. Please login as an admin user.');
+      return;
+    }
     setShowCleanupModal(true);
     setError('');
     setPassword('');
@@ -148,6 +165,10 @@ export default function DatabaseCleanup() {
   };
 
   const openTestingModal = () => {
+    if (!isAdminUser) {
+      setError('Only administrators can perform database cleanup. Please login as an admin user.');
+      return;
+    }
     setShowTestingModal(true);
     setError('');
     setPassword('');
@@ -155,6 +176,10 @@ export default function DatabaseCleanup() {
   };
 
   const openResetModal = () => {
+    if (!isAdminUser) {
+      setError('Only administrators can perform database cleanup. Please login as an admin user.');
+      return;
+    }
     setShowResetModal(true);
     setError('');
     setPassword('');
@@ -208,6 +233,14 @@ export default function DatabaseCleanup() {
         </div>
       </div>
 
+      {!isAdminUser && (
+        <div className="card p-5 bg-yellow-50 border-yellow-200">
+          <p className="text-sm text-yellow-800">
+            Only administrators can run cleanup actions. Please login with an admin account to proceed.
+          </p>
+        </div>
+      )}
+
       {/* Cleanup Result */}
       {cleanupResult && (
         <div className="card p-5 bg-green-50 border-green-200">
@@ -260,6 +293,7 @@ export default function DatabaseCleanup() {
           <button
             onClick={openCleanupModal}
             className="btn-danger w-full"
+            disabled={!isAdminUser}
           >
             🗑️ Clean Database
           </button>
@@ -274,6 +308,7 @@ export default function DatabaseCleanup() {
           <button
             onClick={openTestingModal}
             className="btn-danger w-full"
+            disabled={!isAdminUser}
           >
             🧹 Clean Testing Data
           </button>
@@ -288,6 +323,7 @@ export default function DatabaseCleanup() {
           <button
             onClick={openResetModal}
             className="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-md transition-colors w-full font-medium"
+            disabled={!isAdminUser}
           >
             ⚠️ Full System Reset
           </button>

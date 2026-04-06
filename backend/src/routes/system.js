@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const asyncHandler = require('../utils/asyncHandler');
 const ResponseFormatter = require('../utils/responseFormatter');
 const prisma = require('../config/database');
@@ -232,18 +232,18 @@ router.post('/config/validate-password', authenticate, asyncHandler(async (req, 
  * Database Cleanup Routes (Admin Only)
  */
 // Get cleanup statistics
-router.get('/cleanup/stats', authenticate, cleanupController.getCleanupStats);
+router.get('/cleanup/stats', authenticate, authorize('admin'), cleanupController.getCleanupStats);
 
 // Verify admin password
-router.post('/cleanup/verify-password', authenticate, cleanupController.verifyPassword);
+router.post('/cleanup/verify-password', authenticate, authorize('admin'), cleanupController.verifyPassword);
 
 // Perform database cleanup (preserves master data)
-router.post('/cleanup/database', authenticate, cleanupController.cleanupDatabase);
+router.post('/cleanup/database', authenticate, authorize('admin'), cleanupController.cleanupDatabase);
 
 // Perform testing data cleanup (preserves configuration)
-router.post('/cleanup/testing-data', authenticate, cleanupController.cleanupTestingData);
+router.post('/cleanup/testing-data', authenticate, authorize('admin'), cleanupController.cleanupTestingData);
 
 // Perform full system reset (removes everything)
-router.post('/cleanup/full-reset', authenticate, cleanupController.fullSystemReset);
+router.post('/cleanup/full-reset', authenticate, authorize('admin'), cleanupController.fullSystemReset);
 
 module.exports = router;
