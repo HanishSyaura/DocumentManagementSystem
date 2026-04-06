@@ -478,10 +478,10 @@ const HomePage = () => {
                     {feature.iconImage && (
                       <div className="flex-shrink-0">
                         <div
-                          className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}
+                          className={`w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`}
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
-                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain" />
+                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain drop-shadow-sm" />
                         </div>
                       </div>
                     )}
@@ -525,10 +525,10 @@ const HomePage = () => {
                     {feature.iconImage && (
                       <div className="flex-shrink-0">
                         <div
-                          className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}
+                          className={`w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`}
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
-                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain" />
+                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain drop-shadow-sm" />
                         </div>
                       </div>
                     )}
@@ -577,10 +577,10 @@ const HomePage = () => {
           </div>
 
           {/* Circular Diagram Layout */}
-          <div className="relative max-w-6xl mx-auto hidden lg:block" style={{ height: '600px' }}>
+          <div className="relative max-w-6xl mx-auto hidden lg:block h-[clamp(440px,55vw,620px)]">
             {/* Admin - Center */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-              <div className="bg-gradient-to-br from-cyan-400 via-cyan-500 to-blue-500 rounded-3xl p-10 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 w-72 text-center border-4 border-white">
+              <div className="bg-gradient-to-br from-cyan-400 via-cyan-500 to-blue-500 rounded-3xl p-8 lg:p-10 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 w-[clamp(16rem,20vw,18rem)] text-center border-4 border-white">
                 <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-5 shadow-lg">
                   <svg className="w-12 h-12 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -596,7 +596,7 @@ const HomePage = () => {
 
             {/* Document Controller - Top Left */}
             <div className="absolute left-0 top-0">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-64 text-white border-2 border-blue-300">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-blue-300">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
                   <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -612,7 +612,7 @@ const HomePage = () => {
 
             {/* Document Owner - Top Right */}
             <div className="absolute right-0 top-0">
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-64 text-white border-2 border-purple-300">
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-purple-300">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
                   <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -627,7 +627,7 @@ const HomePage = () => {
 
             {/* Reviewer - Bottom Left */}
             <div className="absolute left-0 bottom-0">
-              <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-64 text-white border-2 border-teal-300">
+              <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-teal-300">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
                   <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -643,7 +643,7 @@ const HomePage = () => {
 
             {/* Approver - Bottom Right */}
             <div className="absolute right-0 bottom-0">
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-64 text-white border-2 border-green-300">
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-green-300">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
                   <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
