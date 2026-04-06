@@ -11,6 +11,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const { t } = usePreferences()
   const [sidebarPosition, setSidebarPosition] = useState('left')
+  const [footerConfig, setFooterConfig] = useState(null)
   // Right panel is collapsed by default on all pages except dashboard
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
@@ -95,6 +96,33 @@ export default function Layout({ children }) {
     setIsRightPanelCollapsed(location.pathname !== '/dashboard')
   }, [location.pathname])
 
+  useEffect(() => {
+    const loadFooterConfig = () => {
+      try {
+        const raw = localStorage.getItem('dms_landing_page_settings')
+        if (!raw) {
+          setFooterConfig(null)
+          return
+        }
+        const parsed = JSON.parse(raw)
+        if (!parsed || typeof parsed !== 'object') {
+          setFooterConfig(null)
+          return
+        }
+        setFooterConfig(parsed)
+      } catch {
+        setFooterConfig(null)
+      }
+    }
+
+    loadFooterConfig()
+    window.addEventListener('storage', loadFooterConfig)
+    return () => window.removeEventListener('storage', loadFooterConfig)
+  }, [])
+
+  const footerLinks = Array.isArray(footerConfig?.footerLinks) ? footerConfig.footerLinks : []
+  const footerCopyright = footerConfig?.copyrightText
+
   return (
     <div className="h-screen flex flex-col">
       <Topbar onMenu={() => setSidebarOpen(true)} />
@@ -110,15 +138,25 @@ export default function Layout({ children }) {
           <footer className="dms-footer border-t border-gray-200 mt-8">
             <div className="text-center py-4">
               <p className="text-xs text-gray-500">
-                © 2025 CLB Groups. {t('rights_reserved')}
+                {footerCopyright || `© 2025 CLB Groups. ${t('rights_reserved')}`}
               </p>
-              <div className="flex justify-center gap-4 mt-2 text-xs">
-                <a href="#" className="text-blue-600 hover:underline">{t('terms_of_use')}</a>
-                <span className="text-gray-400">|</span>
-                <a href="#" className="text-blue-600 hover:underline">{t('privacy_policy')}</a>
-                <span className="text-gray-400">|</span>
-                <a href="#" className="text-blue-600 hover:underline">{t('system_access')}</a>
-              </div>
+              {footerLinks.length > 0 && (
+                <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs">
+                  {footerLinks.map((link, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
+                      <button
+                        type="button"
+                        onClick={() => { if (link?.pdf) window.open(link.pdf, '_blank', 'noopener,noreferrer') }}
+                        className="text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline"
+                        disabled={!link?.pdf}
+                      >
+                        {link?.label || ''}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
             </div>
           </footer>
         </main>
