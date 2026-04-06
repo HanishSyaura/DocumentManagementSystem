@@ -72,7 +72,7 @@ export default function ConfirmModal({
   const style = typeStyles[type] || typeStyles.info
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden animate-fadeIn">
         <div className={`${style.header} px-6 py-4`}>
           <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ export function AlertModal({
   const style = typeStyles[type] || typeStyles.error
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden animate-fadeIn">
         <div className={`${style.header} px-6 py-4`}>
           <div className="flex items-center gap-3">
