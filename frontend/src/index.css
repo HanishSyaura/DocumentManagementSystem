@@ -101,3 +101,34 @@ html {
   scroll-behavior: smooth; 
   scroll-padding-top: 4rem;
 }
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.9);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  transform: translateY(-200%);
+  background: #ffffff;
+  color: #111827;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  z-index: 100000;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-fade-in-up, .animate-fade-in, .animate-slide-in-left, .animate-float {
+    animation: none !important;
+  }
+  * { transition-duration: 0.01ms !important; }
+}

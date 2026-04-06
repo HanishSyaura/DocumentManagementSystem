@@ -13,7 +13,9 @@ import {
   ArrowRightIcon,
   CheckCircleIcon,
   EnvelopeIcon,
-  PhoneIcon
+  PhoneIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import api from '../api/axios';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -46,6 +48,7 @@ const HomePage = () => {
   const [pdfModal, setPdfModal] = useState({ isOpen: false, pdfData: null, title: '' });
   const [logo, setLogo] = useState(null);
   const [companyName, setCompanyName] = useState('FileNix');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHexColor = (v) => typeof v === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
   const rolesList = Array.isArray(landingContent?.roles) ? landingContent.roles : []
@@ -228,6 +231,26 @@ const HomePage = () => {
     setPdfModal({ isOpen: false, pdfData: null, title: '' });
   };
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (pdfModal.isOpen) closePdfModal();
+        if (mobileMenuOpen) setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pdfModal.isOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!pdfModal.isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [pdfModal.isOpen]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
@@ -239,11 +262,12 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white scroll-smooth">
+      <a href="#main" className="skip-link">Skip to content</a>
       {/* Navigation Bar */}
       <nav className="app-topbar sticky top-0 z-50 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <button type="button" className="flex items-center gap-3 focus-visible:outline-none" onClick={() => navigate('/')} aria-label="Go to home">
               {logo ? (
                 <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
                   <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
@@ -257,8 +281,8 @@ const HomePage = () => {
                 <span className="text-sm font-semibold">{companyName}</span>
                 <span className="text-xs opacity-90">{t('dms_label')}</span>
               </div>
-            </div>
-            <div className="flex space-x-1">
+            </button>
+            <div className="hidden md:flex items-center space-x-1">
               <a href="#home" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_home')}
               </a>
@@ -268,22 +292,65 @@ const HomePage = () => {
               <a href="#features" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_features')}
               </a>
+              <a href="#workflow" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_workflow_title')}
+              </a>
               <a href="#contact" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_contact')}
               </a>
               <button
+                type="button"
                 onClick={() => navigate('/login')}
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold ml-2 hover:bg-blue-50 transition-colors"
               >
                 {t('hp_login')}
               </button>
             </div>
+            <button
+              type="button"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-white/20 transition-colors"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="landing-mobile-nav"
+              onClick={() => setMobileMenuOpen(v => !v)}
+            >
+              {mobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+            </button>
           </div>
         </div>
+        {mobileMenuOpen && (
+          <div id="landing-mobile-nav" className="md:hidden border-t border-white/15 bg-[color:var(--dms-primary)]">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-2">
+              <a href="#home" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_home')}
+              </a>
+              <a href="#about" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_about')}
+              </a>
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_features')}
+              </a>
+              <a href="#workflow" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_workflow_title')}
+              </a>
+              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+                {t('hp_contact')}
+              </a>
+              <button
+                type="button"
+                onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
+                className="mt-1 bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors"
+              >
+                {t('hp_login')}
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section id="home" className="h-screen flex items-center overflow-hidden" style={{
+      <main id="main" tabIndex={-1}>
+      <section id="home" className="scroll-mt-20 min-h-[calc(100svh-4rem)] flex items-center overflow-hidden" style={{
         background: `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`,
         color: 'var(--dms-landing-hero-text, #FFFFFF)'
       }}> 
@@ -335,7 +402,7 @@ const HomePage = () => {
       </section>
 
       {/* What is DMS Section */}
-      <section id="about" className="min-h-screen flex items-center py-16" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
+      <section id="about" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -387,7 +454,7 @@ const HomePage = () => {
       </section>
 
       {/* Core Features Section */}
-      <section id="features" className="min-h-screen flex items-center justify-center py-16" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
+      <section id="features" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_core_features')}</h2>
@@ -405,7 +472,7 @@ const HomePage = () => {
               const descStyle = textIsHex ? { color: feature.textColor } : undefined
 
               return (
-                <div key={idx} className={`rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 cursor-pointer group bg-white`}>
+                <div key={idx} className="rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 group bg-white">
                   <div className="flex items-start gap-5">
                     {/* Icon */}
                     {feature.iconImage && (
@@ -414,7 +481,7 @@ const HomePage = () => {
                           className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
-                          <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
+                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain" />
                         </div>
                       </div>
                     )}
@@ -434,7 +501,7 @@ const HomePage = () => {
       </section>
 
       {/* System Features Section */}
-      <section className="min-h-screen flex items-center justify-center py-16" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
+      <section className="py-16 sm:py-20" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_system_features')}</h2>
@@ -452,7 +519,7 @@ const HomePage = () => {
               const descStyle = textIsHex ? { color: feature.textColor } : undefined
 
               return (
-                <div key={idx} className={`rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 cursor-pointer group bg-white`}>
+                <div key={idx} className="rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 group bg-white">
                   <div className="flex items-start gap-5">
                     {/* Icon */}
                     {feature.iconImage && (
@@ -461,7 +528,7 @@ const HomePage = () => {
                           className={`w-20 h-20 lg:w-24 lg:h-24 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow`}
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
-                          <img src={feature.iconImage} alt={feature.title} className="w-12 h-12 lg:w-14 lg:h-14 object-contain" />
+                          <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain" />
                         </div>
                       </div>
                     )}
@@ -481,7 +548,7 @@ const HomePage = () => {
       </section>
 
       {/* Who Uses This System Section */}
-      <section className="min-h-screen flex items-center py-16" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
+      <section className="py-16 sm:py-20" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -491,8 +558,26 @@ const HomePage = () => {
             <div className="w-24 h-1.5 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full mt-6"></div>
           </div>
 
+          <div className="lg:hidden grid gap-4 sm:grid-cols-2">
+            {[
+              { title: roleCenter.name, desc: roleCenter.description, accent: 'from-cyan-500 to-blue-600' },
+              { title: roleTop.name, desc: roleTop.description, accent: 'from-blue-500 to-blue-700' },
+              { title: roleBottom.name, desc: roleBottom.description, accent: 'from-purple-500 to-purple-700' },
+              { title: roleLeft.name, desc: roleLeft.description, accent: 'from-teal-500 to-teal-700' },
+              { title: roleRight.name, desc: roleRight.description, accent: 'from-emerald-500 to-green-700' }
+            ].map((r, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-5 shadow-md border border-white/60">
+                <div className={`h-1.5 w-16 rounded-full bg-gradient-to-r ${r.accent} mb-3`} />
+                <h3 className="text-lg font-bold text-gray-900">
+                  <MarkdownRenderer inline value={r.title} />
+                </h3>
+                <MarkdownRenderer value={r.desc} className="mt-2 text-sm text-gray-600 leading-relaxed space-y-2" />
+              </div>
+            ))}
+          </div>
+
           {/* Circular Diagram Layout */}
-          <div className="relative max-w-6xl mx-auto" style={{ height: '600px' }}>
+          <div className="relative max-w-6xl mx-auto hidden lg:block" style={{ height: '600px' }}>
             {/* Admin - Center */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
               <div className="bg-gradient-to-br from-cyan-400 via-cyan-500 to-blue-500 rounded-3xl p-10 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 w-72 text-center border-4 border-white">
@@ -590,7 +675,7 @@ const HomePage = () => {
       </section>
 
       {/* End-to-End Workflow Section */}
-      <section id="workflow" className="min-h-screen flex items-center justify-center py-12" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
+      <section id="workflow" className="scroll-mt-20 py-12 sm:py-16" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
@@ -668,7 +753,7 @@ const HomePage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="min-h-screen flex items-center py-16" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
+      <section id="contact" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
         <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           {/* Image Top Position */}
           {landingContent?.contactImage && landingContent?.contactImagePosition === 'top' && (
@@ -758,6 +843,7 @@ const HomePage = () => {
                 <React.Fragment key={idx}>
                   {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
                   <button
+                    type="button"
                     onClick={() => handlePdfLinkClick(link)}
                     className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors"
                     disabled={!link.pdf}
@@ -771,16 +857,20 @@ const HomePage = () => {
         </div>
       </footer>
 
+      </main>
+
       {/* PDF Viewer Modal */}
       {pdfModal.isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75 p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) closePdfModal(); }}>
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">{pdfModal.title}</h3>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200" role="dialog" aria-modal="true" aria-labelledby="landing-pdf-title">
+              <h3 id="landing-pdf-title" className="text-xl font-bold text-gray-900">{pdfModal.title}</h3>
               <button
+                type="button"
                 onClick={closePdfModal}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close PDF viewer"
               >
                 <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
