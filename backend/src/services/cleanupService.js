@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
+const config = require('../config/app');
 
 class CleanupService {
   /**
@@ -183,6 +184,48 @@ class CleanupService {
   }
 
   /**
+   * Clean testing data while preserving configuration.
+   * Preserves: master data + configuration (DocumentTypes, ProjectCategories, Departments, Templates, Workflows, Folders, Roles/Permissions, SystemConfiguration)
+   * Deletes: documents + activity + logs/reports/master registers, and all users except the admin performing cleanup.
+   */
+  async cleanupTestingData(adminUserId) {
+    const results = {
+      success: false,
+      cleaned: {},
+      errors: [],
+      timestamp: new Date().toISOString()
+    }
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        results.cleaned.generatedReports = (await tx.generatedReport.deleteMany({})).count
+        results.cleaned.notifications = (await tx.notification.deleteMany({})).count
+        results.cleaned.auditLogs = (await tx.auditLog.deleteMany({})).count
+
+        results.cleaned.documentRegister = (await tx.documentRegister.deleteMany({})).count
+        results.cleaned.versionRegister = (await tx.versionRegister.deleteMany({})).count
+        results.cleaned.obsoleteRegister = (await tx.obsoleteRegister.deleteMany({})).count
+        results.cleaned.archiveRegister = (await tx.archiveRegister.deleteMany({})).count
+
+        results.cleaned.documentVersions = (await tx.documentVersion.deleteMany({})).count
+        results.cleaned.documents = (await tx.document.deleteMany({})).count
+
+        results.cleaned.users = (await tx.user.deleteMany({
+          where: { id: { not: adminUserId } }
+        })).count
+
+        results.success = true
+        results.message = 'Testing data cleanup completed successfully'
+      })
+
+      return results
+    } catch (error) {
+      results.errors.push(error.message)
+      throw new Error(`Testing data cleanup failed: ${error.message}`)
+    }
+  }
+
+  /**
    * Log cleanup action for audit trail
    */
   async logCleanupAction(userId, results) {
@@ -287,7 +330,7 @@ class CleanupService {
     const fs = require('fs').promises;
     const path = require('path');
     
-    const uploadsDir = path.join(__dirname, '../../uploads');
+    const uploadsDir = config.uploadDir;
     const results = {
       deletedFiles: 0,
       deletedFolders: 0,
@@ -328,6 +371,70 @@ class CleanupService {
     } catch (error) {
       throw new Error(`Failed to cleanup uploaded files: ${error.message}`);
     }
+  }
+
+  async cleanupTestingUploadedFiles(adminUserId) {
+    const fs = require('fs').promises
+    const path = require('path')
+
+    const uploadsDir = config.uploadDir
+    const results = {
+      deletedFiles: 0,
+      deletedFolders: 0,
+      errors: []
+    }
+
+    const rmRecursive = async (targetPath) => {
+      try {
+        const stat = await fs.lstat(targetPath)
+        if (stat.isDirectory()) {
+          const entries = await fs.readdir(targetPath)
+          for (const entry of entries) {
+            await rmRecursive(path.join(targetPath, entry))
+          }
+          await fs.rmdir(targetPath)
+          results.deletedFolders++
+        } else {
+          await fs.unlink(targetPath)
+          results.deletedFiles++
+        }
+      } catch (error) {
+        results.errors.push(`Failed to delete ${targetPath}: ${error.message}`)
+      }
+    }
+
+    const clearDir = async (dirPath) => {
+      try {
+        await fs.access(dirPath)
+      } catch {
+        return
+      }
+
+      try {
+        const entries = await fs.readdir(dirPath)
+        for (const entry of entries) {
+          await rmRecursive(path.join(dirPath, entry))
+        }
+      } catch (error) {
+        results.errors.push(`Failed to clear ${dirPath}: ${error.message}`)
+      }
+    }
+
+    await clearDir(path.join(uploadsDir, 'documents'))
+    await clearDir(path.join(uploadsDir, 'temp'))
+
+    const profilesDir = path.join(uploadsDir, 'profiles')
+    try {
+      await fs.access(profilesDir)
+      const profileEntries = await fs.readdir(profilesDir)
+      for (const entry of profileEntries) {
+        if (String(entry) === String(adminUserId)) continue
+        await rmRecursive(path.join(profilesDir, entry))
+      }
+    } catch {
+    }
+
+    return results
   }
 }
 

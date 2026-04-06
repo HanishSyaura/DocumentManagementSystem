@@ -10,6 +10,7 @@ export default function DatabaseCleanup() {
   
   // Modal states
   const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [showTestingModal, setShowTestingModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   
   // Form states
@@ -108,8 +109,46 @@ export default function DatabaseCleanup() {
     }
   };
 
+  const handleCleanupTestingData = async () => {
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    setProcessing(true);
+    setError('');
+    setCleanupResult(null);
+
+    try {
+      const res = await api.post('/system/cleanup/testing-data', {
+        password,
+        includeFiles
+      });
+
+      setCleanupResult(res.data.data.results);
+      setPassword('');
+      setIncludeFiles(false);
+      setShowTestingModal(false);
+      
+      await loadStats();
+      
+      alert('Testing data cleanup completed successfully!');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Testing data cleanup failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const openCleanupModal = () => {
     setShowCleanupModal(true);
+    setError('');
+    setPassword('');
+    setIncludeFiles(false);
+  };
+
+  const openTestingModal = () => {
+    setShowTestingModal(true);
     setError('');
     setPassword('');
     setIncludeFiles(false);
@@ -125,6 +164,7 @@ export default function DatabaseCleanup() {
 
   const closeModals = () => {
     setShowCleanupModal(false);
+    setShowTestingModal(false);
     setShowResetModal(false);
     setError('');
     setPassword('');
@@ -200,6 +240,7 @@ export default function DatabaseCleanup() {
             </p>
             <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
               <li>Database Cleanup: Removes all data but <strong>preserves master data</strong> (Document Types, Project Categories)</li>
+              <li>Testing Data Cleanup: Removes test data while <strong>preserving configuration</strong> (Folders, Templates, Workflows, Master Data)</li>
               <li>Full System Reset: Removes <strong>ALL data including master data</strong></li>
               <li>Both options keep your admin user account active</li>
               <li>These operations <strong>CANNOT be undone</strong></li>
@@ -209,7 +250,7 @@ export default function DatabaseCleanup() {
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Database Cleanup */}
         <div className="card p-5">
           <h3 className="text-base font-semibold text-gray-900 mb-2">Database Cleanup</h3>
@@ -221,6 +262,20 @@ export default function DatabaseCleanup() {
             className="btn-danger w-full"
           >
             🗑️ Clean Database
+          </button>
+        </div>
+
+        {/* Testing Data Cleanup */}
+        <div className="card p-5">
+          <h3 className="text-base font-semibold text-gray-900 mb-2">Testing Data Cleanup</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Delete test data while keeping configuration (Folders, Templates, Workflows, Master Data). Keeps only your admin account.
+          </p>
+          <button
+            onClick={openTestingModal}
+            className="btn-danger w-full"
+          >
+            🧹 Clean Testing Data
           </button>
         </div>
 
@@ -296,6 +351,73 @@ export default function DatabaseCleanup() {
               </button>
               <button
                 onClick={handleCleanupDatabase}
+                className="btn-danger flex-1"
+                disabled={processing}
+              >
+                {processing ? 'Processing...' : 'Confirm Cleanup'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Testing Data Cleanup Modal */}
+      {showTestingModal && (
+        <Modal
+          title="Testing Data Cleanup"
+          onClose={closeModals}
+          danger
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-700">
+              This will permanently delete all documents and activity data, and remove all users except your admin account.
+            </p>
+            <p className="text-sm font-semibold text-gray-900">
+              ✅ Preserved: Folders, Templates, Workflows, Document Types, Project Categories, Your Admin Account
+            </p>
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div>
+              <label className="label">Admin Password *</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                placeholder="Enter your admin password"
+                disabled={processing}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="includeFilesTesting"
+                checked={includeFiles}
+                onChange={(e) => setIncludeFiles(e.target.checked)}
+                disabled={processing}
+                className="rounded"
+              />
+              <label htmlFor="includeFilesTesting" className="text-sm text-gray-700">
+                Also delete uploaded document files from storage (keeps templates)
+              </label>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={closeModals}
+                className="btn-secondary flex-1"
+                disabled={processing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCleanupTestingData}
                 className="btn-danger flex-1"
                 disabled={processing}
               >

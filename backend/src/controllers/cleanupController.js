@@ -59,6 +59,45 @@ class CleanupController {
   }
 
   /**
+   * Perform testing data cleanup (preserves configuration)
+   * Requires admin password verification
+   */
+  async cleanupTestingData(req, res) {
+    try {
+      const { password, includeFiles } = req.body
+      const userId = req.user.id
+
+      if (!password) {
+        return ResponseFormatter.validationError(res, [
+          { field: 'password', message: 'Password is required for testing data cleanup' }
+        ])
+      }
+
+      try {
+        await cleanupService.verifyAdminPassword(userId, password)
+      } catch (error) {
+        return ResponseFormatter.error(res, error.message, 403)
+      }
+
+      const results = await cleanupService.cleanupTestingData(userId)
+
+      if (includeFiles) {
+        const fileResults = await cleanupService.cleanupTestingUploadedFiles(userId)
+        results.fileCleanup = fileResults
+      }
+
+      return ResponseFormatter.success(
+        res,
+        { results },
+        'Testing data cleanup completed successfully'
+      )
+    } catch (error) {
+      console.error('Testing data cleanup error:', error)
+      return ResponseFormatter.error(res, error.message || 'Testing data cleanup failed')
+    }
+  }
+
+  /**
    * Perform full system reset (removes everything including master data)
    * Requires admin password verification
    */

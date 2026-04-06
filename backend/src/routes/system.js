@@ -240,6 +240,9 @@ router.post('/cleanup/verify-password', authenticate, cleanupController.verifyPa
 // Perform database cleanup (preserves master data)
 router.post('/cleanup/database', authenticate, cleanupController.cleanupDatabase);
 
+// Perform testing data cleanup (preserves configuration)
+router.post('/cleanup/testing-data', authenticate, cleanupController.cleanupTestingData);
+
 // Perform full system reset (removes everything)
 router.post('/cleanup/full-reset', authenticate, cleanupController.fullSystemReset);
 
