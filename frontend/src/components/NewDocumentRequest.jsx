@@ -70,6 +70,7 @@ export default function NewDocumentRequest() {
   const [rejectReason, setRejectReason] = useState('')
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'error' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'info' })
+  const [templatePicker, setTemplatePicker] = useState({ show: false, templates: [], selectedId: '', documentTypeName: '' })
   
   // Master data states
   const [documentTypes, setDocumentTypes] = useState([])
@@ -461,10 +462,31 @@ export default function NewDocumentRequest() {
         return
       }
 
-      // Fetch the template for this document type
-      const response = await api.get(`/templates/by-document-type/${docType.id}/download`, {
-        responseType: 'blob'
-      })
+      const listRes = await api.get(`/templates/by-document-type/${docType.id}`)
+      const templates = listRes.data?.data?.templates || []
+
+      if (templates.length === 0) {
+        setAlertModal({
+          show: true,
+          title: 'Not Found',
+          message: 'No template found for this document type. Please contact the administrator.',
+          type: 'warning'
+        })
+        return
+      }
+
+      if (templates.length > 1) {
+        setTemplatePicker({
+          show: true,
+          templates,
+          selectedId: String(templates[0]?.id || ''),
+          documentTypeName: request.documentType
+        })
+        return
+      }
+
+      const templateId = templates[0].id
+      const response = await api.get(`/templates/${templateId}/download`, { responseType: 'blob' })
 
       // Create download link - response.data is already a blob
       const url = window.URL.createObjectURL(response.data)
@@ -518,6 +540,42 @@ export default function NewDocumentRequest() {
     }
   }
 
+  const handleDownloadSelectedTemplate = async () => {
+    const selectedId = templatePicker.selectedId
+    if (!selectedId) return
+
+    try {
+      const response = await api.get(`/templates/${selectedId}/download`, { responseType: 'blob' })
+      const url = window.URL.createObjectURL(response.data)
+      const a = document.createElement('a')
+      a.href = url
+
+      const contentDisposition = response.headers['content-disposition']
+      let fileName = `${templatePicker.documentTypeName || 'Template'}_Template.docx`
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=(['"]?)([^'"\n]*?)\1(?:;|$)/i)
+        if (fileNameMatch && fileNameMatch[2]) {
+          fileName = fileNameMatch[2].trim()
+        }
+      }
+
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      setTemplatePicker({ show: false, templates: [], selectedId: '', documentTypeName: '' })
+    } catch (error) {
+      console.error('Failed to download template:', error)
+      setAlertModal({
+        show: true,
+        title: 'Error',
+        message: 'Failed to download template. Please try again.',
+        type: 'error'
+      })
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Confirmation Modal */}
@@ -538,6 +596,69 @@ export default function NewDocumentRequest() {
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'error' })}
       />
+
+      {templatePicker.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Select Template</h3>
+                <p className="text-sm text-gray-600 mt-1">{templatePicker.documentTypeName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTemplatePicker({ show: false, templates: [], selectedId: '', documentTypeName: '' })}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-4">
+              <div className="space-y-3 max-h-72 overflow-auto">
+                {templatePicker.templates.map((tpl) => (
+                  <label key={tpl.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="selectedTemplate"
+                      className="mt-1"
+                      checked={String(templatePicker.selectedId) === String(tpl.id)}
+                      onChange={() => setTemplatePicker((prev) => ({ ...prev, selectedId: String(tpl.id) }))}
+                    />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{tpl.templateName}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        <span className="font-mono">v{tpl.version}</span>
+                        {tpl.fileName ? <span className="ml-2 text-gray-500 truncate">({tpl.fileName})</span> : null}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setTemplatePicker({ show: false, templates: [], selectedId: '', documentTypeName: '' })}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadSelectedTemplate}
+                disabled={!templatePicker.selectedId}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Page Header */}
       <div className="card p-6">

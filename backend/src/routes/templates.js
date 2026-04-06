@@ -118,6 +118,31 @@ router.post('/', authorize('admin'), uploadTemplate.single('files'), asyncHandle
  * GET /api/templates/by-document-type/:documentTypeId/download
  * IMPORTANT: This must come BEFORE /:id routes to avoid route collision
  */
+router.get('/by-document-type/:documentTypeId', asyncHandler(async (req, res) => {
+  const documentTypeId = parseInt(req.params.documentTypeId)
+
+  const templates = await prisma.template.findMany({
+    where: {
+      documentTypeId,
+      isActive: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    select: {
+      id: true,
+      templateName: true,
+      version: true,
+      fileName: true,
+      uploadedBy: true,
+      uploadedOn: true,
+      createdAt: true
+    }
+  })
+
+  return ResponseFormatter.success(res, { templates }, 'Templates retrieved successfully')
+}))
+
 router.get('/by-document-type/:documentTypeId/download', async (req, res) => {
   try {
     const documentTypeId = parseInt(req.params.documentTypeId);
