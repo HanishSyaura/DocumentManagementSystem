@@ -593,6 +593,24 @@ function UsersManagement() {
     })
   }
 
+  const handleResetPassword = async (user) => {
+    setConfirmModal({
+      show: true,
+      title: 'Reset Password',
+      message: `Reset password for "${user.userName}" to the default password?`,
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.post(`/users/${user.id}/reset-password`)
+          setAlertModal({ show: true, title: 'Success', message: `Password reset successfully. Default password: Password123!`, type: 'success' })
+        } catch (error) {
+          console.error('Failed to reset password:', error)
+          setAlertModal({ show: true, title: 'Error', message: `Failed to reset password: ${error.response?.data?.message || error.message}`, type: 'error' })
+        }
+      }
+    })
+  }
+
   const handleUserSubmit = async (userData) => {
     try {
       // Split userName into firstName and lastName
@@ -620,7 +638,7 @@ function UsersManagement() {
       } else {
         // Create new user (password will default to 'Password123!' on backend)
         const createPayload = {
-          email: userData.email,
+          email: userData.email?.trim(),
           firstName,
           lastName,
           department: userData.department || null,
@@ -766,6 +784,7 @@ function UsersManagement() {
                     <ActionMenu
                       actions={[
                         { label: t('rp_edit'), onClick: () => handleEdit(user), dividerAfter: true },
+                        { label: 'Reset Password', onClick: () => handleResetPassword(user) },
                         { label: t('rp_delete'), onClick: () => handleDelete(user), variant: 'destructive' }
                       ]}
                     />

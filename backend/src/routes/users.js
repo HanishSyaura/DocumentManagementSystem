@@ -22,6 +22,9 @@ router.put('/:id', usersController.updateUser);
 // Delete user
 router.delete('/:id', usersController.deleteUser);
 
+// Reset password to default
+router.post('/:id/reset-password', usersController.resetPassword);
+
 // Update user status (activate/deactivate)
 router.patch('/:id/status', usersController.updateUserStatus);
 

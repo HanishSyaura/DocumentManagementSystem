@@ -6,6 +6,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { generateEmployeeId } = require('../utils/employeeIdGenerator');
 
 const prisma = new PrismaClient();
+const DEFAULT_PASSWORD = process.env.DEFAULT_USER_PASSWORD || 'Password123!';
 
 class UsersController {
   /**
@@ -83,12 +84,16 @@ class UsersController {
       return ResponseFormatter.error(res, 'Missing required fields: email and firstName are required', 400);
     }
 
-    // Use provided password or default to 'Password123!' for testing
-    const userPassword = password || 'Password123!';
+    const normalizedEmail = String(email).trim().toLowerCase()
+    if (!normalizedEmail) {
+      return ResponseFormatter.error(res, 'Missing required fields: email and firstName are required', 400);
+    }
+
+    const userPassword = password || DEFAULT_PASSWORD
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     });
 
     if (existingUser) {
@@ -98,23 +103,37 @@ class UsersController {
     // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    // Generate Employee ID
-    const generatedEmployeeId = await generateEmployeeId();
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        phone,
-        department,
-        position,
-        employeeId: generatedEmployeeId,
-        status: 'ACTIVE'
+    let user = null
+    let lastCreateError = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const generatedEmployeeId = await generateEmployeeId()
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: normalizedEmail,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            phone,
+            department,
+            position,
+            employeeId: generatedEmployeeId,
+            status: 'ACTIVE'
+          }
+        })
+        lastCreateError = null
+        break
+      } catch (e) {
+        lastCreateError = e
+        if (e?.code === 'P2002') {
+          continue
+        }
+        throw e
       }
-    });
+    }
+    if (!user && lastCreateError?.code === 'P2002') {
+      return ResponseFormatter.error(res, 'User with this email already exists', 409)
+    }
 
     // Assign roles if provided
     if (roleIds && Array.isArray(roleIds) && roleIds.length > 0) {
@@ -159,6 +178,32 @@ class UsersController {
       201
     );
   });
+
+  resetPassword = asyncHandler(async (req, res) => {
+    const userId = parseInt(req.params.id)
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+    if (!user) {
+      return ResponseFormatter.error(res, 'User not found', 404)
+    }
+
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10)
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        failedAttempts: 0,
+        lockedUntil: null
+      }
+    })
+
+    await auditLogService.logUser(req.user.id, 'RESET_PASSWORD', updated, req)
+
+    return ResponseFormatter.success(res, null, 'Password reset successfully')
+  })
 
   /**
    * Update user
