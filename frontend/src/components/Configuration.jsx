@@ -493,13 +493,15 @@ function TemplateManagement() {
         </p>
       </div>
 
-      <div className="card p-2">
-        <div className="flex gap-2">
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex space-x-8">
           <button
             type="button"
             onClick={() => setActiveSubTab('templates')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              activeSubTab === 'templates' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeSubTab === 'templates'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
             {t('cfg_template_list')}
@@ -508,14 +510,16 @@ function TemplateManagement() {
             <button
               type="button"
               onClick={() => setActiveSubTab('requests')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeSubTab === 'requests' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeSubTab === 'requests'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               Template Requests
             </button>
           )}
-        </div>
+        </nav>
       </div>
 
       {showTemplateRequestModal && (
