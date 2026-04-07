@@ -9,9 +9,9 @@ import Pagination from './Pagination'
 function MasterDataTabs({ activeTab, onTabChange }) {
   const { t } = usePreferences()
   const tabs = [
-    { id: 'document-types', label: t('mdm_doc_types') },
+    { id: 'departments', label: t('mdm_departments') },
     { id: 'project-categories', label: t('mdm_project_categories') },
-    { id: 'departments', label: t('mdm_departments') }
+    { id: 'document-types', label: t('mdm_doc_types') }
   ]
 
   return (
@@ -1143,7 +1143,7 @@ function DepartmentsManagement() {
 // Main Component
 export default function MasterDataManagement() {
   const { t } = usePreferences()
-  const [activeTab, setActiveTab] = useState('document-types')
+  const [activeTab, setActiveTab] = useState('departments')
 
   return (
     <div className="space-y-6">
@@ -1159,9 +1159,9 @@ export default function MasterDataManagement() {
       <div className="card p-6">
         <MasterDataTabs activeTab={activeTab} onTabChange={setActiveTab} />
         
-        {activeTab === 'document-types' && <DocumentTypesManagement />}
-        {activeTab === 'project-categories' && <ProjectCategoriesManagement />}
         {activeTab === 'departments' && <DepartmentsManagement />}
+        {activeTab === 'project-categories' && <ProjectCategoriesManagement />}
+        {activeTab === 'document-types' && <DocumentTypesManagement />}
       </div>
     </div>
   )
