@@ -2,16 +2,18 @@
 
 Dokumen ni untuk **repeatable workflow** bila update code: **push dari PC (Windows)** → **pull di VM** → **build/restart yang perlu sahaja**.
 
----
+***
 
 ## Struktur folder (WAJIB betul)
 
 ### PC (Windows)
+
 - Repo: `C:\Users\USER\Desktop\DocumentManagementSystem`
 - Frontend source: `frontend/`
 - Backend source: `backend/`
 
 ### VM
+
 - Repo root: `/var/www/dms`
 - Frontend: `/var/www/dms/frontend`
 - Frontend build output: `/var/www/dms/frontend/dist`
@@ -22,11 +24,12 @@ Dokumen ni untuk **repeatable workflow** bila update code: **push dari PC (Windo
 - PM2 app name: `dms-backend`
 
 Optional (aaPanel/Nginx):
+
 - Vhost file: `/www/server/panel/vhost/nginx/dms.clbgroups.com.conf`
 - SSL cert path: `/www/server/nginx/ssl/dms.clbgroups.com/fullchain.pem`
 - SSL key path: `/www/server/nginx/ssl/dms.clbgroups.com/privkey.pem`
 
----
+***
 
 ## 0) Prinsip penting sebelum update
 
@@ -37,7 +40,7 @@ Optional (aaPanel/Nginx):
   - Backups: jika nak backup persistent, buat symlink:
     - `ln -s /var/www/dms/backups /var/www/dms/backend/backups` (sekali sahaja)
 
----
+***
 
 ## 1) PC (Windows) — Commit & Push ke Git
 
@@ -69,7 +72,7 @@ Kalau `git status` tunjuk `ahead N`, semak dulu commit mana nak dipush:
 git log --oneline origin/main..HEAD
 ```
 
----
+***
 
 ## 2) VM — Pre-check sebelum pull
 
@@ -82,10 +85,11 @@ git diff --name-only HEAD..origin/main
 ```
 
 Jika `git status` bukan clean (ada `M` / `??`), pilih salah satu:
+
 - buang perubahan: `git restore <file>` atau `git reset --hard`
 - atau stash: `git stash -u` (guna bila betul-betul perlu)
 
----
+***
 
 ## 3) VM — Pull update (fast-forward sahaja)
 
@@ -95,7 +99,7 @@ git pull --ff-only
 git log --oneline --decorate -n 3
 ```
 
----
+***
 
 ## 4) VM — Deploy FRONTEND (bila ada perubahan dalam `frontend/`)
 
@@ -108,6 +112,7 @@ npm run build
 ```
 
 ### Workaround: Rollup optional dependency bug (build fail)
+
 Jika build keluar error `Cannot find module @rollup/rollup-linux-x64-gnu`, buat:
 
 ```bash
@@ -125,7 +130,7 @@ cd /var/www/dms
 git status -sb
 ```
 
----
+***
 
 ## 5) VM — Deploy BACKEND (bila ada perubahan dalam `backend/`)
 
@@ -145,11 +150,12 @@ pm2 logs dms-backend --lines 50
 ```
 
 Nota:
+
 - Kalau edit `.env`, restart guna `--update-env` (kalau tidak, PM2 mungkin tak reload env baru).
 - Upload dir yang digunakan backend ikut `.env`:
   - `UPLOAD_DIR=/srv/dms-storage`
 
----
+***
 
 ## 6) Quick verification (lepas deploy)
 
@@ -165,7 +171,7 @@ echo ok | sudo tee /srv/dms-storage/health-test.txt >/dev/null
 curl -s https://dms.clbgroups.com/uploads/health-test.txt -k
 ```
 
----
+***
 
 ## 7) Rollback cepat (kalau update rosak)
 
@@ -184,18 +190,19 @@ git reset --hard <OLD_SHA>
 ```
 
 Lepas rollback, buat semula step yang relevant:
+
 - Frontend: `npm ci && npm run build`
 - Backend: `npm ci && npx prisma migrate deploy && pm2 restart dms-backend --update-env`
 
----
+***
 
 ## 8) Troubleshooting ringkas
 
 - **`fatal: not a git repository`**
   - You run command dalam folder salah. Pastikan: `cd /var/www/dms` (VM) atau `cd C:\Users\USER\Desktop\DocumentManagementSystem` (PC).
-- **`git pull` tak boleh sebab ada local changes**
+- **`git pull`** **tak boleh sebab ada local changes**
   - `git status -sb` → `git restore <file>` atau `git stash -u`.
-- **Frontend build fail `@rollup/rollup-linux-x64-gnu`**
+- **Frontend build fail** **`@rollup/rollup-linux-x64-gnu`**
   - Guna workaround dalam Part 4.
 - **502 / API down**
   - `pm2 list`, `pm2 logs dms-backend --lines 100`.

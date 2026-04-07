@@ -260,11 +260,17 @@ const HomePage = () => {
     );
   }
 
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
-    <div className="min-h-screen bg-white scroll-smooth overflow-x-hidden">
+    <div className="h-screen bg-white overflow-x-hidden overflow-y-auto snap-y snap-mandatory scroll-smooth scroll-pt-16">
       <a href="#main" className="skip-link">Skip to content</a>
       {/* Navigation Bar */}
-      <nav className="app-topbar sticky top-0 z-50 text-white shadow-md">
+      <nav className="app-topbar fixed top-0 inset-x-0 z-50 text-white shadow-md" style={{ backdropFilter: 'blur(10px)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button type="button" className="flex items-center gap-3 focus-visible:outline-none" onClick={() => navigate('/')} aria-label="Go to home">
@@ -283,21 +289,21 @@ const HomePage = () => {
               </div>
             </button>
             <div className="hidden md:flex items-center space-x-1">
-              <a href="#home" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button type="button" onClick={() => scrollToSection('home')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_home')}
-              </a>
-              <a href="#about" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => scrollToSection('about')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_about')}
-              </a>
-              <a href="#features" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => scrollToSection('features')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_features')}
-              </a>
-              <a href="#workflow" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => scrollToSection('workflow')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Overview
-              </a>
-              <a href="#contact" className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => scrollToSection('contact')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_contact')}
-              </a>
+              </button>
               <button
                 type="button"
                 onClick={() => navigate('/login')}
@@ -321,21 +327,21 @@ const HomePage = () => {
         {mobileMenuOpen && (
           <div id="landing-mobile-nav" className="md:hidden border-t border-white/15 bg-[color:var(--dms-primary)]">
             <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-2">
-              <a href="#home" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('home') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_home')}
-              </a>
-              <a href="#about" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('about') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_about')}
-              </a>
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('features') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_features')}
-              </a>
-              <a href="#workflow" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('workflow') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 Overview
-              </a>
-              <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+              </button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('contact') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                 {t('hp_contact')}
-              </a>
+              </button>
               <button
                 type="button"
                 onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
@@ -350,7 +356,7 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <main id="main" tabIndex={-1}>
-      <section id="home" className="scroll-mt-20 min-h-[calc(100dvh-4rem)] flex items-center overflow-hidden" style={{
+      <section id="home" className="snap-start min-h-[calc(100svh-4rem)] flex items-center overflow-hidden" style={{
         background: `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`,
         color: 'var(--dms-landing-hero-text, #FFFFFF)'
       }}> 
@@ -373,13 +379,14 @@ const HomePage = () => {
                 >
                   {t('hp_log_in_now')}
                 </button>
-                <a
-                  href="#about"
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('about')}
                   className="border-2 px-7 sm:px-10 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-bold transition-all transform hover:scale-105 text-center"
                   style={{backgroundColor: 'var(--dms-landing-btn-secondary, transparent)', borderColor: 'var(--dms-landing-btn-secondary-text, #FFFFFF)', color: 'var(--dms-landing-btn-secondary-text, #FFFFFF)'}}
                 >
                   {t('hp_learn_more')}
-                </a>
+                </button>
               </div>
             </div>
             
@@ -402,7 +409,7 @@ const HomePage = () => {
       </section>
 
       {/* What is DMS Section */}
-      <section id="about" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
+      <section id="about" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-5">
@@ -454,7 +461,7 @@ const HomePage = () => {
       </section>
 
       {/* Core Features Section */}
-      <section id="features" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
+      <section id="features" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">{t('hp_core_features')}</h2>
@@ -501,7 +508,7 @@ const HomePage = () => {
       </section>
 
       {/* System Features Section */}
-      <section className="py-16 sm:py-20" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
+      <section className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_system_features')}</h2>
@@ -548,7 +555,7 @@ const HomePage = () => {
       </section>
 
       {/* Who Uses This System Section */}
-      <section className="py-16 sm:py-20" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
+      <section className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -675,7 +682,7 @@ const HomePage = () => {
       </section>
 
       {/* End-to-End Workflow Section */}
-      <section id="workflow" className="scroll-mt-20 py-12 sm:py-16" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
+      <section id="workflow" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
@@ -763,7 +770,8 @@ const HomePage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
+      <section id="contact" className="snap-start min-h-[calc(100svh-4rem)] flex flex-col" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
+        <div className="flex-1 flex items-center py-10 sm:py-12">
         <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           {/* Image Top Position */}
           {landingContent?.contactImage && landingContent?.contactImagePosition === 'top' && (
@@ -839,33 +847,33 @@ const HomePage = () => {
             </div>
           )}
         </div>
-      </section>
+        </div>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-4 sm:py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-600 text-xs sm:text-sm mb-2">
-              <MarkdownRenderer inline value={landingContent?.copyrightText || '© 2025 CLB Groups. All rights reserved.'} />
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm">
-              {(landingContent?.footerLinks || []).map((link, idx) => (
-                <React.Fragment key={idx}>
-                  {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
-                  <button
-                    type="button"
-                    onClick={() => handlePdfLinkClick(link)}
-                    className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors"
-                    disabled={!link.pdf}
-                  >
-                    <MarkdownRenderer inline value={link.label} />
-                  </button>
-                </React.Fragment>
-              ))}
+        <footer className="bg-white/80 backdrop-blur border-t border-gray-200 py-4 sm:py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <p className="text-gray-600 text-xs sm:text-sm mb-2">
+                <MarkdownRenderer inline value={landingContent?.copyrightText || '© 2025 CLB Groups. All rights reserved.'} />
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm">
+                {(landingContent?.footerLinks || []).map((link, idx) => (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
+                    <button
+                      type="button"
+                      onClick={() => handlePdfLinkClick(link)}
+                      className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors"
+                      disabled={!link.pdf}
+                    >
+                      <MarkdownRenderer inline value={link.label} />
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </section>
 
       </main>
 
