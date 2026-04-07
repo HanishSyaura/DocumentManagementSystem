@@ -156,6 +156,7 @@ export const MODULE_ROUTES = {
   'configuration.users': '/config',
   'configuration.roles': '/config',
   'configuration.templates': '/config',
+  'configuration.templateRequests': '/config',
   'configuration.documentTypes': '/config',
   'configuration.masterData': '/config',
   'configuration.settings': '/config',

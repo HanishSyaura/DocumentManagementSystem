@@ -126,7 +126,18 @@ export default function App() {
         <Route
           path="/config"
           element={
-            <ProtectedRoute module="configuration.roles" requireAny>
+            <ProtectedRoute module={[
+              'configuration.users',
+              'configuration.roles',
+              'configuration.templates',
+              'configuration.templateRequests',
+              'configuration.documentTypes',
+              'configuration.masterData',
+              'configuration.settings',
+              'configuration.backup',
+              'configuration.cleanup',
+              'configuration.auditSettings'
+            ]} requireAny>
               <Layout>
                 <Configuration />
               </Layout>

@@ -72,6 +72,11 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
           actions: ['view', 'read', 'create', 'update', 'delete', 'download']
         },
         {
+          id: 'configuration.templateRequests',
+          name: 'Template Requests',
+          actions: ['view', 'read', 'create', 'update']
+        },
+        {
           id: 'configuration.documentTypes',
           name: 'Document Types',
           actions: ['view', 'create', 'edit', 'delete']

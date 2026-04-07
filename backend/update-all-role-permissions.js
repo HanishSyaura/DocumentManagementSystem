@@ -16,6 +16,7 @@ const rolePermissions = {
     'configuration.users': { view: true, create: true, edit: true, delete: true, activate: true, deactivate: true },
     'configuration.roles': { view: true, create: true, edit: true, delete: true, assign: true },
     'configuration.templates': { view: true, read: true, create: true, update: true, delete: true, download: true },
+    'configuration.templateRequests': { view: true, read: true, create: true, update: true },
     'configuration.documentTypes': { view: true, create: true, edit: true, delete: true },
     'configuration.masterData': { view: true, create: true, edit: true, delete: true },
     'configuration.settings': { view: true, edit: true },
@@ -40,6 +41,7 @@ const rolePermissions = {
     newDocumentRequest: { view: true, create: true, acknowledge: true },
     myDocumentsStatus: { view: true },
     'configuration.templates': { view: true, read: true, download: true },
+    'configuration.templateRequests': { view: true, read: true, update: true },
     'logsReport.activityLogs': { view: true, filter: true, export: true },
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
     profileSettings: { view: true, edit: true, changePassword: true }
@@ -90,6 +92,7 @@ const rolePermissions = {
     newDocumentRequest: { view: true, create: true },
     myDocumentsStatus: { view: true },
     'configuration.templates': { view: true, read: true, download: true },
+    'configuration.templateRequests': { view: true, create: true, read: true },
     masterRecord: { view: true, search: true, filter: true },
     profileSettings: { view: true, edit: true, changePassword: true }
   },

@@ -8,7 +8,7 @@ import { getDefaultRoute } from '../utils/defaultRoute'
  * 
  * @param {Object} props
  * @param {React.ReactNode} props.children - Component to render if authorized
- * @param {string} props.module - Required module permission (e.g., 'dashboard', 'documents.draft')
+ * @param {string|Array<string>} props.module - Required module permission(s) (e.g., 'dashboard', 'documents.draft')
  * @param {string} props.action - Required action permission (e.g., 'view', 'create')
  * @param {boolean} props.requireAny - If true, only requires ANY permission for the module
  * @param {string} props.redirectTo - Where to redirect if unauthorized (default: '/')
@@ -29,9 +29,10 @@ export default function ProtectedRoute({
 
   // Second check: Does user have required permissions?
   if (module) {
-    const hasAccess = requireAny 
-      ? hasAnyPermission(module)
-      : hasPermission(module, action)
+    const modules = Array.isArray(module) ? module : [module]
+    const hasAccess = requireAny
+      ? modules.some((m) => hasAnyPermission(m))
+      : modules.some((m) => hasPermission(m, action))
 
     // Debug logging
     console.log(`ProtectedRoute check: module="${module}", action="${action}", requireAny=${requireAny}, hasAccess=${hasAccess}`)
