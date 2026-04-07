@@ -89,7 +89,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-6">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex items-center justify-between" data-tour-id="dashboard-header">
         <div>
           <h1 className="text-2xl font-semibold">{t('dashboard_overview')}</h1>
           <div className="text-sm text-gray-500">{t('dashboard_welcome')}</div>
@@ -101,7 +101,7 @@ export default function Dashboard() {
 
       {!loading && metrics && (
         <>
-          <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+          <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5" data-tour-id="dashboard-metrics">
             <MetricCard 
               title={t('docs_in_draft')}
               value={metrics.drafts} 

@@ -283,7 +283,7 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
       
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" data-tour-id="new-draft-modal">
           {/* Header */}
           <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
             <div>
@@ -398,6 +398,7 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                   required
                   value={formData.documentType}
                   onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
+                  data-tour-id="new-draft-doc-type"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                   disabled={loadingDocTypes}
                 >
@@ -434,6 +435,7 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-300 bg-gray-50'
                 }`}
+                data-tour-id="new-draft-upload"
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -483,7 +485,7 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('assign_reviewer_label')} <span className="text-red-500">*</span>
               </label>
-              <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto">
+              <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto" data-tour-id="new-draft-assign-reviewer">
                 {loadingReviewers ? (
                   <div className="text-sm text-gray-500">{t('loading_reviewers')}</div>
                 ) : availableReviewers.length === 0 ? (
@@ -552,6 +554,7 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
               type="button"
               onClick={handleSubmitForReview}
               disabled={loading || !formData.fileCode || !formData.title || !formData.documentType || !selectedFile || !formData.reviewerId}
+              data-tour-id="new-draft-submit-review"
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               {loading ? t('submitting') : t('submit_for_review')}

@@ -16,12 +16,13 @@ function TabNavigation({ activeTab, onTabChange }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6">
+    <div className="border-b border-gray-200 mb-6" data-tour-id="mr-tabbar">
       <nav className="flex space-x-8" aria-label="Register Tabs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            data-tour-id={`mr-tab-${tab.id}`}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
               activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'

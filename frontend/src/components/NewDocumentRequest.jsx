@@ -671,7 +671,7 @@ export default function NewDocumentRequest() {
 
       {/* NDR Form - Only visible to users with create permission */}
       <PermissionGate module="newDocumentRequest" action="create">
-        <div className="card p-6">
+        <div className="card p-6" data-tour-id="ndr-form-card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('ndr_title')}</h2>
           <p className="text-sm text-gray-600 mb-6">
             {t('ndr_form_desc')}
@@ -789,7 +789,7 @@ export default function NewDocumentRequest() {
       </PermissionGate>
 
       {/* Document Request List */}
-      <div className="card p-6">
+      <div className="card p-6" data-tour-id="ndr-request-list-card">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{t('document_request_list')}</h2>
@@ -871,6 +871,7 @@ export default function NewDocumentRequest() {
                         <button
                           onClick={() => handleDownloadTemplate(req)}
                           disabled={req.status !== 'Acknowledged' && req.status !== 'ACKNOWLEDGED'}
+                          data-tour-id="ndr-btn-download-template"
                           className={`text-left font-medium ${
                             req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED'
                               ? 'text-blue-600 hover:text-blue-700 hover:underline cursor-pointer'
@@ -960,6 +961,7 @@ export default function NewDocumentRequest() {
                         <button
                           onClick={() => handleDownloadTemplate(req)}
                           disabled={req.status !== 'Acknowledged' && req.status !== 'ACKNOWLEDGED'}
+                          data-tour-id="ndr-btn-download-template"
                           className={`text-left font-medium ${
                             req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED'
                               ? 'text-blue-600 hover:text-blue-700 hover:underline cursor-pointer'

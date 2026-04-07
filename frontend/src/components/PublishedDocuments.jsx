@@ -557,7 +557,7 @@ export default function PublishedDocuments() {
       />
 
       {/* Left Sidebar - Folder Tree */}
-      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
         <div className="p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
           <div className="space-y-1">
@@ -592,7 +592,7 @@ export default function PublishedDocuments() {
           </div>
 
           {/* Action Buttons and Search */}
-          <div className="card p-4 mb-6">
+          <div className="card p-4 mb-6" data-tour-id="pub-actions-card">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               {/* Breadcrumbs */}
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -623,6 +623,7 @@ export default function PublishedDocuments() {
                 <PermissionGate module="documents.published" action="create">
                   <button 
                     onClick={() => setShowCreateFolderModal(true)}
+                    data-tour-id="pub-btn-create-folder"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {t('create_new_folder')}
@@ -631,6 +632,7 @@ export default function PublishedDocuments() {
                 <PermissionGate module="documents.published" action="create">
                   <button 
                     onClick={() => { setParentFolderForSub(selectedFolder || ''); setShowCreateSubFolderModal(true) }}
+                    data-tour-id="pub-btn-create-subfolder"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {t('create_new_subfolder')}
@@ -639,6 +641,7 @@ export default function PublishedDocuments() {
                 <PermissionGate module="documents.published" action="create">
                   <button 
                     onClick={() => setShowUploadFileModal(true)}
+                    data-tour-id="pub-btn-upload-import"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {t('upload_file')}
@@ -663,7 +666,7 @@ export default function PublishedDocuments() {
           </div>
 
           {/* Documents Table */}
-          <div className="card overflow-hidden">
+          <div className="card overflow-hidden" data-tour-id="pub-docs-table">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">

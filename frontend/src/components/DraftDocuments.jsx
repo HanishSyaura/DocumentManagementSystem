@@ -219,7 +219,7 @@ export default function DraftDocuments() {
       </div>
 
       {/* Document List */}
-      <div className="card p-6">
+      <div className="card p-6" data-tour-id="drafts-list-card">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>

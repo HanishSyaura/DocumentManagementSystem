@@ -17,12 +17,13 @@ function SubTabNavigation({ activeTab, onTabChange }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6">
+    <div className="border-b border-gray-200 mb-6" data-tour-id="rp-tabbar">
       <nav className="flex space-x-8">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            data-tour-id={`rp-tab-${tab.id}`}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'

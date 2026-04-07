@@ -18,12 +18,13 @@ function SubTabNavigation({ activeTab, onTabChange }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6">
+    <div className="border-b border-gray-200 mb-6" data-tour-id="gss-tabbar">
       <nav className="flex space-x-4 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            data-tour-id={`gss-tab-${tab.id}`}
             className={`py-3 px-4 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
               activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'

@@ -186,7 +186,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
 
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full" data-tour-id="bulk-import-modal">
           <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Upload / Bulk Import</h2>
@@ -211,6 +211,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                 <select
                   value={folderId || ''}
                   onChange={(e) => setFolderId(e.target.value)}
+                  data-tour-id="bulk-import-folder"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
                 >
                   <option value="">Select a folder</option>
@@ -237,6 +238,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                 isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
               }`}
+              data-tour-id="bulk-import-dropzone"
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
@@ -399,6 +401,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
             </button>
             <button
               onClick={handleSubmit}
+              data-tour-id="bulk-import-submit"
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
               disabled={submitting}
             >
@@ -410,4 +413,3 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     </div>
   )
 }
-

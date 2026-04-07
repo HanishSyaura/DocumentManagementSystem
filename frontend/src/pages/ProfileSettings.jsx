@@ -31,12 +31,13 @@ function TabNavigation({ activeTab, onTabChange, t }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6">
+    <div className="border-b border-gray-200 mb-6" data-tour-id="profile-tabbar">
       <nav className="flex space-x-8 overflow-x-auto" aria-label="Settings Tabs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            data-tour-id={`profile-tab-${tab.id}`}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'border-blue-600 text-blue-600'

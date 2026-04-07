@@ -357,7 +357,7 @@ export default function ReviewAndApproval() {
       </div>
 
       {/* Document List */}
-      <div className="card p-6">
+      <div className="card p-6" data-tour-id="ra-list-card">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
@@ -371,6 +371,7 @@ export default function ReviewAndApproval() {
             <PermissionGate module="documents.draft" action="create">
               <button 
                 onClick={() => navigate('/drafts')}
+                data-tour-id="ra-btn-upload-new-draft"
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <span className="flex items-center gap-2">
