@@ -973,6 +973,7 @@ function TemplateManagement() {
           </div>
         )}
     </div>
+    </div>
   )
 }
 
