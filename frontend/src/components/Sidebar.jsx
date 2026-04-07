@@ -83,7 +83,7 @@ const menuItems = [
   }
 ]
 
-function NavItem({ item, isActive, onClick }) {
+function NavItem({ item, isActive, isTourTarget, onClick }) {
   return (
     <Link
       to={item.path}
@@ -92,7 +92,7 @@ function NavItem({ item, isActive, onClick }) {
         isActive
           ? 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg border-l-4 border-blue-400'
           : 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium hover:border-l-4 hover:border-white/30'
-      }`}
+      } ${isTourTarget ? 'ring-2 ring-yellow-300 animate-pulse' : ''}`}
       style={{
         color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'
       }}
@@ -106,6 +106,7 @@ function NavItem({ item, isActive, onClick }) {
 export default function Sidebar({ isOpen, onClose }) {
   const { t } = usePreferences()
   const location = useLocation()
+  const [tourTargetPath, setTourTargetPath] = useState('')
   const [logo, setLogo] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('dms_theme_settings')
@@ -169,6 +170,28 @@ export default function Sidebar({ isOpen, onClose }) {
   }, [permissionTrigger]) // Re-check when permissions are updated
 
   useEffect(() => {
+    let timer = null
+    try {
+      const v = localStorage.getItem('dms_guide_target_path') || ''
+      if (v) {
+        setTourTargetPath(v)
+        timer = window.setTimeout(() => {
+          try {
+            localStorage.removeItem('dms_guide_target_path')
+          } catch {
+          }
+          setTourTargetPath('')
+        }, 5000)
+      }
+    } catch {
+    }
+
+    return () => {
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [location.pathname])
+
+  useEffect(() => {
     // Load logo from theme settings
     const loadLogo = () => {
       const savedTheme = localStorage.getItem('dms_theme_settings')
@@ -221,6 +244,7 @@ export default function Sidebar({ isOpen, onClose }) {
               key={item.path}
               item={{...item, name: t(item.translationKey)}}
               isActive={location.pathname === item.path}
+              isTourTarget={tourTargetPath === item.path}
             />
           ))}
         </nav>
@@ -250,6 +274,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 key={item.path}
                 item={{...item, name: t(item.translationKey)}}
                 isActive={location.pathname === item.path}
+                isTourTarget={tourTargetPath === item.path}
                 onClick={onClose}
               />
             ))}
