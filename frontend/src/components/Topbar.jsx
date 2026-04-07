@@ -131,11 +131,6 @@ export default function Topbar({ onMenu, onGettingStarted }) {
     setShowUserMenu(false)
   }
 
-  const handleGettingStarted = () => {
-    setShowUserMenu(false)
-    onGettingStarted?.()
-  }
-
   // Get user initials
   const getUserInitials = () => {
     const names = currentUser.name.split(' ')
@@ -175,6 +170,16 @@ export default function Topbar({ onMenu, onGettingStarted }) {
 
       {/* Right Section */}
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onGettingStarted?.()}
+          className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+          aria-label={t('getting_started')}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
 
         {/* User Profile Dropdown */}
         <div className="relative">
@@ -236,16 +241,6 @@ export default function Topbar({ onMenu, onGettingStarted }) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     <span className="text-sm font-medium">{t('settings')}</span>
-                  </button>
-
-                  <button
-                    onClick={handleGettingStarted}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-gray-700 transition-colors"
-                  >
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm font-medium">{t('getting_started')}</span>
                   </button>
 
                   <div className="border-t border-gray-200 my-2"></div>

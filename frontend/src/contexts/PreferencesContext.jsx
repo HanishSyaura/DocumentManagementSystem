@@ -390,6 +390,9 @@ const translations = {
     'tour_done': 'Done',
     'tour_step_indicator': 'Step',
 
+    'tour_user_intro': 'Follow this guided tour to learn where to click and how to complete the main workflow end-to-end.',
+    'tour_admin_intro': 'Follow this guided tour to learn where to configure the system before go-live (settings, master data, templates, and permissions).',
+
     'tour_user_1_title': 'Profile Settings',
     'tour_user_1_body': 'Start here to update your personal information and preferences.',
     'tour_user_2_title': 'Update your profile',
@@ -398,8 +401,14 @@ const translations = {
     'tour_user_3_body': 'Use NDR to request new documents and track acknowledgment.',
     'tour_user_4_title': 'Submit an NDR',
     'tour_user_4_body': 'Fill in document details and submit. You cannot acknowledge your own request.',
+    'tour_user_4a_title': 'Select a Document Type',
+    'tour_user_4a_body': 'Choose the correct document type. After acknowledgment, this will determine which template you can download.',
+    'tour_user_4b_title': 'Send Request',
+    'tour_user_4b_body': 'Click Send Request to submit your New Document Request for acknowledgment.',
     'tour_user_5_title': 'Draft Documents',
     'tour_user_5_body': 'Upload drafts here and submit for review.',
+    'tour_user_5a_title': 'Create a new draft',
+    'tour_user_5a_body': 'Click New Draft to upload your draft file and submit it for review when ready.',
     'tour_user_6_title': 'Review & Approval',
     'tour_user_6_body': 'Track review and approval progress before publishing.',
 
@@ -1330,6 +1339,9 @@ const translations = {
     'tour_done': 'Selesai',
     'tour_step_indicator': 'Langkah',
 
+    'tour_user_intro': 'Ikut guided tour ini untuk faham di mana perlu click dan cara lengkapkan workflow utama dari mula hingga akhir.',
+    'tour_admin_intro': 'Ikut guided tour ini untuk faham cara setup sistem sebelum go-live (settings, master data, templates, dan permissions).',
+
     'tour_user_1_title': 'Profile Settings',
     'tour_user_1_body': 'Mulakan di sini untuk kemas kini maklumat peribadi dan tetapan.',
     'tour_user_2_title': 'Kemas kini profil',
@@ -1338,8 +1350,14 @@ const translations = {
     'tour_user_3_body': 'Gunakan NDR untuk minta dokumen baharu dan track acknowledgment.',
     'tour_user_4_title': 'Hantar NDR',
     'tour_user_4_body': 'Isi maklumat dokumen dan submit. Anda tidak boleh acknowledge permohonan sendiri.',
+    'tour_user_4a_title': 'Pilih Document Type',
+    'tour_user_4a_body': 'Pilih document type yang betul. Selepas acknowledged, ia tentukan template mana yang boleh dimuat turun.',
+    'tour_user_4b_title': 'Hantar Permohonan',
+    'tour_user_4b_body': 'Klik Send Request untuk submit New Document Request bagi tujuan acknowledgment.',
     'tour_user_5_title': 'Draft Documents',
     'tour_user_5_body': 'Upload draf di sini dan submit untuk review.',
+    'tour_user_5a_title': 'Buat draf baharu',
+    'tour_user_5a_body': 'Klik New Draft untuk upload file draf dan submit untuk review bila sedia.',
     'tour_user_6_title': 'Review & Approval',
     'tour_user_6_body': 'Track proses review dan approval sebelum publish.',
 
@@ -2270,6 +2288,9 @@ const translations = {
     'tour_done': '完成',
     'tour_step_indicator': '步骤',
 
+    'tour_user_intro': '跟随此引导学习点击位置，并完成系统的核心流程。',
+    'tour_admin_intro': '跟随此引导了解上线前的系统配置（设置、主数据、模板与权限）。',
+
     'tour_user_1_title': '个人资料设置',
     'tour_user_1_body': '从这里开始更新个人信息与偏好设置。',
     'tour_user_2_title': '更新个人资料',
@@ -2278,8 +2299,14 @@ const translations = {
     'tour_user_3_body': '使用 NDR 申请新文档并跟踪确认进度。',
     'tour_user_4_title': '提交 NDR',
     'tour_user_4_body': '填写信息并提交。你不能确认自己提交的申请。',
+    'tour_user_4a_title': '选择文档类型',
+    'tour_user_4a_body': '选择正确的文档类型。确认后将决定可下载的模板。',
+    'tour_user_4b_title': '提交申请',
+    'tour_user_4b_body': '点击 Send Request 提交新文档申请，等待确认。',
     'tour_user_5_title': '草稿文档',
     'tour_user_5_body': '在这里上传草稿并提交审核。',
+    'tour_user_5a_title': '创建新草稿',
+    'tour_user_5a_body': '点击 New Draft 上传草稿文件，准备好后提交审核。',
     'tour_user_6_title': '审核与批准',
     'tour_user_6_body': '在发布前跟踪审核与批准进度。',
 

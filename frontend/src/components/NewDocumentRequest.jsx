@@ -701,6 +701,7 @@ export default function NewDocumentRequest() {
               </label>
               <select
                 required
+                data-tour-id="ndr-field-document-type"
                 value={formData.documentType}
                 onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
@@ -775,6 +776,7 @@ export default function NewDocumentRequest() {
             <PermissionGate module="newDocumentRequest" action="create">
               <button
                 type="submit"
+                data-tour-id="ndr-btn-submit"
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >

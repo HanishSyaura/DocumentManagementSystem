@@ -209,7 +209,7 @@ export default function DraftDocuments() {
         onSuccess={loadDocuments}
       />
       
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6" data-tour-id="drafts-page">
       {/* Page Header */}
       <div className="card p-6">
         <h1 className="text-2xl font-bold text-gray-900">{t('draft_documents')}</h1>
@@ -234,6 +234,7 @@ export default function DraftDocuments() {
               <PermissionGate module="documents.draft" action="create">
                 <button 
                   onClick={() => setShowModal(true)}
+                  data-tour-id="drafts-btn-new-draft"
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <span className="flex items-center justify-center gap-2">

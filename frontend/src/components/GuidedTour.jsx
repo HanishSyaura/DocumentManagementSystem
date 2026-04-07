@@ -67,7 +67,10 @@ export default function GuidedTour({ open, tourId, onClose }) {
       { route: '/profile', target: 'profile-page', titleKey: 'tour_user_2_title', bodyKey: 'tour_user_2_body', placement: 'bottom' },
       { target: 'nav-new-document-request', titleKey: 'tour_user_3_title', bodyKey: 'tour_user_3_body', placement: 'right' },
       { route: '/new-document-request', target: 'ndr-page', titleKey: 'tour_user_4_title', bodyKey: 'tour_user_4_body', placement: 'bottom' },
+      { route: '/new-document-request', target: 'ndr-field-document-type', titleKey: 'tour_user_4a_title', bodyKey: 'tour_user_4a_body', placement: 'bottom' },
+      { route: '/new-document-request', target: 'ndr-btn-submit', titleKey: 'tour_user_4b_title', bodyKey: 'tour_user_4b_body', placement: 'top' },
       { target: 'nav-drafts', titleKey: 'tour_user_5_title', bodyKey: 'tour_user_5_body', placement: 'right' },
+      { route: '/drafts', target: 'drafts-btn-new-draft', titleKey: 'tour_user_5a_title', bodyKey: 'tour_user_5a_body', placement: 'left' },
       { target: 'nav-review-approval', titleKey: 'tour_user_6_title', bodyKey: 'tour_user_6_body', placement: 'right' }
     ]
   }, [tourId])
@@ -226,4 +229,3 @@ export default function GuidedTour({ open, tourId, onClose }) {
     </div>
   )
 }
-

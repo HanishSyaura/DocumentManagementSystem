@@ -1,87 +1,11 @@
-import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
 import { usePreferences } from '../contexts/PreferencesContext'
 
 export default function GettingStartedModal({ open, onClose, showAdminGuide, onStartTour }) {
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('user')
   const { t } = usePreferences()
 
-  const userSteps = useMemo(() => ([
-    {
-      titleKey: 'gs_user_1_title',
-      bodyKey: 'gs_user_1_body',
-      actionLabelKey: 'gs_open_profile',
-      to: '/profile'
-    },
-    {
-      titleKey: 'gs_user_2_title',
-      bodyKey: 'gs_user_2_body',
-      actionLabelKey: 'gs_open_ndr',
-      to: '/new-document-request'
-    },
-    {
-      titleKey: 'gs_user_3_title',
-      bodyKey: 'gs_user_3_body',
-      actionLabelKey: 'gs_open_ndr',
-      to: '/new-document-request'
-    },
-    {
-      titleKey: 'gs_user_4_title',
-      bodyKey: 'gs_user_4_body',
-      actionLabelKey: 'gs_open_drafts',
-      to: '/drafts'
-    },
-    {
-      titleKey: 'gs_user_5_title',
-      bodyKey: 'gs_user_5_body',
-      actionLabelKey: 'gs_open_review',
-      to: '/review-approval'
-    },
-    {
-      titleKey: 'gs_user_6_title',
-      bodyKey: 'gs_user_6_body',
-      actionLabelKey: 'gs_open_superseded',
-      to: '/archived'
-    }
-  ]), [])
-
-  const adminSteps = useMemo(() => ([
-    {
-      titleKey: 'gs_admin_1_title',
-      bodyKey: 'gs_admin_1_body',
-      actionLabelKey: 'gs_open_config',
-      to: '/config'
-    },
-    {
-      titleKey: 'gs_admin_2_title',
-      bodyKey: 'gs_admin_2_body',
-      actionLabelKey: 'gs_open_config',
-      to: '/config'
-    },
-    {
-      titleKey: 'gs_admin_3_title',
-      bodyKey: 'gs_admin_3_body',
-      actionLabelKey: 'gs_open_config',
-      to: '/config'
-    },
-    {
-      titleKey: 'gs_admin_4_title',
-      bodyKey: 'gs_admin_4_body',
-      actionLabelKey: 'gs_open_config',
-      to: '/config'
-    },
-    {
-      titleKey: 'gs_admin_5_title',
-      bodyKey: 'gs_admin_5_body',
-      actionLabelKey: 'gs_open_config',
-      to: '/config'
-    }
-  ]), [])
-
   if (!open) return null
-
-  const steps = activeTab === 'admin' ? adminSteps : userSteps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -127,52 +51,24 @@ export default function GettingStartedModal({ open, onClose, showAdminGuide, onS
           </div>
         </div>
 
-        <div className="px-6 py-4 max-h-[65vh] overflow-auto">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="text-sm text-gray-700">{t('gs_subtitle')}</div>
-            <button
-              type="button"
-              onClick={() => {
-                onClose?.()
-                onStartTour?.(activeTab)
-              }}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-            >
-              {t('tour_start')}
-            </button>
+        <div className="px-6 py-6">
+          <div className="border border-gray-200 rounded-lg p-5">
+            <div className="text-sm text-gray-700">
+              {activeTab === 'admin' ? t('tour_admin_intro') : t('tour_user_intro')}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose?.()
+                  onStartTour?.(activeTab)
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                {t('tour_start')}
+              </button>
+            </div>
           </div>
-
-          <ol className="space-y-3">
-            {steps.map((s, idx) => (
-              <li key={s.titleKey} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {idx + 1}. {t(s.titleKey)}
-                    </div>
-                    <div className="text-sm text-gray-700 mt-1">{t(s.bodyKey)}</div>
-                    <div className="text-xs text-gray-500 mt-2">{t('gs_where_to_click')}</div>
-                  </div>
-                  {s.to && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        try {
-                          localStorage.setItem('dms_guide_target_path', s.to)
-                        } catch {
-                        }
-                        navigate(s.to)
-                        onClose?.()
-                      }}
-                      className="shrink-0 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      {t(s.actionLabelKey) || t('open')}
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
         </div>
 
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
