@@ -345,6 +345,7 @@ const translations = {
     'dms_label': 'Document Management System',
     'my_profile': 'My Profile',
     'settings': 'Settings',
+    'getting_started': 'Getting Started',
     'logout': 'Logout',
 
     // Review & Approval extras
@@ -1216,6 +1217,7 @@ const translations = {
     'dms_label': 'Sistem Pengurusan Dokumen',
     'my_profile': 'Profil Saya',
     'settings': 'Tetapan',
+    'getting_started': 'Panduan Mula',
     'logout': 'Log Keluar',
 
     // Review & Approval extras
@@ -2087,6 +2089,7 @@ const translations = {
     'dms_label': '文档管理系统',
     'my_profile': '我的资料',
     'settings': '设置',
+    'getting_started': '新手指南',
     'logout': '退出',
 
     // Review & Approval extras

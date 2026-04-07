@@ -5,6 +5,8 @@ import Sidebar from './Sidebar'
 import RightPanel from './RightPanel'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { applyTheme } from '../utils/branding'
+import GettingStartedModal from './GettingStartedModal'
+import { isAdmin } from '../utils/permissions'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -12,6 +14,8 @@ export default function Layout({ children }) {
   const { t } = usePreferences()
   const [sidebarPosition, setSidebarPosition] = useState('left')
   const [footerConfig, setFooterConfig] = useState(null)
+  const [gettingStartedOpen, setGettingStartedOpen] = useState(false)
+  const [showAdminGuide, setShowAdminGuide] = useState(false)
   // Right panel is collapsed by default on all pages except dashboard
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
@@ -120,18 +124,45 @@ export default function Layout({ children }) {
     return () => window.removeEventListener('storage', loadFooterConfig)
   }, [])
 
+  useEffect(() => {
+    setShowAdminGuide(isAdmin())
+    try {
+      const raw = localStorage.getItem('user')
+      const user = raw ? JSON.parse(raw) : null
+      const key = `dms_getting_started_seen_${user?.id || 'anon'}`
+      const seen = localStorage.getItem(key)
+      if (!seen) setGettingStartedOpen(true)
+    } catch {
+      setGettingStartedOpen(true)
+    }
+  }, [])
+
   const footerLinks = Array.isArray(footerConfig?.footerLinks) ? footerConfig.footerLinks : []
   const footerCopyright = footerConfig?.copyrightText
 
   return (
     <div className="h-screen flex flex-col">
-      <Topbar onMenu={() => setSidebarOpen(true)} />
+      <Topbar onMenu={() => setSidebarOpen(true)} onGettingStarted={() => setGettingStartedOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         {sidebarPosition === 'left' && (
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         )}
         <main className="flex-1 app-main-content overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-6">
+            <GettingStartedModal
+              open={gettingStartedOpen}
+              showAdminGuide={showAdminGuide}
+              onClose={() => {
+                try {
+                  const raw = localStorage.getItem('user')
+                  const user = raw ? JSON.parse(raw) : null
+                  const key = `dms_getting_started_seen_${user?.id || 'anon'}`
+                  localStorage.setItem(key, '1')
+                } catch {
+                }
+                setGettingStartedOpen(false)
+              }}
+            />
             {children}
           </div>
           {/* Footer */}
