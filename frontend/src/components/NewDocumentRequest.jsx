@@ -578,7 +578,7 @@ export default function NewDocumentRequest() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" data-tour-id="ndr-page">
       {/* Confirmation Modal */}
       <ConfirmModal
         show={confirmModal.show}

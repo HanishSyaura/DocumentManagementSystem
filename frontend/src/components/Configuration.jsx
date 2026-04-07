@@ -35,6 +35,7 @@ function TabNavigation({ activeTab, onTabChange }) {
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
+            data-tour-id={`config-tab-${tab.id}`}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === tab.id
                 ? 'border-blue-600'
@@ -498,6 +499,7 @@ function TemplateManagement() {
           <button
             type="button"
             onClick={() => setActiveSubTab('templates')}
+            data-tour-id="tmpl-subtab-templates"
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeSubTab === 'templates'
                 ? 'border-blue-600 text-blue-600'
@@ -510,6 +512,7 @@ function TemplateManagement() {
             <button
               type="button"
               onClick={() => setActiveSubTab('requests')}
+              data-tour-id="tmpl-subtab-requests"
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeSubTab === 'requests'
                   ? 'border-blue-600 text-blue-600'
@@ -708,6 +711,7 @@ function TemplateManagement() {
                 <PermissionGate module="configuration.templates" action="create">
                   <button
                     onClick={handleAddNewTemplate}
+                    data-tour-id="tmpl-btn-add-template"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     {t('cfg_add_new_template')}
@@ -887,6 +891,7 @@ function TemplateManagement() {
                 <button
                   type="button"
                   onClick={openTemplateRequestModal}
+                  data-tour-id="tmpl-btn-request-template"
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Request Template

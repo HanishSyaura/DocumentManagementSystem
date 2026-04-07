@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 
-export default function GettingStartedModal({ open, onClose, showAdminGuide }) {
+export default function GettingStartedModal({ open, onClose, showAdminGuide, onStartTour }) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('user')
   const { t } = usePreferences()
@@ -128,6 +128,20 @@ export default function GettingStartedModal({ open, onClose, showAdminGuide }) {
         </div>
 
         <div className="px-6 py-4 max-h-[65vh] overflow-auto">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="text-sm text-gray-700">{t('gs_subtitle')}</div>
+            <button
+              type="button"
+              onClick={() => {
+                onClose?.()
+                onStartTour?.(activeTab)
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              {t('tour_start')}
+            </button>
+          </div>
+
           <ol className="space-y-3">
             {steps.map((s, idx) => (
               <li key={s.titleKey} className="border border-gray-200 rounded-lg p-4">

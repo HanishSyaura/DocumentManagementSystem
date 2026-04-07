@@ -99,6 +99,7 @@ function NavItem({ item, isActive, isTourTarget, onClick }) {
     <Link
       to={item.path}
       onClick={onClick}
+      data-tour-id={item.tourId}
       className={`flex items-center gap-3 text-sm px-4 py-3 rounded-lg transition-all duration-200 ${
         isActive
           ? 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg border-l-4 border-blue-400'
@@ -118,6 +119,12 @@ export default function Sidebar({ isOpen, onClose }) {
   const { t } = usePreferences()
   const location = useLocation()
   const [tourTargetPath, setTourTargetPath] = useState('')
+
+  const pathToTourId = (path) => {
+    const cleaned = String(path || '/').replace(/^\//, '')
+    const slug = cleaned ? cleaned.replace(/\//g, '-') : 'dashboard'
+    return `nav-${slug}`
+  }
   const [logo, setLogo] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('dms_theme_settings')
@@ -255,7 +262,7 @@ export default function Sidebar({ isOpen, onClose }) {
           {visibleMenuItems.map((item) => (
             <NavItem
               key={item.path}
-              item={{...item, name: t(item.translationKey)}}
+              item={{...item, name: t(item.translationKey), tourId: pathToTourId(item.path)}}
               isActive={location.pathname === item.path}
               isTourTarget={tourTargetPath === item.path}
             />
@@ -285,7 +292,7 @@ export default function Sidebar({ isOpen, onClose }) {
             {visibleMenuItems.map((item) => (
               <NavItem
                 key={item.path}
-                item={{...item, name: t(item.translationKey)}}
+                item={{...item, name: t(item.translationKey), tourId: pathToTourId(item.path)}}
                 isActive={location.pathname === item.path}
                 isTourTarget={tourTargetPath === item.path}
                 onClick={onClose}

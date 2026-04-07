@@ -1167,7 +1167,7 @@ export default function ProfileSettings() {
   const [activeTab, setActiveTab] = useState('profile')
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6" data-tour-id="profile-page">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

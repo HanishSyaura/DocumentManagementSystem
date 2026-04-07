@@ -7,6 +7,7 @@ import { usePreferences } from '../contexts/PreferencesContext'
 import { applyTheme } from '../utils/branding'
 import GettingStartedModal from './GettingStartedModal'
 import { isAdmin } from '../utils/permissions'
+import GuidedTour from './GuidedTour'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -16,6 +17,8 @@ export default function Layout({ children }) {
   const [footerConfig, setFooterConfig] = useState(null)
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false)
   const [showAdminGuide, setShowAdminGuide] = useState(false)
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourId, setTourId] = useState('user')
   // Right panel is collapsed by default on all pages except dashboard
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
@@ -137,6 +140,11 @@ export default function Layout({ children }) {
     }
   }, [])
 
+  const startTour = (id) => {
+    setTourId(id === 'admin' ? 'admin' : 'user')
+    setTourOpen(true)
+  }
+
   const footerLinks = Array.isArray(footerConfig?.footerLinks) ? footerConfig.footerLinks : []
   const footerCopyright = footerConfig?.copyrightText
 
@@ -152,6 +160,7 @@ export default function Layout({ children }) {
             <GettingStartedModal
               open={gettingStartedOpen}
               showAdminGuide={showAdminGuide}
+              onStartTour={startTour}
               onClose={() => {
                 try {
                   const raw = localStorage.getItem('user')
@@ -161,6 +170,22 @@ export default function Layout({ children }) {
                 } catch {
                 }
                 setGettingStartedOpen(false)
+              }}
+            />
+            <GuidedTour
+              open={tourOpen}
+              tourId={tourId}
+              onClose={({ completed } = {}) => {
+                if (completed) {
+                  try {
+                    const raw = localStorage.getItem('user')
+                    const user = raw ? JSON.parse(raw) : null
+                    const key = `dms_getting_started_tour_done_${user?.id || 'anon'}_${tourId}`
+                    localStorage.setItem(key, '1')
+                  } catch {
+                  }
+                }
+                setTourOpen(false)
               }}
             />
             {children}
