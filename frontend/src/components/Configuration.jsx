@@ -65,10 +65,23 @@ function TemplateManagement() {
   const [previewTemplate, setPreviewTemplate] = useState(null)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [documentTypes, setDocumentTypes] = useState([])
+  const [isAdminUser, setIsAdminUser] = useState(false)
 
   useEffect(() => {
     loadTemplates()
     loadDocumentTypes()
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user')
+      const user = raw ? JSON.parse(raw) : null
+      const roles = Array.isArray(user?.roles) ? user.roles : []
+      const hasAdmin = roles.some((r) => r?.role?.name === 'admin' || r?.name === 'admin')
+      setIsAdminUser(!!hasAdmin)
+    } catch {
+      setIsAdminUser(false)
+    }
   }, [])
 
   const loadDocumentTypes = async () => {
@@ -230,6 +243,25 @@ function TemplateManagement() {
     } catch (error) {
       console.error('Failed to download template:', error)
       alert('Failed to download template file')
+    }
+  }
+
+  const handleDeleteTemplate = async (template) => {
+    if (!isAdminUser) {
+      alert('Only administrators can delete templates')
+      return
+    }
+
+    const ok = window.confirm(`Delete template "${template.templateName}"? This will permanently remove it from the database.`)
+    if (!ok) return
+
+    try {
+      await api.delete(`/templates/${template.id}`)
+      setTemplates((prev) => prev.filter((x) => x.id !== template.id))
+      alert('Template deleted successfully!')
+    } catch (error) {
+      console.error('Failed to delete template:', error)
+      alert(error.response?.data?.message || 'Failed to delete template')
     }
   }
 
@@ -410,7 +442,8 @@ function TemplateManagement() {
                         actions={[
                           ...(hasPermission('configuration.templates', 'read') ? [{ label: t('view'), onClick: () => handleView(template) }] : []),
                           ...(hasPermission('configuration.templates', 'update') ? [{ label: t('cfg_reupload'), onClick: (e) => handleReupload(e, template) }] : []),
-                          ...(hasPermission('configuration.templates', 'read') ? [{ label: t('download'), onClick: () => handleDownload(template) }] : [])
+                          ...(hasPermission('configuration.templates', 'read') ? [{ label: t('download'), onClick: () => handleDownload(template) }] : []),
+                          ...(isAdminUser ? [{ label: t('delete'), onClick: () => handleDeleteTemplate(template), variant: 'destructive' }] : [])
                         ]}
                       />
                     </td>
@@ -482,6 +515,14 @@ function TemplateManagement() {
                       className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
                     >
                       {t('download')}
+                    </button>
+                  )}
+                  {isAdminUser && (
+                    <button
+                      onClick={() => handleDeleteTemplate(template)}
+                      className="flex-1 px-3 py-2 text-sm text-white bg-red-600 rounded hover:bg-red-700"
+                    >
+                      {t('delete')}
                     </button>
                   )}
                 </div>

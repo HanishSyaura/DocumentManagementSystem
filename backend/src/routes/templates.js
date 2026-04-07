@@ -413,9 +413,28 @@ router.get('/:id/download', async (req, res) => {
 router.delete('/:id', authorize('admin'), asyncHandler(async (req, res) => {
   const templateId = parseInt(req.params.id);
 
+  const template = await prisma.template.findUnique({
+    where: { id: templateId },
+    select: { id: true, filePath: true }
+  })
+
+  if (!template) {
+    return ResponseFormatter.error(res, 'Template not found', 404)
+  }
+
   await prisma.template.delete({
     where: { id: templateId }
-  });
+  })
+
+  if (template.filePath) {
+    try {
+      const fs = require('fs')
+      if (fs.existsSync(template.filePath)) {
+        await fs.promises.unlink(template.filePath)
+      }
+    } catch (error) {
+    }
+  }
 
   return ResponseFormatter.success(
     res,
