@@ -19,6 +19,7 @@ export default function Layout({ children }) {
   const [showAdminGuide, setShowAdminGuide] = useState(false)
   const [tourOpen, setTourOpen] = useState(false)
   const [tourId, setTourId] = useState('user')
+  const [showGettingStartedHint, setShowGettingStartedHint] = useState(false)
   // Right panel is collapsed by default on all pages except dashboard
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
@@ -134,15 +135,20 @@ export default function Layout({ children }) {
       const user = raw ? JSON.parse(raw) : null
       const key = `dms_getting_started_seen_${user?.id || 'anon'}`
       const seen = localStorage.getItem(key)
-      if (!seen) setGettingStartedOpen(true)
+      if (!seen) {
+        setGettingStartedOpen(true)
+        setShowGettingStartedHint(true)
+      }
     } catch {
       setGettingStartedOpen(true)
+      setShowGettingStartedHint(true)
     }
   }, [])
 
   const startTour = (id) => {
     setTourId(id === 'admin' ? 'admin' : 'user')
     setTourOpen(true)
+    setShowGettingStartedHint(false)
   }
 
   const footerLinks = Array.isArray(footerConfig?.footerLinks) ? footerConfig.footerLinks : []
@@ -150,7 +156,14 @@ export default function Layout({ children }) {
 
   return (
     <div className="h-screen flex flex-col">
-      <Topbar onMenu={() => setSidebarOpen(true)} onGettingStarted={() => setGettingStartedOpen(true)} />
+      <Topbar
+        onMenu={() => setSidebarOpen(true)}
+        onGettingStarted={() => {
+          setGettingStartedOpen(true)
+          setShowGettingStartedHint(false)
+        }}
+        showGettingStartedHint={showGettingStartedHint}
+      />
       <div className="flex flex-1 overflow-hidden">
         {sidebarPosition === 'left' && (
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -170,6 +183,7 @@ export default function Layout({ children }) {
                 } catch {
                 }
                 setGettingStartedOpen(false)
+                setShowGettingStartedHint(false)
               }}
             />
             <GuidedTour

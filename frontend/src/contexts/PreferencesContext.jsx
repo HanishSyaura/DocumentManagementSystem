@@ -346,6 +346,12 @@ const translations = {
     'my_profile': 'My Profile',
     'settings': 'Settings',
     'getting_started': 'Getting Started',
+    'first_time_user': 'First Time User',
+    'first_time_user_hint_title': 'First time login?',
+    'first_time_user_hint_body': 'Click here to open the guidelines and start the guided tour.',
+    'logout': 'Logout',
+    'first_time_user_hint_title': '首次登录？',
+    'first_time_user_hint_body': '点击这里打开指南并开始引导。',
     'logout': 'Logout',
 
     'gs_subtitle': 'A quick guide to help you navigate the system confidently.',
@@ -1367,6 +1373,9 @@ const translations = {
     'my_profile': 'Profil Saya',
     'settings': 'Tetapan',
     'getting_started': 'Panduan Mula',
+    'first_time_user': 'Pengguna Kali Pertama',
+    'first_time_user_hint_title': 'Log masuk kali pertama?',
+    'first_time_user_hint_body': 'Klik di sini untuk buka panduan dan mula guided tour.',
     'logout': 'Log Keluar',
 
     'gs_subtitle': 'Panduan ringkas untuk bantu anda guna sistem dengan yakin.',

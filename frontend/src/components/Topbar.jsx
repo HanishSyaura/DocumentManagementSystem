@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { normalizeAppPath } from '../utils/normalizeUrl'
 
-export default function Topbar({ onMenu, onGettingStarted }) {
+export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHint }) {
   const { t } = usePreferences()
   const navigate = useNavigate()
   const [logo, setLogo] = useState(() => {
@@ -170,16 +170,27 @@ export default function Topbar({ onMenu, onGettingStarted }) {
 
       {/* Right Section */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onGettingStarted?.()}
-          className="p-2 rounded-lg hover:bg-white/20 transition-colors"
-          aria-label={t('getting_started')}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => onGettingStarted?.()}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 transition-colors ${
+              showGettingStartedHint ? 'ring-2 ring-yellow-300 animate-pulse' : ''
+            }`}
+            aria-label={t('getting_started')}
+          >
+            <span className="hidden sm:inline text-sm font-semibold">{t('first_time_user')}</span>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          {showGettingStartedHint && (
+            <div className="absolute right-0 mt-2 w-64 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 p-3">
+              <div className="text-sm font-semibold">{t('first_time_user_hint_title')}</div>
+              <div className="text-xs text-gray-600 mt-1">{t('first_time_user_hint_body')}</div>
+            </div>
+          )}
+        </div>
 
         {/* User Profile Dropdown */}
         <div className="relative">
