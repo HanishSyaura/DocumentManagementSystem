@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 
@@ -13,10 +13,10 @@ function getTargetRect(targetId) {
   return { el, rect }
 }
 
-function computeTooltipPosition(rect, placement) {
+function computeTooltipPosition(rect, placement, size) {
   const padding = 12
-  const w = 360
-  const h = 160
+  const w = size?.width || 360
+  const h = size?.height || 180
   const vw = window.innerWidth
   const vh = window.innerHeight
 
@@ -47,8 +47,10 @@ export default function GuidedTour({ open, tourId, onClose }) {
   const location = useLocation()
   const [stepIndex, setStepIndex] = useState(0)
   const [targetRect, setTargetRect] = useState(null)
+  const [tooltipSize, setTooltipSize] = useState({ width: 360, height: 180 })
   const rafRef = useRef(null)
   const timeoutRef = useRef(null)
+  const tooltipRef = useRef(null)
 
   const steps = useMemo(() => {
     if (tourId === 'admin') {
@@ -143,7 +145,18 @@ export default function GuidedTour({ open, tourId, onClose }) {
 
   const step = steps[stepIndex]
   const isLast = stepIndex === steps.length - 1
-  const tooltipPos = computeTooltipPosition(targetRect, step?.placement || 'bottom')
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const el = tooltipRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const next = { width: rect.width, height: rect.height }
+    setTooltipSize((prev) => (prev.width === next.width && prev.height === next.height ? prev : next))
+  }, [open, stepIndex, targetRect, tourId])
+
+  const tooltipPos = computeTooltipPosition(targetRect, step?.placement || 'bottom', tooltipSize)
 
   const pad = 8
   const highlight = targetRect
@@ -174,13 +187,20 @@ export default function GuidedTour({ open, tourId, onClose }) {
       )}
 
       <div
-        className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-[360px]"
-        style={{ left: tooltipPos.left, top: tooltipPos.top }}
+        ref={tooltipRef}
+        className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-4"
+        style={{
+          left: tooltipPos.left,
+          top: tooltipPos.top,
+          width: Math.min(380, window.innerWidth - 24),
+          maxHeight: Math.min(260, window.innerHeight - 24),
+          overflow: 'auto'
+        }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-gray-900">{t(step.titleKey)}</div>
-            <div className="text-sm text-gray-700 mt-1">{t(step.bodyKey)}</div>
+            <div className="text-sm sm:text-base font-semibold text-gray-900">{t(step.titleKey)}</div>
+            <div className="text-xs sm:text-sm text-gray-700 mt-1">{t(step.bodyKey)}</div>
             <div className="text-xs text-gray-500 mt-2">
               {t('tour_step_indicator')} {stepIndex + 1}/{steps.length}
             </div>
