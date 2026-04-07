@@ -13,6 +13,7 @@ import { PermissionGate } from './PermissionGate'
 import { hasPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
 import Pagination from './Pagination'
+import ConfirmModal, { AlertModal } from './ConfirmModal'
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange }) {
@@ -66,6 +67,8 @@ function TemplateManagement() {
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [documentTypes, setDocumentTypes] = useState([])
   const [isAdminUser, setIsAdminUser] = useState(false)
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'error' })
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'warning' })
 
   useEffect(() => {
     loadTemplates()
@@ -242,27 +245,33 @@ function TemplateManagement() {
       document.body.removeChild(a)
     } catch (error) {
       console.error('Failed to download template:', error)
-      alert('Failed to download template file')
+      setAlertModal({ show: true, title: 'Error', message: 'Failed to download template file', type: 'error' })
     }
   }
 
   const handleDeleteTemplate = async (template) => {
     if (!isAdminUser) {
-      alert('Only administrators can delete templates')
+      setAlertModal({ show: true, title: 'Error', message: 'Only administrators can delete templates', type: 'error' })
       return
     }
 
-    const ok = window.confirm(`Delete template "${template.templateName}"? This will permanently remove it from the database.`)
-    if (!ok) return
-
-    try {
-      await api.delete(`/templates/${template.id}`)
-      setTemplates((prev) => prev.filter((x) => x.id !== template.id))
-      alert('Template deleted successfully!')
-    } catch (error) {
-      console.error('Failed to delete template:', error)
-      alert(error.response?.data?.message || 'Failed to delete template')
-    }
+    setConfirmModal({
+      show: true,
+      title: t('delete'),
+      message: `Delete template "${template.templateName}"? This will permanently remove it from the database.`,
+      type: 'warning',
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.delete(`/templates/${template.id}`)
+          setTemplates((prev) => prev.filter((x) => x.id !== template.id))
+          setAlertModal({ show: true, title: 'Success', message: 'Template deleted successfully!', type: 'success' })
+        } catch (error) {
+          console.error('Failed to delete template:', error)
+          setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to delete template', type: 'error' })
+        }
+      }
+    })
   }
 
   const handleAddNewTemplate = (e) => {
@@ -276,7 +285,7 @@ function TemplateManagement() {
       // Find the document type ID from the selected document type
       const selectedDocType = documentTypes.find(dt => dt.name === templateData.documentType)
       if (!selectedDocType) {
-        alert('Invalid document type selected')
+        setAlertModal({ show: true, title: 'Error', message: 'Invalid document type selected', type: 'error' })
         return
       }
 
@@ -291,7 +300,7 @@ function TemplateManagement() {
       if (templateData.files && templateData.files.length > 0) {
         formData.append('files', templateData.files[0])
       } else {
-        alert('Please upload a template file')
+        setAlertModal({ show: true, title: 'Validation Error', message: 'Please upload a template file', type: 'warning' })
         return
       }
 
@@ -299,12 +308,12 @@ function TemplateManagement() {
         // Update existing template
         // Note: Don't set Content-Type manually for FormData - browser will set it with boundary
         await api.put(`/templates/${editingTemplate.id}`, formData)
-        alert('Template updated successfully!')
+        setAlertModal({ show: true, title: 'Success', message: 'Template updated successfully!', type: 'success' })
       } else {
         // Create new template
         // Note: Don't set Content-Type manually for FormData - browser will set it with boundary
         await api.post('/templates', formData)
-        alert('Template added successfully!')
+        setAlertModal({ show: true, title: 'Success', message: 'Template added successfully!', type: 'success' })
       }
       
       setShowAddTemplateModal(false)
@@ -314,7 +323,7 @@ function TemplateManagement() {
       loadTemplates()
     } catch (error) {
       console.error('Failed to save template:', error)
-      alert(error.response?.data?.message || 'Failed to save template')
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to save template', type: 'error' })
     }
   }
 
@@ -322,6 +331,23 @@ function TemplateManagement() {
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false })}
+      />
+
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'error' })}
+      />
+
       {/* Add/Reupload Template Modal */}
       {showAddTemplateModal && (
         <AddTemplateModal
