@@ -19,10 +19,10 @@ import ConfirmModal, { AlertModal } from './ConfirmModal'
 function TabNavigation({ activeTab, onTabChange }) {
   const { t } = usePreferences()
   const tabs = [
-    { id: 'template', label: t('cfg_template_mgmt') },
-    { id: 'roles', label: t('cfg_role_permission') },
-    { id: 'masterdata', label: t('cfg_master_data') },
     { id: 'general', label: t('cfg_general_system') },
+    { id: 'masterdata', label: t('cfg_master_data') },
+    { id: 'roles', label: t('cfg_role_permission') },
+    { id: 'template', label: t('cfg_template_mgmt') },
     { id: 'audit', label: t('cfg_audit_log') },
     { id: 'backup', label: t('cfg_backup_recovery') },
     { id: 'cleanup', label: t('cfg_database_cleanup') }
@@ -988,16 +988,16 @@ function TemplateManagement() {
 
 // Main Configuration Component
 export default function Configuration() {
-  const [activeTab, setActiveTab] = useState('template')
+  const [activeTab, setActiveTab] = useState('general')
 
   return (
     <div className="p-6">
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       
-      {activeTab === 'template' && <TemplateManagement />}
-      {activeTab === 'roles' && <RolePermission />}
-      {activeTab === 'masterdata' && <MasterDataManagement />}
       {activeTab === 'general' && <GeneralSystemSettings />}
+      {activeTab === 'masterdata' && <MasterDataManagement />}
+      {activeTab === 'roles' && <RolePermission />}
+      {activeTab === 'template' && <TemplateManagement />}
       {activeTab === 'audit' && <AuditLogSettings />}
       {activeTab === 'backup' && <BackupRecovery />}
       {activeTab === 'cleanup' && <DatabaseCleanup />}
