@@ -41,6 +41,24 @@ function computeTooltipPosition(rect, placement, size) {
   }
 }
 
+function getScrollParent(el) {
+  let p = el?.parentElement || null
+  while (p) {
+    const style = window.getComputedStyle(p)
+    const oy = style.overflowY
+    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight + 1) return p
+    p = p.parentElement
+  }
+  return null
+}
+
+function isElementFullyVisibleInParent(el, parent, margin = 8) {
+  if (!el || !parent) return false
+  const r = el.getBoundingClientRect()
+  const pr = parent.getBoundingClientRect()
+  return r.top >= pr.top + margin && r.bottom <= pr.bottom - margin
+}
+
 export default function GuidedTour({ open, tourId, onClose }) {
   const { t } = usePreferences()
   const navigate = useNavigate()
@@ -151,7 +169,14 @@ export default function GuidedTour({ open, tourId, onClose }) {
       const found = getTargetRect(step.target)
       if (found) {
         try {
-          found.el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          const isNavTarget = String(step.target || '').startsWith('nav-')
+          if (isNavTarget) {
+            const parent = getScrollParent(found.el)
+            const visible = parent ? isElementFullyVisibleInParent(found.el, parent, 10) : true
+            if (!visible) found.el.scrollIntoView({ block: 'nearest' })
+          } else {
+            found.el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          }
         } catch {
         }
         if (step.click && clickedStepRef.current !== stepIndex) {
