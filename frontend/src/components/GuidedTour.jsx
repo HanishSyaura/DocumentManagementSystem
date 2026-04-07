@@ -188,8 +188,6 @@ export default function GuidedTour({ open, tourId, onClose }) {
     }
   }, [open, stepIndex, steps])
 
-  if (!open) return null
-
   const step = steps[stepIndex]
   const isLast = stepIndex === steps.length - 1
 
@@ -202,6 +200,9 @@ export default function GuidedTour({ open, tourId, onClose }) {
     const next = { width: rect.width, height: rect.height }
     setTooltipSize((prev) => (prev.width === next.width && prev.height === next.height ? prev : next))
   }, [open, stepIndex, targetRect, tourId])
+
+  if (!open) return null
+  if (!step) return null
 
   const tooltipPos = computeTooltipPosition(targetRect, step?.placement || 'bottom', tooltipSize)
 
