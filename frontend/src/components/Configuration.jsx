@@ -693,290 +693,285 @@ function TemplateManagement() {
       {/* Template List */}
       <div className="card p-6">
         {activeSubTab === 'templates' && (
-        <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{t('cfg_template_list')}</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('cfg_template_list_desc')}
-              </p>
-            </div>
-            
-            {/* Add New Template Button */}
-            <PermissionGate module="configuration.templates" action="create">
-              <button 
-                onClick={handleAddNewTemplate}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t('cfg_add_new_template')}
-              </button>
-            </PermissionGate>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder={t('cfg_search_template')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('document_type')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_template_name')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('version')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_prefix_code')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_uploaded_by')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_uploaded_on')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-8 text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span>{t('cfg_loading_templates')}</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : currentTemplates.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-12 text-gray-500">
-                    <div className="flex flex-col items-center gap-2">
-                      <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>{t('cfg_no_templates')}</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                currentTemplates.map((template) => (
-                  <tr key={template.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4 text-gray-700">{template.documentType}</td>
-                    <td className="py-4 px-4 text-gray-700">{template.templateName}</td>
-                    <td className="py-4 px-4 text-gray-700">{template.version}</td>
-                    <td className="py-4 px-4 text-gray-700">{template.prefixCode}</td>
-                    <td className="py-4 px-4 text-gray-700">{template.uploadedBy}</td>
-                    <td className="py-4 px-4 text-gray-700">{template.uploadedOn}</td>
-                    <td className="py-4 px-4">
-                      <ActionMenu
-                        actions={[
-                          ...(hasPermission('configuration.templates', 'read') ? [{ label: t('view'), onClick: () => handleView(template) }] : []),
-                          ...(hasPermission('configuration.templates', 'update') ? [{ label: t('cfg_reupload'), onClick: (e) => handleReupload(e, template) }] : []),
-                          ...(hasPermission('configuration.templates', 'read') ? [{ label: t('download'), onClick: () => handleDownload(template) }] : []),
-                          ...(isAdminUser ? [{ label: t('delete'), onClick: () => handleDeleteTemplate(template), variant: 'destructive' }] : [])
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden space-y-4">
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">
-              <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span>{t('cfg_loading_templates')}</span>
-              </div>
-        )}
-
-        {activeSubTab === 'requests' && hasAnyPermission('configuration.templateRequests') && (
-            <div>
+          <>
+            <div className="mb-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Template Requests</h3>
-                  <p className="text-sm text-gray-600 mt-1">Request a new template or ask to update an existing template.</p>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('cfg_template_list')}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{t('cfg_template_list_desc')}</p>
                 </div>
-                <PermissionGate module="configuration.templateRequests" action="create">
+
+                <PermissionGate module="configuration.templates" action="create">
                   <button
-                    type="button"
-                    onClick={openTemplateRequestModal}
+                    onClick={handleAddNewTemplate}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    Request Template
+                    {t('cfg_add_new_template')}
                   </button>
                 </PermissionGate>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Date</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Type</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Document Type</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Template</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Status</th>
-                      {hasPermission('configuration.templateRequests', 'update') && (
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Requested By</th>
-                      )}
-                      {hasPermission('configuration.templateRequests', 'update') && (
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Action</th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadingTemplateRequests ? (
-                      <tr>
-                        <td colSpan={hasPermission('configuration.templateRequests', 'update') ? 7 : 5} className="text-center py-8 text-gray-500">Loading...</td>
-                      </tr>
-                    ) : templateRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={hasPermission('configuration.templateRequests', 'update') ? 7 : 5} className="text-center py-12 text-gray-500">No template requests found.</td>
-                      </tr>
-                    ) : (
-                      templateRequests.map((r) => {
-                        const docLabel = r.documentType?.name || r.documentTypeName || '-'
-                        const tplLabel = r.template?.templateName || r.templateName || '-'
-                        const requesterLabel = r.requestedBy ? ([r.requestedBy.firstName, r.requestedBy.lastName].filter(Boolean).join(' ').trim() || r.requestedBy.email) : '-'
-                        return (
-                          <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td className="py-3 px-4 text-gray-700">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB') : '-'}</td>
-                            <td className="py-3 px-4 text-gray-700">{r.requestType}</td>
-                            <td className="py-3 px-4 text-gray-700">{docLabel}</td>
-                            <td className="py-3 px-4 text-gray-700">{tplLabel}</td>
-                            <td className="py-3 px-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                r.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                                r.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {r.status}
-                              </span>
-                            </td>
-                            {hasPermission('configuration.templateRequests', 'update') && (
-                              <td className="py-3 px-4 text-gray-700">{requesterLabel}</td>
-                            )}
-                            {hasPermission('configuration.templateRequests', 'update') && (
-                              <td className="py-3 px-4">
-                                {r.status === 'PENDING' ? (
-                                  <div className="flex gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => updateTemplateRequestStatus(r, 'RESOLVED')}
-                                      className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
-                                    >
-                                      Resolve
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => updateTemplateRequestStatus(r, 'REJECTED')}
-                                      className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-gray-500">—</span>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder={t('cfg_search_template')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
               </div>
             </div>
-        )}
-            </div>
-          ) : currentTemplates.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <span>{t('cfg_no_templates')}</span>
-            </div>
-          ) : (
-            currentTemplates.map((template) => (
-              <div key={template.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                <div>
-                  <div className="font-semibold text-gray-900">{template.documentType}</div>
-                  <div className="text-sm text-gray-600 mt-1">{template.templateName}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-gray-500">{t('version')}:</span>
-                    <div className="text-gray-900 font-medium">{template.version}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">{t('cfg_prefix_code')}:</span>
-                    <div className="text-gray-900 font-medium">{template.prefixCode}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">{t('cfg_uploaded_by')}:</span>
-                    <div className="text-gray-900 font-medium">{template.uploadedBy}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">{t('cfg_uploaded_on')}:</span>
-                    <div className="text-gray-900 font-medium">{template.uploadedOn}</div>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2 border-t border-gray-200">
-                  {hasPermission('configuration.templates', 'read') && (
-                    <button
-                      onClick={() => handleView(template)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-gray-500 rounded hover:bg-gray-600"
-                    >
-                      {t('view')}
-                    </button>
-                  )}
-                  {hasPermission('configuration.templates', 'update') && (
-                    <button
-                      onClick={(e) => handleReupload(e, template)}
-                      className="flex-1 px-3 py-2 text-sm text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-                    >
-                      {t('cfg_reupload')}
-                    </button>
-                  )}
-                  {hasPermission('configuration.templates', 'read') && (
-                    <button
-                      onClick={() => handleDownload(template)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-                    >
-                      {t('download')}
-                    </button>
-                  )}
-                  {isAdminUser && (
-                    <button
-                      onClick={() => handleDeleteTemplate(template)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-red-600 rounded hover:bg-red-700"
-                    >
-                      {t('delete')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalRecords={totalRecords}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
-        />
-      </div>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('document_type')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_template_name')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('version')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_prefix_code')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_uploaded_by')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('cfg_uploaded_on')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <span>{t('cfg_loading_templates')}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : currentTemplates.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-12 text-gray-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <span>{t('cfg_no_templates')}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    currentTemplates.map((template) => (
+                      <tr key={template.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4 text-gray-700">{template.documentType}</td>
+                        <td className="py-4 px-4 text-gray-700">{template.templateName}</td>
+                        <td className="py-4 px-4 text-gray-700">{template.version}</td>
+                        <td className="py-4 px-4 text-gray-700">{template.prefixCode}</td>
+                        <td className="py-4 px-4 text-gray-700">{template.uploadedBy}</td>
+                        <td className="py-4 px-4 text-gray-700">{template.uploadedOn}</td>
+                        <td className="py-4 px-4">
+                          <ActionMenu
+                            actions={[
+                              ...(hasPermission('configuration.templates', 'read') ? [{ label: t('view'), onClick: () => handleView(template) }] : []),
+                              ...(hasPermission('configuration.templates', 'update') ? [{ label: t('cfg_reupload'), onClick: (e) => handleReupload(e, template) }] : []),
+                              ...(hasPermission('configuration.templates', 'read') ? [{ label: t('download'), onClick: () => handleDownload(template) }] : []),
+                              ...(isAdminUser ? [{ label: t('delete'), onClick: () => handleDeleteTemplate(template), variant: 'destructive' }] : [])
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="md:hidden space-y-4">
+              {loading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span>{t('cfg_loading_templates')}</span>
+                  </div>
+                </div>
+              ) : currentTemplates.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <span>{t('cfg_no_templates')}</span>
+                </div>
+              ) : (
+                currentTemplates.map((template) => (
+                  <div key={template.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div>
+                      <div className="font-semibold text-gray-900">{template.documentType}</div>
+                      <div className="text-sm text-gray-600 mt-1">{template.templateName}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500">{t('version')}:</span>
+                        <div className="text-gray-900 font-medium">{template.version}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">{t('cfg_prefix_code')}:</span>
+                        <div className="text-gray-900 font-medium">{template.prefixCode}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">{t('cfg_uploaded_by')}:</span>
+                        <div className="text-gray-900 font-medium">{template.uploadedBy}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">{t('cfg_uploaded_on')}:</span>
+                        <div className="text-gray-900 font-medium">{template.uploadedOn}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t border-gray-200">
+                      {hasPermission('configuration.templates', 'read') && (
+                        <button
+                          onClick={() => handleView(template)}
+                          className="flex-1 px-3 py-2 text-sm text-white bg-gray-500 rounded hover:bg-gray-600"
+                        >
+                          {t('view')}
+                        </button>
+                      )}
+                      {hasPermission('configuration.templates', 'update') && (
+                        <button
+                          onClick={(e) => handleReupload(e, template)}
+                          className="flex-1 px-3 py-2 text-sm text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                        >
+                          {t('cfg_reupload')}
+                        </button>
+                      )}
+                      {hasPermission('configuration.templates', 'read') && (
+                        <button
+                          onClick={() => handleDownload(template)}
+                          className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+                        >
+                          {t('download')}
+                        </button>
+                      )}
+                      {isAdminUser && (
+                        <button
+                          onClick={() => handleDeleteTemplate(template)}
+                          className="flex-1 px-3 py-2 text-sm text-white bg-red-600 rounded hover:bg-red-700"
+                        >
+                          {t('delete')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1) }}
+            />
+          </>
+        )}
+
+        {activeSubTab === 'requests' && hasAnyPermission('configuration.templateRequests') && (
+          <div>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Template Requests</h3>
+                <p className="text-sm text-gray-600 mt-1">Request a new template or ask to update an existing template.</p>
+              </div>
+              <PermissionGate module="configuration.templateRequests" action="create">
+                <button
+                  type="button"
+                  onClick={openTemplateRequestModal}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Request Template
+                </button>
+              </PermissionGate>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Type</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Document Type</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Template</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Status</th>
+                    {hasPermission('configuration.templateRequests', 'update') && (
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Requested By</th>
+                    )}
+                    {hasPermission('configuration.templateRequests', 'update') && (
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Action</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingTemplateRequests ? (
+                    <tr>
+                      <td colSpan={hasPermission('configuration.templateRequests', 'update') ? 7 : 5} className="text-center py-8 text-gray-500">Loading...</td>
+                    </tr>
+                  ) : templateRequests.length === 0 ? (
+                    <tr>
+                      <td colSpan={hasPermission('configuration.templateRequests', 'update') ? 7 : 5} className="text-center py-12 text-gray-500">No template requests found.</td>
+                    </tr>
+                  ) : (
+                    templateRequests.map((r) => {
+                      const docLabel = r.documentType?.name || r.documentTypeName || '-'
+                      const tplLabel = r.template?.templateName || r.templateName || '-'
+                      const requesterLabel = r.requestedBy ? ([r.requestedBy.firstName, r.requestedBy.lastName].filter(Boolean).join(' ').trim() || r.requestedBy.email) : '-'
+                      return (
+                        <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4 text-gray-700">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB') : '-'}</td>
+                          <td className="py-3 px-4 text-gray-700">{r.requestType}</td>
+                          <td className="py-3 px-4 text-gray-700">{docLabel}</td>
+                          <td className="py-3 px-4 text-gray-700">{tplLabel}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              r.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                              r.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {r.status}
+                            </span>
+                          </td>
+                          {hasPermission('configuration.templateRequests', 'update') && (
+                            <td className="py-3 px-4 text-gray-700">{requesterLabel}</td>
+                          )}
+                          {hasPermission('configuration.templateRequests', 'update') && (
+                            <td className="py-3 px-4">
+                              {r.status === 'PENDING' ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateTemplateRequestStatus(r, 'RESOLVED')}
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                                  >
+                                    Resolve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateTemplateRequestStatus(r, 'REJECTED')}
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-500">—</span>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
     </div>
   )
 }
