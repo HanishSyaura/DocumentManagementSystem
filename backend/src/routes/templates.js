@@ -12,6 +12,155 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
+router.get('/requests', asyncHandler(async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { roles: { select: { role: { select: { name: true } } } } }
+  })
+  const roles = user?.roles?.map((r) => r.role.name) || []
+  const canViewAll = roles.includes('admin') || roles.includes('document_controller')
+
+  const where = canViewAll ? {} : { requestedById: req.user.id }
+  const requests = await prisma.templateRequest.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      documentType: true,
+      template: true,
+      requestedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+      resolvedBy: { select: { id: true, email: true, firstName: true, lastName: true } }
+    }
+  })
+
+  return ResponseFormatter.success(res, { requests }, 'Template requests retrieved successfully')
+}))
+
+router.post('/requests', asyncHandler(async (req, res) => {
+  const { requestType, documentTypeId, documentTypeName, templateId, templateName, description } = req.body
+
+  if (!requestType || !['NEW', 'UPDATE'].includes(String(requestType).toUpperCase())) {
+    return ResponseFormatter.error(res, 'Invalid request type', 400)
+  }
+
+  const type = String(requestType).toUpperCase()
+  const docTypeId = documentTypeId ? parseInt(documentTypeId) : null
+  const tplId = templateId ? parseInt(templateId) : null
+  const docTypeNameText = documentTypeName ? String(documentTypeName).trim() : null
+  const tplNameText = templateName ? String(templateName).trim() : null
+
+  if (!docTypeId && !docTypeNameText) {
+    return ResponseFormatter.error(res, 'Document type is required', 400)
+  }
+  if (type === 'NEW' && !tplNameText) {
+    return ResponseFormatter.error(res, 'Template name is required', 400)
+  }
+  if (type === 'UPDATE' && !tplId && !tplNameText) {
+    return ResponseFormatter.error(res, 'Select an existing template or provide a template name', 400)
+  }
+
+  const created = await prisma.templateRequest.create({
+    data: {
+      requestType: type,
+      status: 'PENDING',
+      documentTypeId: docTypeId,
+      documentTypeName: docTypeId ? null : docTypeNameText,
+      templateId: tplId,
+      templateName: tplId ? null : tplNameText,
+      description: description ? String(description) : null,
+      requestedById: req.user.id
+    },
+    include: {
+      documentType: true,
+      template: true
+    }
+  })
+
+  const requester = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { email: true, firstName: true, lastName: true }
+  })
+  const requesterName = [requester?.firstName, requester?.lastName].filter(Boolean).join(' ').trim() || requester?.email || 'User'
+  const docTypeLabel = created.documentType?.name || created.documentTypeName || 'Unknown Document Type'
+  const tplLabel = created.template?.templateName || created.templateName || 'Template'
+
+  const recipients = await prisma.user.findMany({
+    where: {
+      id: { not: req.user.id },
+      roles: {
+        some: {
+          role: {
+            name: { in: ['admin', 'document_controller'] }
+          }
+        }
+      }
+    },
+    select: { id: true }
+  })
+
+  if (recipients.length > 0) {
+    await prisma.notification.createMany({
+      data: recipients.map((u) => ({
+        userId: u.id,
+        type: 'SYSTEM_ALERT',
+        title: 'Template Request',
+        message: `${requesterName} requested ${type === 'NEW' ? 'a new template' : 'a template update'} for "${docTypeLabel}" (${tplLabel}).`,
+        link: '/new-document-request'
+      }))
+    })
+  }
+
+  return ResponseFormatter.success(res, { request: created }, 'Template request submitted successfully', 201)
+}))
+
+router.patch('/requests/:id', authorize('admin', 'document_controller'), asyncHandler(async (req, res) => {
+  const requestId = parseInt(req.params.id)
+  const { status, resolutionNote } = req.body
+  const normalizedStatus = String(status || '').toUpperCase()
+  if (!['RESOLVED', 'REJECTED'].includes(normalizedStatus)) {
+    return ResponseFormatter.error(res, 'Invalid status', 400)
+  }
+
+  const existing = await prisma.templateRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      documentType: true,
+      template: true,
+      requestedBy: { select: { id: true } }
+    }
+  })
+  if (!existing) {
+    return ResponseFormatter.error(res, 'Template request not found', 404)
+  }
+
+  const updated = await prisma.templateRequest.update({
+    where: { id: requestId },
+    data: {
+      status: normalizedStatus,
+      resolutionNote: resolutionNote ? String(resolutionNote) : null,
+      resolvedById: req.user.id,
+      resolvedAt: new Date()
+    },
+    include: {
+      documentType: true,
+      template: true,
+      requestedBy: { select: { id: true, email: true, firstName: true, lastName: true } },
+      resolvedBy: { select: { id: true, email: true, firstName: true, lastName: true } }
+    }
+  })
+
+  await prisma.notification.create({
+    data: {
+      userId: updated.requestedById,
+      type: 'SYSTEM_ALERT',
+      title: 'Template Request Update',
+      message: `Your template request has been ${normalizedStatus === 'RESOLVED' ? 'resolved' : 'rejected'}.`,
+      link: '/new-document-request'
+    }
+  })
+
+  return ResponseFormatter.success(res, { request: updated }, 'Template request updated successfully')
+}))
+
 /**
  * Get all templates
  * GET /api/templates

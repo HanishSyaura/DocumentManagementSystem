@@ -63,6 +63,8 @@ model User {
   approvedVersionRequests   VersionRequest[] @relation("VersionRequestApprover")
   rejectedVersionRequests   VersionRequest[] @relation("VersionRequestRejector")
   documentAssignments       DocumentAssignment[]
+  createdTemplateRequests   TemplateRequest[] @relation("TemplateRequestCreator")
+  resolvedTemplateRequests  TemplateRequest[] @relation("TemplateRequestResolver")
 
   @@index([email])
   @@index([employeeId])
@@ -72,6 +74,17 @@ enum UserStatus {
   ACTIVE
   INACTIVE
   LOCKED
+}
+
+enum TemplateRequestType {
+  NEW
+  UPDATE
+}
+
+enum TemplateRequestStatus {
+  PENDING
+  RESOLVED
+  REJECTED
 }
 
 model Role {
@@ -612,6 +625,34 @@ model Template {
   documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
 
   @@index([documentTypeId])
+}
+
+model TemplateRequest {
+  id               Int      @id @default(autoincrement())
+  requestType      TemplateRequestType
+  status           TemplateRequestStatus @default(PENDING)
+  documentTypeId   Int?
+  documentTypeName String?
+  templateId       Int?
+  templateName     String?
+  description      String?  @db.Text
+  requestedById    Int
+  resolvedById     Int?
+  resolvedAt       DateTime?
+  resolutionNote   String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  documentType     DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  template         Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  requestedBy      User @relation("TemplateRequestCreator", fields: [requestedById], references: [id])
+  resolvedBy       User? @relation("TemplateRequestResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([documentTypeId])
+  @@index([templateId])
+  @@index([requestedById])
+  @@index([createdAt])
 }
 
 // ============================================

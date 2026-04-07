@@ -70,6 +70,21 @@ export default function NewDocumentRequest() {
   const [rejectReason, setRejectReason] = useState('')
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'error' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, type: 'info' })
+  const [templateRequests, setTemplateRequests] = useState([])
+  const [loadingTemplateRequests, setLoadingTemplateRequests] = useState(true)
+  const [templates, setTemplates] = useState([])
+  const [showTemplateRequestModal, setShowTemplateRequestModal] = useState(false)
+  const [templateRequestForm, setTemplateRequestForm] = useState({
+    requestType: 'NEW',
+    documentTypeMode: 'existing',
+    documentTypeId: '',
+    documentTypeName: '',
+    templateMode: 'existing',
+    templateId: '',
+    templateName: '',
+    description: ''
+  })
+  const [canManageTemplateRequests, setCanManageTemplateRequests] = useState(false)
   const [templatePicker, setTemplatePicker] = useState({ show: false, templates: [], selectedId: '', documentTypeName: '' })
   
   // Master data states
@@ -106,6 +121,19 @@ export default function NewDocumentRequest() {
   useEffect(() => {
     loadRequests()
     loadMasterData()
+    loadTemplateRequests()
+  }, [])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user')
+      const user = raw ? JSON.parse(raw) : null
+      const roles = Array.isArray(user?.roles) ? user.roles : []
+      const roleNames = roles.map((r) => r?.role?.name || r?.name).filter(Boolean)
+      setCanManageTemplateRequests(roleNames.includes('admin') || roleNames.includes('document_controller'))
+    } catch {
+      setCanManageTemplateRequests(false)
+    }
   }, [])
 
   const loadMasterData = async () => {
@@ -122,6 +150,108 @@ export default function NewDocumentRequest() {
     } finally {
       setLoadingMasterData(false)
     }
+  }
+
+  const loadTemplateRequests = async () => {
+    try {
+      setLoadingTemplateRequests(true)
+      const res = await api.get('/templates/requests')
+      setTemplateRequests(res.data?.data?.requests || [])
+    } catch (error) {
+      console.error('Failed to load template requests:', error)
+      setTemplateRequests([])
+    } finally {
+      setLoadingTemplateRequests(false)
+    }
+  }
+
+  const loadTemplates = async () => {
+    try {
+      const res = await api.get('/templates')
+      setTemplates(res.data?.data?.templates || [])
+    } catch (error) {
+      console.error('Failed to load templates:', error)
+      setTemplates([])
+    }
+  }
+
+  const openTemplateRequestModal = async () => {
+    setTemplateRequestForm({
+      requestType: 'NEW',
+      documentTypeMode: 'existing',
+      documentTypeId: '',
+      documentTypeName: '',
+      templateMode: 'existing',
+      templateId: '',
+      templateName: '',
+      description: ''
+    })
+    setShowTemplateRequestModal(true)
+    await loadTemplates()
+  }
+
+  const submitTemplateRequest = async () => {
+    const requestType = String(templateRequestForm.requestType || '').toUpperCase()
+    const docMode = templateRequestForm.documentTypeMode
+    const tplMode = templateRequestForm.templateMode
+    const documentTypeId = docMode === 'existing' && templateRequestForm.documentTypeId ? parseInt(templateRequestForm.documentTypeId) : null
+    const documentTypeName = docMode === 'new' ? String(templateRequestForm.documentTypeName || '').trim() : null
+    const templateId = tplMode === 'existing' && templateRequestForm.templateId ? parseInt(templateRequestForm.templateId) : null
+    const templateName = tplMode === 'new' ? String(templateRequestForm.templateName || '').trim() : null
+    const description = String(templateRequestForm.description || '').trim()
+
+    if (!documentTypeId && !documentTypeName) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please select an existing document type or enter a new one.', type: 'warning' })
+      return
+    }
+
+    if (requestType === 'NEW' && !templateName) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please enter a template name.', type: 'warning' })
+      return
+    }
+
+    if (requestType === 'UPDATE' && !templateId && !templateName) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please select an existing template or enter a new template name.', type: 'warning' })
+      return
+    }
+
+    try {
+      await api.post('/templates/requests', {
+        requestType,
+        documentTypeId,
+        documentTypeName,
+        templateId,
+        templateName,
+        description: description || null
+      })
+      setShowTemplateRequestModal(false)
+      setAlertModal({ show: true, title: 'Success', message: 'Template request submitted successfully.', type: 'success' })
+      loadTemplateRequests()
+    } catch (error) {
+      console.error('Failed to submit template request:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to submit template request.', type: 'error' })
+    }
+  }
+
+  const updateTemplateRequestStatus = async (request, nextStatus) => {
+    const label = nextStatus === 'RESOLVED' ? 'Resolve' : 'Reject'
+    setConfirmModal({
+      show: true,
+      title: `${label} Template Request`,
+      message: `Mark this request as ${label.toLowerCase()}?`,
+      type: nextStatus === 'REJECTED' ? 'warning' : 'info',
+      onConfirm: async () => {
+        setConfirmModal({ show: false })
+        try {
+          await api.patch(`/templates/requests/${request.id}`, { status: nextStatus })
+          setAlertModal({ show: true, title: 'Success', message: 'Request updated successfully.', type: 'success' })
+          loadTemplateRequests()
+        } catch (error) {
+          console.error('Failed to update template request:', error)
+          setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to update request.', type: 'error' })
+        }
+      }
+    })
   }
 
   const loadRequests = async () => {
@@ -667,6 +797,281 @@ export default function NewDocumentRequest() {
           {t('ndr_desc')}
         </p>
       </div>
+
+      <div className="card p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Template Requests</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Request a new template or ask to update an existing template. Admin / Document Controller can resolve requests.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openTemplateRequestModal}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Request Template
+          </button>
+        </div>
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Date</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Type</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Document Type</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Template</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Status</th>
+                {canManageTemplateRequests && (
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Requested By</th>
+                )}
+                {canManageTemplateRequests && (
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">Action</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {loadingTemplateRequests ? (
+                <tr>
+                  <td colSpan={canManageTemplateRequests ? 7 : 5} className="text-center py-8 text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              ) : templateRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={canManageTemplateRequests ? 7 : 5} className="text-center py-8 text-gray-500">
+                    No template requests found.
+                  </td>
+                </tr>
+              ) : (
+                templateRequests.map((r) => {
+                  const docLabel = r.documentType?.name || r.documentTypeName || '-'
+                  const tplLabel = r.template?.templateName || r.templateName || '-'
+                  const requesterLabel = r.requestedBy ? ([r.requestedBy.firstName, r.requestedBy.lastName].filter(Boolean).join(' ').trim() || r.requestedBy.email) : '-'
+                  return (
+                    <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 text-gray-700">{r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB') : '-'}</td>
+                      <td className="py-3 px-4 text-gray-700">{r.requestType}</td>
+                      <td className="py-3 px-4 text-gray-700">{docLabel}</td>
+                      <td className="py-3 px-4 text-gray-700">{tplLabel}</td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          r.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          r.status === 'RESOLVED' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      {canManageTemplateRequests && (
+                        <td className="py-3 px-4 text-gray-700">{requesterLabel}</td>
+                      )}
+                      {canManageTemplateRequests && (
+                        <td className="py-3 px-4">
+                          {r.status === 'PENDING' ? (
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateTemplateRequestStatus(r, 'RESOLVED')}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700"
+                              >
+                                Resolve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateTemplateRequestStatus(r, 'REJECTED')}
+                                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-500">—</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showTemplateRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Request Template</h3>
+              <button
+                type="button"
+                onClick={() => setShowTemplateRequestModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Request Type</label>
+                  <select
+                    value={templateRequestForm.requestType}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setTemplateRequestForm((prev) => ({
+                        ...prev,
+                        requestType: v,
+                        templateMode: v === 'NEW' ? 'new' : prev.templateMode,
+                        templateId: v === 'NEW' ? '' : prev.templateId
+                      }))
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    <option value="NEW">New Template</option>
+                    <option value="UPDATE">Update Existing Template</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Document Type</label>
+                  <div className="flex items-center gap-4 mb-2">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="docTypeMode"
+                        checked={templateRequestForm.documentTypeMode === 'existing'}
+                        onChange={() => setTemplateRequestForm((prev) => ({ ...prev, documentTypeMode: 'existing', documentTypeName: '' }))}
+                      />
+                      Existing
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="docTypeMode"
+                        checked={templateRequestForm.documentTypeMode === 'new'}
+                        onChange={() => setTemplateRequestForm((prev) => ({ ...prev, documentTypeMode: 'new', documentTypeId: '' }))}
+                      />
+                      New
+                    </label>
+                  </div>
+
+                  {templateRequestForm.documentTypeMode === 'existing' ? (
+                    <select
+                      value={templateRequestForm.documentTypeId}
+                      onChange={(e) => setTemplateRequestForm((prev) => ({ ...prev, documentTypeId: e.target.value, templateId: '' }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                    >
+                      <option value="">Select document type</option>
+                      {documentTypes.map((dt) => (
+                        <option key={dt.id} value={dt.id}>{dt.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={templateRequestForm.documentTypeName}
+                      onChange={(e) => setTemplateRequestForm((prev) => ({ ...prev, documentTypeName: e.target.value }))}
+                      placeholder="Enter new document type"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+                {templateRequestForm.requestType === 'UPDATE' && (
+                  <div className="flex items-center gap-4 mb-2">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="tplMode"
+                        checked={templateRequestForm.templateMode === 'existing'}
+                        onChange={() => setTemplateRequestForm((prev) => ({ ...prev, templateMode: 'existing', templateName: '' }))}
+                      />
+                      Existing
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="tplMode"
+                        checked={templateRequestForm.templateMode === 'new'}
+                        onChange={() => setTemplateRequestForm((prev) => ({ ...prev, templateMode: 'new', templateId: '' }))}
+                      />
+                      New
+                    </label>
+                  </div>
+                )}
+
+                {templateRequestForm.requestType === 'NEW' || templateRequestForm.templateMode === 'new' ? (
+                  <input
+                    type="text"
+                    value={templateRequestForm.templateName}
+                    onChange={(e) => setTemplateRequestForm((prev) => ({ ...prev, templateName: e.target.value }))}
+                    placeholder="Enter template name"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                ) : (
+                  <select
+                    value={templateRequestForm.templateId}
+                    onChange={(e) => setTemplateRequestForm((prev) => ({ ...prev, templateId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                    disabled={templateRequestForm.documentTypeMode !== 'existing' || !templateRequestForm.documentTypeId}
+                  >
+                    <option value="">Select template</option>
+                    {(() => {
+                      const dt = templateRequestForm.documentTypeId ? documentTypes.find((x) => String(x.id) === String(templateRequestForm.documentTypeId)) : null
+                      const dtName = dt?.name
+                      const list = dtName ? templates.filter((tpl) => tpl.documentType === dtName) : []
+                      return list.map((tpl) => (
+                        <option key={tpl.id} value={tpl.id}>{tpl.templateName} (v{tpl.version})</option>
+                      ))
+                    })()}
+                  </select>
+                )}
+                {templateRequestForm.requestType === 'UPDATE' && templateRequestForm.templateMode === 'existing' && templateRequestForm.documentTypeMode !== 'existing' && (
+                  <p className="mt-1 text-xs text-gray-500">Select an existing document type to choose an existing template.</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description / Reason</label>
+                <textarea
+                  value={templateRequestForm.description}
+                  onChange={(e) => setTemplateRequestForm((prev) => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  rows={3}
+                  placeholder="Describe what you need (optional)"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowTemplateRequestModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitTemplateRequest}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* NDR Form - Only visible to users with create permission */}
       <PermissionGate module="newDocumentRequest" action="create">
