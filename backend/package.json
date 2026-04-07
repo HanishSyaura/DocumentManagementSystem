@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "node src/index.js",
     "start": "node src/index.js",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "seed": "node prisma/seed.js"
   },
   "prisma": {
