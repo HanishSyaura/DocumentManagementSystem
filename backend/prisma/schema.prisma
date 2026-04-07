@@ -170,6 +170,7 @@ model DocumentType {
   // Relations
   documents   Document[]
   templates   Template[]
+  templateRequests TemplateRequest[]
   workflows   Workflow[]
 }
 
@@ -623,6 +624,7 @@ model Template {
 
   // Relations
   documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+  templateRequests TemplateRequest[]
 
   @@index([documentTypeId])
 }
