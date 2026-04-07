@@ -261,7 +261,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white scroll-smooth">
+    <div className="min-h-screen bg-white scroll-smooth overflow-x-hidden">
       <a href="#main" className="skip-link">Skip to content</a>
       {/* Navigation Bar */}
       <nav className="app-topbar sticky top-0 z-50 text-white shadow-md">
@@ -350,7 +350,7 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <main id="main" tabIndex={-1}>
-      <section id="home" className="scroll-mt-20 min-h-[calc(100svh-4rem)] flex items-center overflow-hidden" style={{
+      <section id="home" className="scroll-mt-20 min-h-[calc(100dvh-4rem)] flex items-center overflow-hidden" style={{
         background: `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`,
         color: 'var(--dms-landing-hero-text, #FFFFFF)'
       }}> 
@@ -358,24 +358,24 @@ const HomePage = () => {
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Text Content */}
             <div className={`animate-fade-in-up ${landingContent?.heroImage && landingContent?.heroImagePosition === 'right' ? 'md:order-1' : 'md:order-2'}`}>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 sm:mb-8 leading-tight animate-slide-in-left">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 sm:mb-7 leading-tight animate-slide-in-left">
                 <MarkdownRenderer inline value={landingContent?.heroHeadline || 'Centralized Control for Your Documents'} />
               </h1>
               <MarkdownRenderer
                 value={landingContent?.heroSubheadline || 'A unified system to create, review, approve, and publish all organizational documents — securely and efficiently.'}
-                className="text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-10 leading-relaxed opacity-95 space-y-3"
+                className="text-base sm:text-lg lg:text-xl mb-7 sm:mb-9 leading-relaxed opacity-95 space-y-3"
               />
               <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5">
                 <button
                   onClick={() => navigate('/login')}
-                  className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:shadow-2xl transition-all transform hover:scale-105 hover:-translate-y-1"
+                  className="px-7 sm:px-10 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-bold hover:shadow-2xl transition-all transform hover:scale-105 hover:-translate-y-1"
                   style={{backgroundColor: 'var(--dms-landing-btn-primary, #FFFFFF)', color: 'var(--dms-landing-btn-primary-text, #2563EB)'}}
                 >
                   {t('hp_log_in_now')}
                 </button>
                 <a
                   href="#about"
-                  className="border-2 px-8 sm:px-10 py-3.5 sm:py-4 rounded-xl text-base sm:text-lg font-bold transition-all transform hover:scale-105 text-center"
+                  className="border-2 px-7 sm:px-10 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-bold transition-all transform hover:scale-105 text-center"
                   style={{backgroundColor: 'var(--dms-landing-btn-secondary, transparent)', borderColor: 'var(--dms-landing-btn-secondary-text, #FFFFFF)', color: 'var(--dms-landing-btn-secondary-text, #FFFFFF)'}}
                 >
                   {t('hp_learn_more')}
@@ -405,7 +405,7 @@ const HomePage = () => {
       <section id="about" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-5">
               <MarkdownRenderer inline value={landingContent?.aboutTitle || t('hp_what_is_dms')} />
             </h2>
             <div className="w-24 h-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 mx-auto rounded-full"></div>
@@ -438,14 +438,14 @@ const HomePage = () => {
 
             {/* Description */}
             <div className={`order-1 ${landingContent?.aboutImage && landingContent?.aboutImagePosition === 'right' ? 'md:order-1' : 'md:order-2'}`}>
-              <div className="bg-white p-8 sm:p-10 lg:p-12 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-blue-300">
+              <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-blue-300">
                 <MarkdownRenderer
                   value={landingContent?.aboutDescription || 'The **Document Management System (DMS)** is designed to standardize and digitalize our document lifecycle — from creation to publication and archiving.'}
-                  className="text-xl sm:text-2xl lg:text-3xl text-gray-800 leading-relaxed mb-6 space-y-3"
+                  className="text-base sm:text-lg lg:text-xl text-gray-800 leading-relaxed mb-5 space-y-3"
                 />
                 <MarkdownRenderer
                   value={landingContent?.aboutSubDescription || 'It ensures **traceability**, **accountability**, and **version control** for all controlled documents across departments.'}
-                  className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed space-y-3"
+                  className="text-sm sm:text-base lg:text-lg text-gray-700 leading-relaxed space-y-3"
                 />
               </div>
             </div>
@@ -457,8 +457,8 @@ const HomePage = () => {
       <section id="features" className="scroll-mt-20 py-16 sm:py-20" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_core_features')}</h2>
-            <p className="text-gray-600 text-xl sm:text-2xl">{t('hp_core_features_desc')}</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">{t('hp_core_features')}</h2>
+            <p className="text-gray-600 text-base sm:text-lg">{t('hp_core_features_desc')}</p>
             <div className="w-24 h-1.5 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full mt-6"></div>
           </div>
 
@@ -466,9 +466,9 @@ const HomePage = () => {
             {(landingContent?.features || []).slice(0, 4).map((feature, idx) => {
               const bgIsHex = isHexColor(feature.iconBgColor)
               const textIsHex = isHexColor(feature.textColor)
-              const titleClass = textIsHex ? 'text-xl lg:text-2xl font-bold mb-3 leading-tight' : 'text-xl lg:text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight'
+              const titleClass = textIsHex ? 'text-lg sm:text-xl lg:text-2xl font-bold mb-2 leading-tight' : 'text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-tight'
               const titleStyle = textIsHex ? { color: feature.textColor } : undefined
-              const descClass = textIsHex ? 'text-base lg:text-lg leading-relaxed space-y-2' : 'text-gray-600 text-base lg:text-lg leading-relaxed space-y-2'
+              const descClass = textIsHex ? 'text-sm sm:text-base lg:text-lg leading-relaxed space-y-2' : 'text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed space-y-2'
               const descStyle = textIsHex ? { color: feature.textColor } : undefined
 
               return (
@@ -478,7 +478,7 @@ const HomePage = () => {
                     {feature.iconImage && (
                       <div className="flex-shrink-0">
                         <div
-                          className={`w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`}
+                          className={`w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 p-3 sm:p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`}
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
                           <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain drop-shadow-sm" />
