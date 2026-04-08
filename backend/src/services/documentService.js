@@ -1115,8 +1115,17 @@ class DocumentService {
     }
 
     // Update document register
-    await prisma.documentRegister.create({
-      data: {
+    await prisma.documentRegister.upsert({
+      where: { fileCode },
+      update: {
+        documentTitle: document.title,
+        documentType: document.documentType.name,
+        version: '1.0',
+        owner: `${updated.owner.firstName} ${updated.owner.lastName}`,
+        department: updated.owner.department || '',
+        status: 'ACKNOWLEDGED'
+      },
+      create: {
         fileCode,
         documentTitle: document.title,
         documentType: document.documentType.name,

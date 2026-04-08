@@ -3,7 +3,7 @@ import api from '../api/axios'
 import StatusBadge from './StatusBadge'
 import NewVersionRequestModal from './NewVersionRequestModal'
 import { PermissionGate } from './PermissionGate'
-import { hasPermission } from '../utils/permissions'
+import { hasPermission, isAdmin } from '../utils/permissions'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
 
@@ -64,6 +64,7 @@ export default function NewDocumentRequest() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [acknowledgingId, setAcknowledgingId] = useState(null)
+  const [purgingFileCode, setPurgingFileCode] = useState('')
   const [showVersionModal, setShowVersionModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectingRequest, setRejectingRequest] = useState(null)
@@ -577,6 +578,33 @@ export default function NewDocumentRequest() {
     }
   }
 
+  const handleAdminPurgeByFileCode = async (fileCode) => {
+    const code = String(fileCode || '').trim()
+    if (!code || code === '-') return
+    setPurgingFileCode(code)
+    try {
+      await api.delete(`/documents/code/${encodeURIComponent(code)}/purge`)
+      setConfirmModal({ show: false })
+      setAlertModal({
+        show: true,
+        title: 'Deleted',
+        message: `All records for "${code}" have been deleted.`,
+        type: 'success'
+      })
+      await loadRequests()
+    } catch (error) {
+      setConfirmModal({ show: false })
+      setAlertModal({
+        show: true,
+        title: 'Delete failed',
+        message: error.response?.data?.message || 'Failed to delete records. Please try again.',
+        type: 'error'
+      })
+    } finally {
+      setPurgingFileCode('')
+    }
+  }
+
   return (
     <div className="p-6 space-y-6" data-tour-id="ndr-page">
       {/* Confirmation Modal */}
@@ -1030,6 +1058,25 @@ export default function NewDocumentRequest() {
                       ) : (
                         <p className="text-amber-600 text-sm italic text-center">You cannot acknowledge your own request</p>
                       )}
+                    </div>
+                  )}
+
+                  {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmModal({
+                          show: true,
+                          title: 'Delete document records?',
+                          message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
+                          type: 'danger',
+                          onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
+                        })}
+                        disabled={purgingFileCode === req.fileCode}
+                        className="w-full px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete (Admin)'}
+                      </button>
                     </div>
                   )}
                 </div>
