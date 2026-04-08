@@ -224,7 +224,7 @@ class DocumentService {
   }
 
   async createImportedPublishedDocument(data, creatorId) {
-    const { fileCode, title, description, documentTypeId, folderId } = data
+    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId } = data
 
     if (!fileCode || !String(fileCode).trim()) {
       throw new BadRequestError('File code is required')
@@ -245,6 +245,7 @@ class DocumentService {
         title,
         description,
         documentTypeId,
+        projectCategoryId: projectCategoryId ? parseInt(projectCategoryId) : null,
         folderId: folderId ? parseInt(folderId) : null,
         createdById: creatorId,
         ownerId: creatorId,

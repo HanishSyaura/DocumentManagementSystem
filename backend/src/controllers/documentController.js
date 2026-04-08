@@ -133,6 +133,8 @@ class DocumentController {
 
         const metaDocTypeIdRaw = meta?.documentTypeId
         const metaDocTypeId = Number.isFinite(Number(metaDocTypeIdRaw)) ? parseInt(metaDocTypeIdRaw) : null
+        const metaProjectCategoryIdRaw = meta?.projectCategoryId
+        const metaProjectCategoryId = Number.isFinite(Number(metaProjectCategoryIdRaw)) ? parseInt(metaProjectCategoryIdRaw) : null
 
         let documentTypeIdToUse = null
         if (metaDocTypeId) {
@@ -159,6 +161,7 @@ class DocumentController {
           title: docTitle,
           description: desc,
           documentTypeId: documentTypeIdToUse,
+          projectCategoryId: metaProjectCategoryId,
           folderId: folderIdInt
         }, req.user.id);
 
