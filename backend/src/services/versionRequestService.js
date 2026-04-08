@@ -442,9 +442,10 @@ class VersionRequestService {
 
   /**
    * Increment version number in file code
-   * Example: MOM/01/251229/002 -> MOM/02/251229/002
+   * Examples:
+   * - Major: MOM/01/251229/002 -> MOM/02/251229/002
+   * - Minor: MOM/01/251229/002 -> MOM/01a/251229/002
    */
-  incrementFileCodeVersion(fileCode) {
   incrementSuffix(suffix) {
     const s = String(suffix || '').toLowerCase()
     if (!s) return 'a'
