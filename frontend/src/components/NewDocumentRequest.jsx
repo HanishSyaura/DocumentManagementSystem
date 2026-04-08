@@ -65,6 +65,7 @@ export default function NewDocumentRequest() {
   const itemsPerPage = 10
   const [acknowledgingId, setAcknowledgingId] = useState(null)
   const [purgingFileCode, setPurgingFileCode] = useState('')
+  const [adminPurgeMenuRequestId, setAdminPurgeMenuRequestId] = useState(null)
   const [showVersionModal, setShowVersionModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectingRequest, setRejectingRequest] = useState(null)
@@ -863,7 +864,7 @@ export default function NewDocumentRequest() {
         ) : (
           <>
             {/* Desktop Table */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto" onClick={() => setAdminPurgeMenuRequestId(null)}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -877,7 +878,7 @@ export default function NewDocumentRequest() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('remarks')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
-                    {(canAcknowledge || isAdmin()) && (
+                    {canAcknowledge && (
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
                     )}
                   </tr>
@@ -920,68 +921,79 @@ export default function NewDocumentRequest() {
                       <td className="py-4 px-4 text-gray-700 font-medium">{req.requestedBy}</td>
                       <td className="py-4 px-4 text-gray-600 text-xs max-w-xs truncate" title={req.remarks}>{req.remarks}</td>
                       <td className="py-4 px-4">
-                        <span className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-700'}`}>
-                          {req.fileCode}
-                        </span>
+                        {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
+                          <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => setAdminPurgeMenuRequestId((prev) => (prev === req.id ? null : req.id))}
+                              className="font-mono text-xs text-gray-700 hover:text-gray-900"
+                              title="Click for options"
+                            >
+                              {req.fileCode}
+                            </button>
+                            {adminPurgeMenuRequestId === req.id && (
+                              <div className="absolute z-20 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAdminPurgeMenuRequestId(null)
+                                    setConfirmModal({
+                                      show: true,
+                                      title: 'Delete document records?',
+                                      message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
+                                      type: 'danger',
+                                      onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
+                                    })
+                                  }}
+                                  disabled={purgingFileCode === req.fileCode}
+                                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-md disabled:opacity-50"
+                                >
+                                  {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete record'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-700'}`}>
+                            {req.fileCode}
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-4">
                         <StatusBadge status={req.status} />
                       </td>
-                      {(canAcknowledge || isAdmin()) && (
+                      {canAcknowledge && (
                         <td className="py-4 px-4">
-                          <div className="flex flex-col gap-2">
-                            {canAcknowledge ? (
-                              canAcknowledgeRequest(req) && req.requestType !== 'NVR' ? (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleAcknowledge(req)}
-                                    disabled={acknowledgingId === req.id}
-                                    className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                                  </button>
-                                  <button
-                                    onClick={() => openRejectModal(req)}
-                                    disabled={acknowledgingId === req.id}
-                                    className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {t('reject_btn')}
-                                  </button>
-                                </div>
-                              ) : canAcknowledgeRequest(req) && req.requestType === 'NVR' ? (
-                                <button
-                                  onClick={() => handleAcknowledge(req)}
-                                  disabled={acknowledgingId === req.id}
-                                  className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                                </button>
-                              ) : req.status === 'Pending Acknowledgment' && !canAcknowledgeRequest(req) ? (
-                                <span className="text-amber-600 text-xs italic" title="You cannot acknowledge your own request">{t('own_request')}</span>
-                              ) : (
-                                <span className="text-gray-400 text-xs">-</span>
-                              )
-                            ) : (
-                              <span className="text-gray-400 text-xs">-</span>
-                            )}
-
-                            {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
+                          {canAcknowledgeRequest(req) && req.requestType !== 'NVR' ? (
+                            <div className="flex gap-2">
                               <button
-                                type="button"
-                                onClick={() => setConfirmModal({
-                                  show: true,
-                                  title: 'Delete document records?',
-                                  message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
-                                  type: 'danger',
-                                  onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
-                                })}
-                                disabled={purgingFileCode === req.fileCode}
+                                onClick={() => handleAcknowledge(req)}
+                                disabled={acknowledgingId === req.id}
+                                className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
+                              </button>
+                              <button
+                                onClick={() => openRejectModal(req)}
+                                disabled={acknowledgingId === req.id}
                                 className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete (Admin)'}
+                                {t('reject_btn')}
                               </button>
-                            ) : null}
-                          </div>
+                            </div>
+                          ) : canAcknowledgeRequest(req) && req.requestType === 'NVR' ? (
+                            <button
+                              onClick={() => handleAcknowledge(req)}
+                              disabled={acknowledgingId === req.id}
+                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
+                            </button>
+                          ) : req.status === 'Pending Acknowledgment' && !canAcknowledgeRequest(req) ? (
+                            <span className="text-amber-600 text-xs italic" title="You cannot acknowledge your own request">{t('own_request')}</span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -991,7 +1003,7 @@ export default function NewDocumentRequest() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="lg:hidden space-y-4">
+            <div className="lg:hidden space-y-4" onClick={() => setAdminPurgeMenuRequestId(null)}>
               {requests.map((req) => (
                 <div key={req.id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start gap-2">
@@ -1046,9 +1058,43 @@ export default function NewDocumentRequest() {
                     </div>
                     <div>
                       <span className="text-gray-500 text-xs">File Code:</span>
-                      <div className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-900'}`}>
-                        {req.fileCode}
-                      </div>
+                      {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
+                        <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => setAdminPurgeMenuRequestId((prev) => (prev === req.id ? null : req.id))}
+                            className="font-mono text-xs text-gray-900"
+                            title="Click for options"
+                          >
+                            {req.fileCode}
+                          </button>
+                          {adminPurgeMenuRequestId === req.id && (
+                            <div className="absolute z-20 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg p-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAdminPurgeMenuRequestId(null)
+                                  setConfirmModal({
+                                    show: true,
+                                    title: 'Delete document records?',
+                                    message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
+                                    type: 'danger',
+                                    onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
+                                  })
+                                }}
+                                disabled={purgingFileCode === req.fileCode}
+                                className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-md disabled:opacity-50"
+                              >
+                                {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete record'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-900'}`}>
+                          {req.fileCode}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {req.remarks && (
@@ -1081,25 +1127,6 @@ export default function NewDocumentRequest() {
                       ) : (
                         <p className="text-amber-600 text-sm italic text-center">You cannot acknowledge your own request</p>
                       )}
-                    </div>
-                  )}
-
-                  {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' && (
-                    <div className="pt-3 border-t border-gray-100">
-                      <button
-                        type="button"
-                        onClick={() => setConfirmModal({
-                          show: true,
-                          title: 'Delete document records?',
-                          message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
-                          type: 'danger',
-                          onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
-                        })}
-                        disabled={purgingFileCode === req.fileCode}
-                        className="w-full px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete (Admin)'}
-                      </button>
                     </div>
                   )}
                 </div>
