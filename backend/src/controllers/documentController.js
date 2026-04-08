@@ -851,12 +851,35 @@ class DocumentController {
       title: document?.title
     });
 
-    await documentService.purgeDocument(documentId);
+    const result = await documentService.purgeDocument(documentId);
 
     return ResponseFormatter.success(
       res,
-      null,
+      result,
       'Document permanently deleted successfully'
+    );
+  });
+
+  purgeDocumentByCode = asyncHandler(async (req, res) => {
+    const fileCode = String(req.params.fileCode || '').trim();
+
+    await auditLogService.log({
+      userId: req.user.id,
+      action: 'PURGE',
+      entity: 'Document',
+      entityId: null,
+      description: `Purged all records by file code: ${fileCode}`,
+      metadata: { fileCode },
+      ipAddress: auditLogService.getClientIP(req),
+      userAgent: req?.headers?.['user-agent']
+    });
+
+    const result = await documentService.purgeByFileCode(fileCode);
+
+    return ResponseFormatter.success(
+      res,
+      result,
+      'Document records permanently deleted successfully'
     );
   });
 

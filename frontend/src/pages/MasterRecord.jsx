@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import ActionMenu from '../components/ActionMenu'
+import ConfirmModal, { AlertModal } from '../components/ConfirmModal'
 import EmptyState from '../components/EmptyState'
 import Pagination from '../components/Pagination'
 import { usePreferences } from '../contexts/PreferencesContext'
+import { isAdmin } from '../utils/permissions'
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange }) {
@@ -42,6 +44,9 @@ function NewDocumentRegister() {
   const { itemsPerPage, t } = usePreferences()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
+  const [deleting, setDeleting] = useState(false)
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -66,6 +71,31 @@ function NewDocumentRegister() {
       setDocuments([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const purgeByFileCode = async (fileCode) => {
+    setDeleting(true)
+    try {
+      await api.delete(`/documents/code/${encodeURIComponent(fileCode)}/purge`)
+      setConfirmModal({ show: false, title: '', message: '', onConfirm: null })
+      setAlertModal({
+        show: true,
+        title: 'Deleted',
+        message: `All records for "${fileCode}" have been deleted.`,
+        type: 'success'
+      })
+      await loadDocuments()
+    } catch (error) {
+      setConfirmModal({ show: false, title: '', message: '', onConfirm: null })
+      setAlertModal({
+        show: true,
+        title: 'Delete failed',
+        message: error.response?.data?.message || 'Failed to delete document records. Please try again.',
+        type: 'error'
+      })
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -266,7 +296,17 @@ function NewDocumentRegister() {
                       <ActionMenu
                         actions={[
                           { label: 'View', onClick: () => console.log('View document:', doc) },
-                          { label: 'Download', onClick: () => console.log('Download document:', doc) }
+                          { label: 'Download', onClick: () => console.log('Download document:', doc) },
+                          ...(isAdmin() ? [{
+                            label: 'Delete',
+                            variant: 'destructive',
+                            onClick: () => setConfirmModal({
+                              show: true,
+                              title: 'Delete document records?',
+                              message: `This will permanently delete ALL records for "${doc.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
+                              onConfirm: () => purgeByFileCode(doc.fileCode)
+                            })
+                          }] : [])
                         ]}
                       />
                     </td>
@@ -277,6 +317,26 @@ function NewDocumentRegister() {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        show={confirmModal.show}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ show: false, title: '', message: '', onConfirm: null })}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        loading={deleting}
+      />
+
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
+      />
 
       {/* Pagination */}
       {!loading && filteredDocuments.length > 0 && (

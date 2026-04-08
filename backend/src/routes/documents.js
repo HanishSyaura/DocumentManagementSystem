@@ -44,6 +44,7 @@ router.get('/superseded-obsolete', documentController.getSupersededObsoleteDocum
 router.get('/my-status', documentController.getMyDocuments);
 router.get('/my-status/:status', documentController.getMyDocumentsByStatus);
 router.get('/code/:fileCode', documentController.getDocumentByCode);
+router.delete('/code/:fileCode/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), documentController.purgeDocumentByCode);
 router.get('/:id', documentController.getDocument);
 router.put('/:id', documentController.updateDocument);
 router.delete('/:id/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), documentController.purgeDocument);

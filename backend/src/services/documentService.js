@@ -625,40 +625,69 @@ class DocumentService {
   async purgeDocument(documentId) {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
+      select: { fileCode: true }
+    })
+
+    if (!document) {
+      throw new NotFoundError('Document not found')
+    }
+
+    return this.purgeByFileCode(document.fileCode)
+  }
+
+  async purgeByFileCode(fileCode) {
+    const normalized = String(fileCode || '').trim()
+    if (!normalized) {
+      throw new BadRequestError('File code is required')
+    }
+
+    const existing = await prisma.document.findUnique({
+      where: { fileCode: normalized },
       include: {
         versions: {
           select: { filePath: true }
         }
       }
-    });
+    })
 
-    if (!document) {
-      throw new NotFoundError('Document not found');
-    }
-
-    const filePaths = (document.versions || [])
+    const filePaths = (existing?.versions || [])
       .map(v => v.filePath)
-      .filter(Boolean);
+      .filter(Boolean)
 
-    await prisma.document.delete({
-      where: { id: documentId }
-    });
+    const deletedRegisters = await prisma.$transaction(async (tx) => {
+      const archive = await tx.archiveRegister.deleteMany({ where: { fileCode: normalized } })
+      const obsolete = await tx.obsoleteRegister.deleteMany({ where: { fileCode: normalized } })
+      const version = await tx.versionRegister.deleteMany({ where: { fileCode: normalized } })
+      const docReg = await tx.documentRegister.deleteMany({ where: { fileCode: normalized } })
 
-    const dirPaths = new Set();
-    let deletedFiles = 0;
+      let deletedDocument = false
+      if (existing) {
+        await tx.document.delete({ where: { id: existing.id } })
+        deletedDocument = true
+      }
+
+      return {
+        archive: archive.count,
+        obsolete: obsolete.count,
+        version: version.count,
+        documentRegister: docReg.count,
+        document: deletedDocument ? 1 : 0
+      }
+    })
+
+    let deletedFiles = 0
     for (const fp of filePaths) {
-      const ok = await fileStorageService.deleteFile(fp);
-      if (ok) deletedFiles += 1;
-      dirPaths.add(path.dirname(fp));
+      const ok = await fileStorageService.deleteFile(fp)
+      if (ok) deletedFiles += 1
     }
 
-    let deletedDirectories = 0;
-    for (const dir of dirPaths) {
-      const ok = await fileStorageService.deleteDirectory(dir);
-      if (ok) deletedDirectories += 1;
-    }
+    const deletedDirectory = await fileStorageService.deleteDocumentDirectory(normalized)
 
-    return { deletedFiles, deletedDirectories };
+    return {
+      deletedRegisters,
+      deletedFiles,
+      deletedDirectory
+    }
   }
 
   /**
