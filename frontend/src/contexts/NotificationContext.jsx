@@ -95,7 +95,7 @@ export const NotificationProvider = ({ children }) => {
       // Backend sync enabled
       try {
         const res = await silentApi.get('/user/notification-settings')
-        const serverPreferences = res.data.data?.settings || res.data.settings || getDefaultPreferences()
+        const serverPreferences = res.data.data || res.data.data?.settings || res.data.settings || getDefaultPreferences()
         setPreferences(serverPreferences)
         localStorage.setItem('notificationPreferences', JSON.stringify(serverPreferences))
       } catch (apiError) {

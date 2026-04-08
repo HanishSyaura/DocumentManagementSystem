@@ -105,6 +105,18 @@ class NotificationService {
   }
 
   /**
+   * Delete all notifications for a user
+   */
+  async deleteAllNotifications(userId) {
+    const result = await prisma.notification.deleteMany({
+      where: {
+        userId
+      }
+    });
+    return result;
+  }
+
+  /**
    * Get unread notification count
    */
   async getUnreadCount(userId) {

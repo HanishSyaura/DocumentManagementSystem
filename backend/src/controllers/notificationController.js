@@ -42,6 +42,9 @@ class NotificationController {
    */
   markAsRead = asyncHandler(async (req, res) => {
     const notificationId = parseInt(req.params.id);
+    if (!Number.isInteger(notificationId) || notificationId <= 0) {
+      return ResponseFormatter.validationError(res, [{ field: 'id', message: 'Invalid notification id' }]);
+    }
 
     await notificationService.markAsRead(notificationId, req.user.id);
 
@@ -72,6 +75,9 @@ class NotificationController {
    */
   deleteNotification = asyncHandler(async (req, res) => {
     const notificationId = parseInt(req.params.id);
+    if (!Number.isInteger(notificationId) || notificationId <= 0) {
+      return ResponseFormatter.validationError(res, [{ field: 'id', message: 'Invalid notification id' }]);
+    }
 
     await notificationService.deleteNotification(notificationId, req.user.id);
 
@@ -80,6 +86,36 @@ class NotificationController {
       null,
       'Notification deleted successfully'
     );
+  });
+
+  /**
+   * Delete all notifications
+   * DELETE /api/notifications/all
+   */
+  clearAll = asyncHandler(async (req, res) => {
+    const result = await notificationService.deleteAllNotifications(req.user.id);
+    return ResponseFormatter.success(
+      res,
+      { deleted: result?.count ?? 0 },
+      'All notifications deleted successfully'
+    );
+  });
+
+  /**
+   * Create a notification for the current user (optional API for frontend sync)
+   * POST /api/notifications
+   */
+  createNotification = asyncHandler(async (req, res) => {
+    const { type, title, message, link = null } = req.body || {};
+
+    const errors = [];
+    if (!type) errors.push({ field: 'type', message: 'Type is required' });
+    if (!title) errors.push({ field: 'title', message: 'Title is required' });
+    if (!message) errors.push({ field: 'message', message: 'Message is required' });
+    if (errors.length) return ResponseFormatter.validationError(res, errors);
+
+    const created = await notificationService.createNotification(req.user.id, type, title, message, link);
+    return ResponseFormatter.success(res, { notification: created }, 'Notification created successfully', 201);
   });
 }
 
