@@ -356,7 +356,7 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <main id="main" tabIndex={-1}>
-      <section id="home" className="snap-start min-h-[calc(100svh-4rem)] flex items-center overflow-hidden" style={{
+      <section id="home" className="snap-start min-h-[100svh] pt-16 flex items-center overflow-hidden" style={{
         background: `linear-gradient(to right, var(--dms-landing-hero-start, #2563EB), var(--dms-landing-hero-mid, #3B82F6), var(--dms-landing-hero-end, #06B6D4))`,
         color: 'var(--dms-landing-hero-text, #FFFFFF)'
       }}> 
@@ -409,7 +409,7 @@ const HomePage = () => {
       </section>
 
       {/* What is DMS Section */}
-      <section id="about" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
+      <section id="about" className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{backgroundColor: 'var(--dms-landing-about-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-5">
@@ -461,7 +461,7 @@ const HomePage = () => {
       </section>
 
       {/* Core Features Section */}
-      <section id="features" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
+      <section id="features" className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">{t('hp_core_features')}</h2>
@@ -508,7 +508,7 @@ const HomePage = () => {
       </section>
 
       {/* System Features Section */}
-      <section className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
+      <section className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_system_features')}</h2>
@@ -555,7 +555,7 @@ const HomePage = () => {
       </section>
 
       {/* Who Uses This System Section */}
-      <section className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
+      <section className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
@@ -682,7 +682,7 @@ const HomePage = () => {
       </section>
 
       {/* End-to-End Workflow Section */}
-      <section id="workflow" className="snap-start min-h-[calc(100svh-4rem)] flex items-center py-10 sm:py-12" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
+      <section id="workflow" className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{background: 'var(--dms-landing-workflow-bg, linear-gradient(to bottom right, #F8FAFC, #EFF6FF))'}}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
@@ -770,8 +770,8 @@ const HomePage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="snap-start min-h-[calc(100svh-4rem)] flex flex-col" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
-        <div className="flex-1 flex items-center py-10 sm:py-12">
+      <section id="contact" className="snap-start min-h-[100svh] pt-16 flex flex-col" style={{backgroundColor: 'var(--dms-landing-contact-bg, #F3F4F6)'}}>
+        <div className="flex-1 flex items-center pb-10 sm:pb-12">
         <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           {/* Image Top Position */}
           {landingContent?.contactImage && landingContent?.contactImagePosition === 'top' && (
