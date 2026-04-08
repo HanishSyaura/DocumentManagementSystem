@@ -8,7 +8,7 @@ class VersionRequestService {
   /**
    * Create a new version request
    */
-  async createRequest(documentId, title, documentType, projectCategory, dateOfDocument, remarks, file, userId) {
+  async createRequest(documentId, title, documentType, projectCategory, dateOfDocument, remarks, changeType, file, userId) {
     // Validate document exists and is published
     const document = await prisma.document.findUnique({
       where: { id: documentId },
@@ -72,7 +72,7 @@ class VersionRequestService {
     const request = await prisma.versionRequest.create({
       data: {
         documentId,
-        reasonForRevision: 'Version Update', // Default value
+        reasonForRevision: String(changeType || '').toLowerCase() === 'minor' ? 'MINOR' : 'MAJOR',
         proposedChanges: requestData.title, // Store title here temporarily
         targetDate: new Date(dateOfDocument),
         priority: 'Normal',
@@ -290,7 +290,8 @@ class VersionRequestService {
 
     // Generate new file code with incremented version
     const originalDocument = request.document;
-    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode);
+    const bump = String(request.reasonForRevision || '').toLowerCase() === 'minor' ? 'minor' : 'major'
+    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
     const existingDoc = await prisma.document.findUnique({
@@ -444,21 +445,46 @@ class VersionRequestService {
    * Example: MOM/01/251229/002 -> MOM/02/251229/002
    */
   incrementFileCodeVersion(fileCode) {
-    const parts = fileCode.split('/');
+  incrementSuffix(suffix) {
+    const s = String(suffix || '').toLowerCase()
+    if (!s) return 'a'
+    const chars = s.split('')
+    for (let i = chars.length - 1; i >= 0; i--) {
+      if (chars[i] !== 'z') {
+        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1)
+        return chars.join('')
+      }
+      chars[i] = 'a'
+    }
+    return `a${chars.join('')}`
+  }
+
+  incrementFileCodeVersion(fileCode, bump = 'major') {
+    const parts = String(fileCode || '').split('/');
     
     if (parts.length < 2) {
       throw new BadRequestError('Invalid file code format');
     }
 
-    // Parse and increment the version number (second segment)
-    const versionNumber = parseInt(parts[1], 10);
-    if (isNaN(versionNumber)) {
-      throw new BadRequestError('Invalid version number in file code');
+    const seg = String(parts[1] || '').trim()
+    const m = /^(\d+)([a-zA-Z]*)$/.exec(seg)
+    if (!m) {
+      throw new BadRequestError('Invalid version number in file code')
     }
 
-    // Increment and pad with leading zero
-    const newVersionNumber = String(versionNumber + 1).padStart(2, '0');
-    parts[1] = newVersionNumber;
+    const digitsStr = m[1]
+    const suffix = m[2] || ''
+    const digitsLen = digitsStr.length
+    const n = parseInt(digitsStr, 10)
+    if (isNaN(n)) {
+      throw new BadRequestError('Invalid version number in file code')
+    }
+
+    if (String(bump).toLowerCase() === 'minor') {
+      parts[1] = `${String(n).padStart(digitsLen, '0')}${this.incrementSuffix(suffix)}`
+    } else {
+      parts[1] = String(n + 1).padStart(digitsLen, '0')
+    }
 
     return parts.join('/');
   }
@@ -475,7 +501,8 @@ class VersionRequestService {
 
     // Generate new file code with incremented version
     const originalDocument = request.document;
-    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode);
+    const bump = String(request.reasonForRevision || '').toLowerCase() === 'minor' ? 'minor' : 'major'
+    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
     const existingDoc = await prisma.document.findUnique({

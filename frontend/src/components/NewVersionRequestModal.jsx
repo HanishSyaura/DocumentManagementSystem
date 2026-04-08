@@ -13,7 +13,8 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
     documentType: '',
     projectCategory: '',
     dateOfDocument: '',
-    remarks: ''
+    remarks: '',
+    changeType: 'major'
   })
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -119,8 +120,48 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
       documentType: doc.documentType?.name || '',
       projectCategory: doc.projectCategory?.name || '',
       dateOfDocument: extractedDate,
-      remarks: ''
+      remarks: '',
+      changeType: 'major'
     })
+  }
+
+  const incrementSuffix = (suffix) => {
+    const s = String(suffix || '').toLowerCase()
+    if (!s) return 'a'
+    const chars = s.split('')
+    for (let i = chars.length - 1; i >= 0; i--) {
+      if (chars[i] !== 'z') {
+        chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1)
+        return chars.join('')
+      }
+      chars[i] = 'a'
+    }
+    return `a${chars.join('')}`
+  }
+
+  const computeNewFileCode = (fileCode, changeType) => {
+    const code = String(fileCode || '').trim()
+    if (!code) return ''
+    const parts = code.split('/')
+    if (parts.length < 2) return code
+
+    const seg = parts[1]
+    const m = /^(\d+)([a-zA-Z]*)$/.exec(String(seg || '').trim())
+    if (!m) return code
+
+    const digitsStr = m[1]
+    const suffix = m[2] || ''
+    const digitsLen = digitsStr.length
+    const n = parseInt(digitsStr, 10)
+    if (Number.isNaN(n)) return code
+
+    if (changeType === 'minor') {
+      parts[1] = `${String(n).padStart(digitsLen, '0')}${incrementSuffix(suffix)}`
+    } else {
+      parts[1] = String(n + 1).padStart(digitsLen, '0')
+    }
+
+    return parts.join('/')
   }
 
   const handleDrag = (e) => {
@@ -175,6 +216,7 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
       formDataToSubmit.append('projectCategory', formData.projectCategory)
       formDataToSubmit.append('dateOfDocument', formData.dateOfDocument)
       formDataToSubmit.append('remarks', formData.remarks)
+      formDataToSubmit.append('changeType', formData.changeType)
       
       if (selectedFile) {
         formDataToSubmit.append('file', selectedFile)
@@ -197,7 +239,8 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
       documentType: '',
       projectCategory: '',
       dateOfDocument: '',
-      remarks: ''
+      remarks: '',
+      changeType: 'major'
     })
     setSelectedDocument(null)
     setSelectedFile(null)
@@ -290,9 +333,43 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
               )}
               {selectedDocument && (
                 <p className="text-xs text-gray-600 mt-2">
-                  <span className="font-medium">New File Code will be:</span> {selectedDocument.fileCode.replace(/\/(\d+)\//, (match, p1) => `/${String(parseInt(p1) + 1).padStart(2, '0')}/`)}
+                  <span className="font-medium">New File Code will be:</span> {computeNewFileCode(selectedDocument.fileCode, formData.changeType)}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Change Type <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  disabled={!selectedDocument}
+                  onClick={() => setFormData({ ...formData, changeType: 'minor' })}
+                  className={`p-3 rounded-lg border text-left transition-colors disabled:opacity-60 ${
+                    formData.changeType === 'minor'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-gray-900">Minor change</div>
+                  <div className="text-xs text-gray-600 mt-1">01 → 01a, 01a → 01b (alphabet sequence)</div>
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedDocument}
+                  onClick={() => setFormData({ ...formData, changeType: 'major' })}
+                  className={`p-3 rounded-lg border text-left transition-colors disabled:opacity-60 ${
+                    formData.changeType === 'major'
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-gray-900">Major change</div>
+                  <div className="text-xs text-gray-600 mt-1">01 → 02 → 03 (numeric increment)</div>
+                </button>
+              </div>
             </div>
 
             {/* Document Title */}

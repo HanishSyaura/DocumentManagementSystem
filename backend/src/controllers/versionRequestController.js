@@ -9,7 +9,7 @@ class VersionRequestController {
    * POST /api/documents/version-requests
    */
   createRequest = asyncHandler(async (req, res) => {
-    const { documentId, title, documentType, projectCategory, dateOfDocument, remarks } = req.body;
+    const { documentId, title, documentType, projectCategory, dateOfDocument, remarks, changeType } = req.body;
     const userId = req.user.id;
     const file = req.file; // multer middleware should populate this
 
@@ -25,6 +25,7 @@ class VersionRequestController {
       projectCategory,
       dateOfDocument,
       remarks,
+      changeType,
       file,
       userId
     );
@@ -33,7 +34,8 @@ class VersionRequestController {
     await auditLogService.logDocument(userId, 'VERSION_REQUEST', request.document, req, {
       requestId: request.id,
       title,
-      remarks
+      remarks,
+      changeType
     });
 
     return ResponseFormatter.success(
