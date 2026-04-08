@@ -112,8 +112,17 @@ class DocumentService {
     await fileStorageService.createDocumentDirectory(fileCode);
 
     // Create document register entry
-    await prisma.documentRegister.create({
-      data: {
+    await prisma.documentRegister.upsert({
+      where: { fileCode },
+      update: {
+        documentTitle: title,
+        documentType: document.documentType.name,
+        version: '1.0',
+        owner: `${document.owner.firstName} ${document.owner.lastName}`,
+        department: document.owner.department || '',
+        status: 'DRAFT'
+      },
+      create: {
         fileCode,
         documentTitle: title,
         documentType: document.documentType.name,
@@ -179,8 +188,17 @@ class DocumentService {
 
     await fileStorageService.createDocumentDirectory(normalizedFileCode)
 
-    await prisma.documentRegister.create({
-      data: {
+    await prisma.documentRegister.upsert({
+      where: { fileCode: normalizedFileCode },
+      update: {
+        documentTitle: title,
+        documentType: document.documentType.name,
+        version: '1.0',
+        owner: `${document.owner.firstName} ${document.owner.lastName}`,
+        department: document.owner.department || '',
+        status: 'DRAFT'
+      },
+      create: {
         fileCode: normalizedFileCode,
         documentTitle: title,
         documentType: document.documentType.name,
