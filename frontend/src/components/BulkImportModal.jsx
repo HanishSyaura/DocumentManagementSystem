@@ -10,6 +10,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [documentTypes, setDocumentTypes] = useState([])
+  const [numberingSettings, setNumberingSettings] = useState(null)
   const fileInputRef = useRef(null)
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
@@ -40,6 +41,25 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   useEffect(() => {
     if (!isOpen) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await api.get('/system/config/document-numbering')
+        if (cancelled) return
+        setNumberingSettings(res.data?.data || null)
+      } catch (_) {
+        if (cancelled) return
+        setNumberingSettings(null)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
     if (documentTypes.length === 0) return
     setFileItems((prev) => prev.map((it) => {
       if (String(it.documentTypeId || '').trim()) return it
@@ -55,8 +75,85 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     setDescription('')
     setFormError('')
     setDocumentTypes([])
+    setNumberingSettings(null)
     setFolderId(selectedFolderId || '')
     onClose()
+  }
+
+  const getDateDigits = (format) => {
+    switch (String(format || '').toUpperCase()) {
+      case 'YYMMDD': return 6
+      case 'YYYYMMDD': return 8
+      case 'YYYYMM': return 6
+      case 'YYMM': return 4
+      case 'YYYY': return 4
+      case 'NONE': return 0
+      default: return 0
+    }
+  }
+
+  const normalizeFileCode = (raw) => {
+    const input = String(raw || '').trim()
+    if (!input) return ''
+    const settings = numberingSettings
+    if (!settings) return input
+
+    const prefixLen = Math.max(1, String(settings.prefixPlaceholder || 'PFX').length)
+    const includeVersion = Boolean(settings.includeVersion)
+    const versionDigits = includeVersion ? Math.max(1, parseInt(settings.versionDigits, 10) || 2) : 0
+    const dateDigits = getDateDigits(settings.dateFormat)
+    const counterDigits = Math.max(1, parseInt(settings.counterDigits, 10) || 3)
+    const sepOut = String(settings.separator || '/')
+
+    const cleaned = input.replace(/\s+/g, '')
+    const parts = cleaned.split(/[\/\-\._]+/).filter(Boolean)
+
+    const build = (prefix, version, date, counter) => {
+      const p = String(prefix || '').substring(0, prefixLen)
+      const segs = [p]
+      if (includeVersion) segs.push(String(version || '').padStart(versionDigits, '0'))
+      if (dateDigits > 0) segs.push(String(date || '').padStart(dateDigits, '0'))
+      segs.push(String(counter || '').padStart(counterDigits, '0'))
+      return segs.join(sepOut)
+    }
+
+    const isDigits = (s, len) => new RegExp(`^\\d{${len}}$`).test(String(s || ''))
+    const isPrefixOk = (s) => new RegExp(`^[A-Za-z]{1,${prefixLen}}$`).test(String(s || ''))
+
+    if (parts.length >= 2) {
+      const prefix = parts[0]
+      let idx = 1
+      const version = includeVersion ? parts[idx++] : ''
+      const date = dateDigits > 0 ? parts[idx++] : ''
+      const counter = parts[idx++]
+
+      if (
+        isPrefixOk(prefix) &&
+        (!includeVersion || isDigits(version, versionDigits)) &&
+        (dateDigits === 0 || isDigits(date, dateDigits)) &&
+        isDigits(counter, counterDigits)
+      ) {
+        return build(prefix, version, date, counter)
+      }
+    }
+
+    const m = cleaned.match(new RegExp(`^([A-Za-z]{1,${prefixLen}})(\\d+)$`))
+    if (m) {
+      const prefix = m[1]
+      const digits = m[2]
+      const expected = versionDigits + dateDigits + counterDigits
+      if (digits.length === expected) {
+        let offset = 0
+        const version = includeVersion ? digits.slice(offset, offset + versionDigits) : ''
+        offset += versionDigits
+        const date = dateDigits > 0 ? digits.slice(offset, offset + dateDigits) : ''
+        offset += dateDigits
+        const counter = digits.slice(offset, offset + counterDigits)
+        return build(prefix, version, date, counter)
+      }
+    }
+
+    return input
   }
 
   const extractFromFilename = (fileName) => {
@@ -65,11 +162,12 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     const trimmed = base.trim()
     const underscore = trimmed.indexOf('_')
     if (underscore > 0) {
-      const fileCode = trimmed.slice(0, underscore).trim()
+      const fileCode = normalizeFileCode(trimmed.slice(0, underscore).trim())
       const title = trimmed.slice(underscore + 1).trim() || trimmed
       return { fileCode, title, fallbackTitle: trimmed }
     }
-    return { fileCode: trimmed, title: trimmed, fallbackTitle: trimmed }
+    const normalized = normalizeFileCode(trimmed)
+    return { fileCode: normalized, title: trimmed, fallbackTitle: trimmed }
   }
 
   const autoMatchDocumentTypeId = (fileCode) => {
