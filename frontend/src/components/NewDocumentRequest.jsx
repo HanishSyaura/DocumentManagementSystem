@@ -877,7 +877,7 @@ export default function NewDocumentRequest() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('remarks')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
-                    {canAcknowledge && (
+                    {(canAcknowledge || isAdmin()) && (
                       <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
                     )}
                   </tr>
@@ -927,38 +927,61 @@ export default function NewDocumentRequest() {
                       <td className="py-4 px-4">
                         <StatusBadge status={req.status} />
                       </td>
-                      {canAcknowledge && (
+                      {(canAcknowledge || isAdmin()) && (
                         <td className="py-4 px-4">
-                          {canAcknowledgeRequest(req) && req.requestType !== 'NVR' ? (
-                            <div className="flex gap-2">
+                          <div className="flex flex-col gap-2">
+                            {canAcknowledge ? (
+                              canAcknowledgeRequest(req) && req.requestType !== 'NVR' ? (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleAcknowledge(req)}
+                                    disabled={acknowledgingId === req.id}
+                                    className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
+                                  </button>
+                                  <button
+                                    onClick={() => openRejectModal(req)}
+                                    disabled={acknowledgingId === req.id}
+                                    className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {t('reject_btn')}
+                                  </button>
+                                </div>
+                              ) : canAcknowledgeRequest(req) && req.requestType === 'NVR' ? (
+                                <button
+                                  onClick={() => handleAcknowledge(req)}
+                                  disabled={acknowledgingId === req.id}
+                                  className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
+                                </button>
+                              ) : req.status === 'Pending Acknowledgment' && !canAcknowledgeRequest(req) ? (
+                                <span className="text-amber-600 text-xs italic" title="You cannot acknowledge your own request">{t('own_request')}</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">-</span>
+                              )
+                            ) : (
+                              <span className="text-gray-400 text-xs">-</span>
+                            )}
+
+                            {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
                               <button
-                                onClick={() => handleAcknowledge(req)}
-                                disabled={acknowledgingId === req.id}
-                                className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                              </button>
-                              <button
-                                onClick={() => openRejectModal(req)}
-                                disabled={acknowledgingId === req.id}
+                                type="button"
+                                onClick={() => setConfirmModal({
+                                  show: true,
+                                  title: 'Delete document records?',
+                                  message: `This will permanently delete ALL records for "${req.fileCode}" (document, versions, registers, and stored files). This action cannot be undone.`,
+                                  type: 'danger',
+                                  onConfirm: () => handleAdminPurgeByFileCode(req.fileCode)
+                                })}
+                                disabled={purgingFileCode === req.fileCode}
                                 className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {t('reject_btn')}
+                                {purgingFileCode === req.fileCode ? 'Deleting...' : 'Delete (Admin)'}
                               </button>
-                            </div>
-                          ) : canAcknowledgeRequest(req) && req.requestType === 'NVR' ? (
-                            <button
-                              onClick={() => handleAcknowledge(req)}
-                              disabled={acknowledgingId === req.id}
-                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                            </button>
-                          ) : req.status === 'Pending Acknowledgment' && !canAcknowledgeRequest(req) ? (
-                            <span className="text-amber-600 text-xs italic" title="You cannot acknowledge your own request">{t('own_request')}</span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">-</span>
-                          )}
+                            ) : null}
+                          </div>
                         </td>
                       )}
                     </tr>
