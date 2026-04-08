@@ -46,7 +46,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       try {
         const res = await api.get('/system/config/document-numbering')
         if (cancelled) return
-        setNumberingSettings(res.data?.data || null)
+        setNumberingSettings(res.data?.data?.settings || res.data?.data || null)
       } catch (_) {
         if (cancelled) return
         setNumberingSettings(null)
