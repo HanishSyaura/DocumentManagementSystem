@@ -75,15 +75,10 @@ class SessionManager {
   /**
    * Update last activity time
    */
-  updateActivity() {
+  updateActivity(force = false) {
+    if (this.isWarningShown && !force) return
     this.lastActivityTime = Date.now()
     localStorage.setItem('lastActivityTime', this.lastActivityTime.toString())
-    
-    // Hide warning if it was shown
-    if (this.isWarningShown && this.warningCallback) {
-      this.isWarningShown = false
-      this.warningCallback(false)
-    }
   }
 
   /**
@@ -165,7 +160,7 @@ class SessionManager {
    * Extend session (when user clicks "Stay logged in")
    */
   extendSession() {
-    this.updateActivity()
+    this.updateActivity(true)
     this.isWarningShown = false
     if (this.warningCallback) {
       this.warningCallback(false)
