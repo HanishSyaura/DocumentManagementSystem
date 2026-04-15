@@ -1,6 +1,7 @@
 const express = require('express');
 const configService = require('../services/configService');
 const reportsService = require('../services/reportsService');
+const codeRegistryService = require('../services/codeRegistryService');
 const auditLogService = require('../services/auditLogService');
 const { authenticate, authorize } = require('../middleware/auth');
 const ResponseFormatter = require('../utils/responseFormatter');
@@ -116,6 +117,21 @@ router.get('/master-record/archive-register', asyncHandler(async (req, res) => {
     currentVersion: owner !== 'all' ? owner : undefined
   });
   return ResponseFormatter.success(res, { records });
+}));
+
+router.get('/master-record/consolidated', asyncHandler(async (req, res) => {
+  const { search, page, limit, export: exportFlag } = req.query;
+  const result = await codeRegistryService.getConsolidatedMasterRecord(
+    { search, export: exportFlag },
+    { page, limit }
+  );
+  return ResponseFormatter.success(res, { rows: result.rows, pagination: result.pagination });
+}));
+
+router.post('/master-record/consolidated/import', authorize('admin'), asyncHandler(async (req, res) => {
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  const result = await codeRegistryService.importLegacyRows(rows, req.user?.id);
+  return ResponseFormatter.success(res, result, 'Import completed');
 }));
 
 // Analytics

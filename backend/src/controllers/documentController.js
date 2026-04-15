@@ -118,6 +118,7 @@ class DocumentController {
         const meta = parsedMeta?.[i] && typeof parsedMeta[i] === 'object' ? parsedMeta[i] : null
         const metaTitle = meta && typeof meta.title === 'string' ? meta.title.trim() : ''
         const docTitle = req.files.length === 1 && singleTitle ? singleTitle : (metaTitle || derivedTitle)
+        const isClientDocument = Boolean(meta?.isClientDocument)
 
         const derivedFileCode = (() => {
           const base = derivedTitle
@@ -126,8 +127,8 @@ class DocumentController {
           return base.trim()
         })()
         const metaFileCode = meta && typeof meta.fileCode === 'string' ? meta.fileCode.trim() : ''
-        const fileCodeToUse = metaFileCode || derivedFileCode
-        if (!fileCodeToUse) {
+        const fileCodeToUse = isClientDocument ? '' : (metaFileCode || derivedFileCode)
+        if (!isClientDocument && !fileCodeToUse) {
           throw new Error('File code is required')
         }
 
@@ -144,6 +145,9 @@ class DocumentController {
           }
           documentTypeIdToUse = dt.id
         } else {
+          if (isClientDocument) {
+            throw new Error('Document type is required for client document')
+          }
           const prefixMatch = String(fileCodeToUse).match(/^[A-Za-z]+/)
           const prefix = prefixMatch?.[0] || ''
           if (!prefix) {
@@ -158,6 +162,7 @@ class DocumentController {
 
         const document = await documentService.createImportedPublishedDocument({
           fileCode: fileCodeToUse,
+          isClientDocument,
           title: docTitle,
           description: desc,
           documentTypeId: documentTypeIdToUse,
@@ -177,13 +182,16 @@ class DocumentController {
 
         imported.push({
           id: document.id,
-          fileCode: document.fileCode,
+          fileCode: document.isClientDocument ? '-' : document.fileCode,
           title: document.title,
           fileName: file.originalname
         });
       } catch (error) {
+        const reasonCode = String(error?.code || error?.name || 'IMPORT_FAILED')
         failed.push({
+          lineNumber: i + 1,
           fileName: file?.originalname || 'unknown',
+          reasonCode,
           message: error?.message || 'Failed to import file'
         });
       }
@@ -1085,7 +1093,7 @@ class DocumentController {
 
       return {
         id: doc.id,
-        fileCode: doc.fileCode,
+        fileCode: doc.isClientDocument ? '-' : doc.fileCode,
         title: doc.title,
         documentType: doc.documentType?.name || '',
         version: doc.version,

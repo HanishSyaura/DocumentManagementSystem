@@ -411,9 +411,12 @@ export default function PublishedDocuments() {
       const importedCount = counts?.imported ?? 0
       const failedCount = counts?.failed ?? 0
       const failedList = importResponse?.data?.data?.failed || []
-      const failedPreview = failedList.slice(0, 3).map(f => `${f.fileName}: ${f.message}`).join('\n')
+      const failedPreview = failedList
+        .slice(0, 5)
+        .map((f) => `Line ${f.lineNumber || '-'} - ${f.fileName}: ${f.message}`)
+        .join('\n')
       const msg = failedCount > 0
-        ? `Imported ${importedCount} file(s). Failed ${failedCount} file(s).${failedPreview ? `\n\n${failedPreview}` : ''}`
+        ? `Imported ${importedCount} file(s). Rejected ${failedCount} file(s).${failedPreview ? `\n\n${failedPreview}` : ''}`
         : `Imported ${importedCount} file(s) successfully.`
       setAlertModal({ show: true, title: 'Success', message: msg, type: failedCount > 0 ? 'warning' : 'success' })
 

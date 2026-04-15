@@ -6,6 +6,211 @@ const DocumentNumbering = require('../utils/documentNumbering');
 const path = require('path');
 
 class DocumentService {
+  getDateDigitsFromSettings(dateFormat) {
+    switch (String(dateFormat || '').toUpperCase()) {
+      case 'YYMMDD': return 6
+      case 'YYYYMMDD': return 8
+      case 'YYYYMM': return 6
+      case 'YYMM': return 4
+      case 'YYYY': return 4
+      case 'NONE': return 0
+      default: return 0
+    }
+  }
+
+  buildCodeKey(projectCategoryId, documentTypeId) {
+    return `${parseInt(projectCategoryId, 10)}:${parseInt(documentTypeId, 10)}`
+  }
+
+  buildNormalizedFileCode(parts, settings) {
+    const sepOut = String(settings?.separator || '/')
+    const segs = [String(parts.prefix || '').toUpperCase()]
+    if (settings?.includeVersion) segs.push(String(parts.versionSegment || '').toUpperCase())
+    if ((this.getDateDigitsFromSettings(settings?.dateFormat) || 0) > 0) segs.push(String(parts.dateSegment || ''))
+    const counterDigits = Math.max(1, parseInt(settings?.counterDigits, 10) || 3)
+    segs.push(String(parts.runningNumber || 0).padStart(counterDigits, '0'))
+    return segs.join(sepOut)
+  }
+
+  parseAndNormalizeFileCodeStrict(raw, settings) {
+    const input = String(raw || '').trim()
+    if (!input) {
+      const err = new BadRequestError('File code is required')
+      err.code = 'EMPTY_FILE_CODE'
+      throw err
+    }
+    if (!settings || typeof settings !== 'object') {
+      const err = new BadRequestError('Document numbering settings not found')
+      err.code = 'MISSING_NUMBERING_SETTINGS'
+      throw err
+    }
+
+    const prefixLen = Math.max(1, String(settings.prefixPlaceholder || 'PFX').length)
+    const includeVersion = Boolean(settings.includeVersion)
+    const versionDigits = includeVersion ? Math.max(1, parseInt(settings.versionDigits, 10) || 2) : 0
+    const dateDigits = this.getDateDigitsFromSettings(settings.dateFormat)
+    const counterDigits = Math.max(1, parseInt(settings.counterDigits, 10) || 3)
+
+    const cleaned = input.replace(/\s+/g, '')
+    const parts = cleaned.split(/[\/\-\._]+/).filter(Boolean)
+    const expectedCount = 1 + (includeVersion ? 1 : 0) + (dateDigits > 0 ? 1 : 0) + 1
+
+    const fail = (code, message) => {
+      const err = new BadRequestError(message)
+      err.code = code
+      throw err
+    }
+
+    const parseVersion = (seg) => {
+      const m = String(seg || '').match(new RegExp(`^(\\d{${versionDigits}})([A-Za-z]?)$`))
+      if (!m) return null
+      return `${m[1]}${(m[2] || '').toUpperCase()}`
+    }
+
+    const parseStructuredParts = (arr) => {
+      const prefix = String(arr[0] || '').toUpperCase()
+      if (!new RegExp(`^[A-Za-z]{1,${prefixLen}}$`).test(prefix)) {
+        fail('INVALID_PREFIX', `Prefix is invalid for "${input}"`)
+      }
+      let idx = 1
+      let versionSegment = ''
+      if (includeVersion) {
+        versionSegment = parseVersion(arr[idx++])
+        if (!versionSegment) {
+          fail('INVALID_VERSION_SEGMENT', `Version segment must be ${versionDigits} digit(s), optional suffix A-Z`)
+        }
+      }
+      let dateSegment = ''
+      if (dateDigits > 0) {
+        dateSegment = String(arr[idx++] || '')
+        if (!new RegExp(`^\\d{${dateDigits}}$`).test(dateSegment)) {
+          fail('INVALID_DATE_SEGMENT', `Date segment must be ${dateDigits} digit(s)`)
+        }
+      }
+      const counterSeg = String(arr[idx] || '')
+      if (!new RegExp(`^\\d{${counterDigits}}$`).test(counterSeg)) {
+        fail('INVALID_RUNNING_NUMBER', `Running number must be ${counterDigits} digit(s)`)
+      }
+      const runningNumber = parseInt(counterSeg, 10)
+      return {
+        prefix,
+        versionSegment,
+        dateSegment,
+        runningNumber,
+        normalizedFileCode: this.buildNormalizedFileCode({
+          prefix,
+          versionSegment,
+          dateSegment,
+          runningNumber
+        }, settings)
+      }
+    }
+
+    if (parts.length === expectedCount) {
+      return parseStructuredParts(parts)
+    }
+
+    const compactRegex = (() => {
+      const prefix = `([A-Za-z]{1,${prefixLen}})`
+      const version = includeVersion ? `(\\d{${versionDigits}}[A-Za-z]?)` : ''
+      const date = dateDigits > 0 ? `(\\d{${dateDigits}})` : ''
+      const counter = `(\\d{${counterDigits}})`
+      return new RegExp(`^${prefix}${version}${date}${counter}$`)
+    })()
+    const compact = cleaned.match(compactRegex)
+    if (compact) {
+      const arr = []
+      let i = 1
+      arr.push(compact[i++])
+      if (includeVersion) arr.push(compact[i++])
+      if (dateDigits > 0) arr.push(compact[i++])
+      arr.push(compact[i++])
+      return parseStructuredParts(arr)
+    }
+
+    fail(
+      'FORMAT_MISMATCH',
+      `File code "${input}" does not match current numbering format`
+    )
+  }
+
+  async getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings) {
+    const codeKey = this.buildCodeKey(projectCategoryId, documentTypeId)
+    const registryAgg = await prisma.codeRegistry.aggregate({
+      where: {
+        projectCategoryId: parseInt(projectCategoryId, 10),
+        codeKey
+      },
+      _max: { runningNumber: true }
+    })
+
+    const documents = await prisma.document.findMany({
+      where: {
+        projectCategoryId: parseInt(projectCategoryId, 10),
+        documentTypeId: parseInt(documentTypeId, 10),
+        fileCode: {
+          not: {
+            startsWith: 'PENDING-'
+          }
+        }
+      },
+      select: { fileCode: true }
+    })
+
+    let maxFromDocuments = 0
+    for (const doc of documents) {
+      try {
+        const parsed = this.parseAndNormalizeFileCodeStrict(doc.fileCode, settings)
+        if (parsed.runningNumber > maxFromDocuments) {
+          maxFromDocuments = parsed.runningNumber
+        }
+      } catch (_) {
+        // Ignore legacy codes that don't match current format
+      }
+    }
+
+    return Math.max(registryAgg?._max?.runningNumber || 0, maxFromDocuments)
+  }
+
+  async registerFileCodeLedger({
+    fileCode,
+    projectCategoryId,
+    documentTypeId,
+    runningNumber,
+    source = 'SYSTEM',
+    sourceRefId = null
+  }) {
+    if (!projectCategoryId || !documentTypeId || !runningNumber) return null
+    const codeKey = this.buildCodeKey(projectCategoryId, documentTypeId)
+    const normalized = String(fileCode || '').trim()
+    if (!normalized) return null
+
+    await prisma.codeRegistry.upsert({
+      where: { fileCode: normalized },
+      update: {
+        normalizedFileCode: normalized,
+        projectCategoryId: parseInt(projectCategoryId, 10),
+        documentTypeId: parseInt(documentTypeId, 10),
+        codeKey,
+        runningNumber: parseInt(runningNumber, 10),
+        source,
+        sourceRefId: sourceRefId ? parseInt(sourceRefId, 10) : null
+      },
+      create: {
+        fileCode: normalized,
+        normalizedFileCode: normalized,
+        projectCategoryId: parseInt(projectCategoryId, 10),
+        documentTypeId: parseInt(documentTypeId, 10),
+        codeKey,
+        runningNumber: parseInt(runningNumber, 10),
+        source,
+        sourceRefId: sourceRefId ? parseInt(sourceRefId, 10) : null
+      }
+    })
+
+    return true
+  }
+
   normalizeFileCodeBySettings(raw, settings) {
     const input = String(raw || '').trim()
     if (!input) return ''
@@ -113,39 +318,35 @@ class DocumentService {
 
     const dateToUse = documentDate || new Date();
     const prefix = documentType.prefix;
-    
-    // Get the last document with this documentType + projectCategory combination
-    // Sequence continues regardless of date
-    const lastDocument = await prisma.document.findFirst({
-      where: {
-        documentTypeId: documentTypeId,
-        projectCategoryId: projectCategoryId,
-        fileCode: {
-          not: {
-            startsWith: 'PENDING-'
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const settings = await DocumentNumbering.loadSettings()
 
-    let sequence = 1;
-    if (lastDocument) {
-      // Parse the last sequence from existing file code
-      const settings = await DocumentNumbering.loadSettings();
-      const parsed = await DocumentNumbering.parseFileCode(lastDocument.fileCode, settings);
-      if (parsed.sequence) {
-        sequence = parsed.sequence + 1;
-      }
+    let sequence = 1
+    if (projectCategoryId) {
+      const maxRunning = await this.getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings)
+      const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
+      sequence = Math.max(maxRunning + 1, startingNumber)
     }
 
     // Use DocumentNumbering utility to generate file code based on system settings
-    const fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
+    let fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
       date: dateToUse,
-      version: version
-    });
+      version: version,
+      settings
+    })
+
+    // Guard against collisions in existing records
+    let retries = 0
+    while (retries < 30) {
+      const existing = await prisma.document.findUnique({ where: { fileCode } })
+      if (!existing) break
+      sequence += 1
+      fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
+        date: dateToUse,
+        version,
+        settings
+      })
+      retries += 1
+    }
 
     return fileCode;
   }
@@ -220,32 +421,86 @@ class DocumentService {
       }
     });
 
+    try {
+      const settings = await DocumentNumbering.loadSettings()
+      const parsed = this.parseAndNormalizeFileCodeStrict(fileCode, settings)
+      await this.registerFileCodeLedger({
+        fileCode,
+        projectCategoryId,
+        documentTypeId,
+        runningNumber: parsed.runningNumber,
+        source: 'CREATE_DOCUMENT',
+        sourceRefId: document.id
+      })
+    } catch (_) {
+      // Keep create flow backward compatible even if code doesn't match current format
+    }
+
     return document;
   }
 
   async createImportedPublishedDocument(data, creatorId) {
-    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId } = data
+    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId, isClientDocument } = data
+    const clientDoc = Boolean(isClientDocument)
 
-    if (!fileCode || !String(fileCode).trim()) {
-      throw new BadRequestError('File code is required')
+    const categoryId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+    if (!categoryId) {
+      const err = new BadRequestError('Project category is required')
+      err.code = 'PROJECT_CATEGORY_REQUIRED'
+      throw err
     }
 
-    const normalizedFileCode = await this.normalizeFileCodeFromSystemSettings(String(fileCode).trim())
-
-    const existing = await prisma.document.findUnique({
-      where: { fileCode: normalizedFileCode }
+    const category = await prisma.projectCategory.findUnique({
+      where: { id: categoryId }
     })
-    if (existing) {
-      throw new BadRequestError(`File code "${normalizedFileCode}" already exists`)
+    if (!category) {
+      const err = new BadRequestError('Project category not found')
+      err.code = 'PROJECT_CATEGORY_NOT_FOUND'
+      throw err
+    }
+
+    let finalFileCode = ''
+    let nextRunning = null
+
+    if (clientDoc) {
+      const base = `CLT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+      finalFileCode = base
+    } else {
+      if (!fileCode || !String(fileCode).trim()) {
+        throw new BadRequestError('File code is required')
+      }
+      const settings = await DocumentNumbering.loadSettings()
+      const parsed = this.parseAndNormalizeFileCodeStrict(String(fileCode).trim(), settings)
+      const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
+      const maxRunning = await this.getCurrentMaxRunningNumber(categoryId, documentTypeId, settings)
+      const hasExisting = maxRunning >= startingNumber
+      nextRunning = hasExisting ? maxRunning + 1 : parsed.runningNumber
+      finalFileCode = this.buildNormalizedFileCode({
+        prefix: parsed.prefix,
+        versionSegment: parsed.versionSegment,
+        dateSegment: parsed.dateSegment,
+        runningNumber: nextRunning
+      }, settings)
+    }
+
+    const [existingDocument, existingRegistry] = await Promise.all([
+      prisma.document.findUnique({ where: { fileCode: finalFileCode } }),
+      prisma.codeRegistry.findUnique({ where: { fileCode: finalFileCode } })
+    ])
+    if (existingDocument || existingRegistry) {
+      const err = new BadRequestError(`File code "${finalFileCode}" already exists`)
+      err.code = 'DUPLICATE_FULL_CODE'
+      throw err
     }
 
     const document = await prisma.document.create({
       data: {
-        fileCode: normalizedFileCode,
+        fileCode: finalFileCode,
+        isClientDocument: clientDoc,
         title,
         description,
         documentTypeId,
-        projectCategoryId: projectCategoryId ? parseInt(projectCategoryId) : null,
+        projectCategoryId: categoryId,
         folderId: folderId ? parseInt(folderId) : null,
         createdById: creatorId,
         ownerId: creatorId,
@@ -274,28 +529,39 @@ class DocumentService {
       }
     })
 
-    await fileStorageService.createDocumentDirectory(normalizedFileCode)
+    await fileStorageService.createDocumentDirectory(finalFileCode)
 
-    await prisma.documentRegister.upsert({
-      where: { fileCode: normalizedFileCode },
-      update: {
-        documentTitle: title,
-        documentType: document.documentType.name,
-        version: '1.0',
-        owner: `${document.owner.firstName} ${document.owner.lastName}`,
-        department: document.owner.department || '',
-        status: 'DRAFT'
-      },
-      create: {
-        fileCode: normalizedFileCode,
-        documentTitle: title,
-        documentType: document.documentType.name,
-        version: '1.0',
-        owner: `${document.owner.firstName} ${document.owner.lastName}`,
-        department: document.owner.department || '',
-        status: 'DRAFT'
-      }
-    })
+    if (!clientDoc) {
+      await prisma.documentRegister.upsert({
+        where: { fileCode: finalFileCode },
+        update: {
+          documentTitle: title,
+          documentType: document.documentType.name,
+          version: '1.0',
+          owner: `${document.owner.firstName} ${document.owner.lastName}`,
+          department: document.owner.department || '',
+          status: 'DRAFT'
+        },
+        create: {
+          fileCode: finalFileCode,
+          documentTitle: title,
+          documentType: document.documentType.name,
+          version: '1.0',
+          owner: `${document.owner.firstName} ${document.owner.lastName}`,
+          department: document.owner.department || '',
+          status: 'DRAFT'
+        }
+      })
+
+      await this.registerFileCodeLedger({
+        fileCode: finalFileCode,
+        projectCategoryId: categoryId,
+        documentTypeId,
+        runningNumber: nextRunning,
+        source: 'BULK_IMPORT',
+        sourceRefId: document.id
+      })
+    }
 
     return document
   }
@@ -1135,6 +1401,21 @@ class DocumentService {
         status: 'ACKNOWLEDGED'
       }
     });
+
+    try {
+      const settings = await DocumentNumbering.loadSettings()
+      const parsed = this.parseAndNormalizeFileCodeStrict(fileCode, settings)
+      await this.registerFileCodeLedger({
+        fileCode,
+        projectCategoryId: updated.projectCategoryId,
+        documentTypeId: updated.documentTypeId,
+        runningNumber: parsed.runningNumber,
+        source: 'NDR_ACKNOWLEDGE',
+        sourceRefId: updated.id
+      })
+    } catch (_) {
+      // keep acknowledgment flow backward compatible
+    }
 
     // Add acknowledgment comment if remarks provided
     if (remarks) {

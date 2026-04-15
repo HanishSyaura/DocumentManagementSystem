@@ -172,6 +172,7 @@ model DocumentType {
   templates   Template[]
   templateRequests TemplateRequest[]
   workflows   Workflow[]
+  codeRegistries CodeRegistry[]
 }
 
 model ProjectCategory {
@@ -185,6 +186,7 @@ model ProjectCategory {
 
   // Relations
   documents   Document[]
+  codeRegistries CodeRegistry[]
 }
 
 model Department {
@@ -218,6 +220,7 @@ model Folder {
 model Document {
   id              Int      @id @default(autoincrement())
   fileCode        String   @unique // e.g., DOC-2025-001
+  isClientDocument Boolean @default(false)
   title           String
   description     String?  @db.Text
   documentTypeId  Int
@@ -696,6 +699,32 @@ enum NotificationType {
 // ============================================
 // MASTER RECORDS & ARCHIVES
 // ============================================
+
+model CodeRegistry {
+  id                Int      @id @default(autoincrement())
+  fileCode          String   @unique
+  normalizedFileCode String
+  documentTitle     String?
+  documentDate      DateTime?
+  registryStatus    String?
+  revision          String?
+  projectCategoryId Int
+  documentTypeId    Int?
+  codeKey           String
+  runningNumber     Int
+  source            String   @default("SYSTEM")
+  sourceRefId       Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  projectCategory   ProjectCategory @relation(fields: [projectCategoryId], references: [id], onDelete: Restrict)
+  documentType      DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+
+  @@unique([projectCategoryId, codeKey, runningNumber])
+  @@index([projectCategoryId, codeKey])
+  @@index([fileCode])
+}
 
 model DocumentRegister {
   id              Int      @id @default(autoincrement())

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
+import { usePreferences } from '../contexts/PreferencesContext'
 
 export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, selectedFolderId }) {
   const [folderId, setFolderId] = useState(selectedFolderId || '')
@@ -13,6 +14,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [numberingSettings, setNumberingSettings] = useState(null)
   const [projectCategories, setProjectCategories] = useState([])
   const fileInputRef = useRef(null)
+
+  const { t } = usePreferences()
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
 
@@ -207,9 +210,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
         byKey.set(key, {
           file: f,
           fileCode: extracted.fileCode,
+          nonClientFileCode: extracted.fileCode,
           title: extracted.title,
           documentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
           projectCategoryId: '',
+          isClientDocument: false,
           collapsed: true
         })
       })
@@ -255,7 +260,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     }
     for (let i = 0; i < fileItems.length; i++) {
       const item = fileItems[i]
-      if (!String(item.fileCode || '').trim()) {
+      if (!item.isClientDocument && !String(item.fileCode || '').trim()) {
         setFormError(`File code is required for "${item.file.name}"`)
         setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
         return
@@ -282,7 +287,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           fileCode: String(it.fileCode || '').trim(),
           title: String(it.title || '').trim(),
           documentTypeId: it.documentTypeId ? parseInt(it.documentTypeId) : null,
-          projectCategoryId: it.projectCategoryId ? parseInt(it.projectCategoryId) : null
+          projectCategoryId: it.projectCategoryId ? parseInt(it.projectCategoryId) : null,
+          isClientDocument: Boolean(it.isClientDocument)
         }))
       }
       await onSubmit(payload)
@@ -429,6 +435,12 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               <span>{projectLabel}</span>
                               <span className="mx-2">•</span>
                               <span>{(it.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                              {it.isClientDocument && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <span>{t('client_document_label')}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -454,9 +466,15 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                   const nextCode = e.target.value
                                   setFileItems((prev) => prev.map((x, i) => {
                                     if (i !== idx) return x
-                                    return { ...x, fileCode: nextCode, documentTypeId: x.documentTypeId || autoMatchDocumentTypeId(nextCode) }
+                                    return {
+                                      ...x,
+                                      fileCode: nextCode,
+                                      nonClientFileCode: x.isClientDocument ? x.nonClientFileCode : nextCode,
+                                      documentTypeId: x.documentTypeId || autoMatchDocumentTypeId(nextCode)
+                                    }
                                   }))
                                 }}
+                                disabled={Boolean(it.isClientDocument)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-mono"
                               />
                               <p className="mt-1 text-xs text-gray-500">Auto-extracted from filename. You can adjust before upload.</p>
@@ -492,6 +510,31 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                   </option>
                                 ))}
                               </select>
+                            </div>
+
+                            <div className="md:col-span-3">
+                              <label className="inline-flex items-start gap-2 text-xs text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  className="mt-0.5"
+                                  checked={Boolean(it.isClientDocument)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked
+                                    setFileItems((prev) => prev.map((x, i) => {
+                                      if (i !== idx) return x
+                                      return {
+                                        ...x,
+                                        isClientDocument: checked,
+                                        nonClientFileCode: checked ? (x.fileCode || x.nonClientFileCode) : x.nonClientFileCode,
+                                        fileCode: checked ? '' : (x.nonClientFileCode || x.fileCode)
+                                      }
+                                    }))
+                                  }}
+                                />
+                                <span>
+                                  {t('client_document_declaration')}
+                                </span>
+                              </label>
                             </div>
 
                             <div className="md:col-span-3">

@@ -589,31 +589,32 @@ class WorkflowService {
       }
     });
 
-    // Update/create document register
-    const existingRegister = await prisma.documentRegister.findUnique({
-      where: { fileCode: document.fileCode }
-    });
+    if (!document.isClientDocument) {
+      const existingRegister = await prisma.documentRegister.findUnique({
+        where: { fileCode: document.fileCode }
+      });
 
-    if (existingRegister) {
-      await prisma.documentRegister.update({
-        where: { fileCode: document.fileCode },
-        data: { 
-          status: 'PUBLISHED',
-          registeredDate: new Date()
-        }
-      });
-    } else {
-      await prisma.documentRegister.create({
-        data: {
-          fileCode: document.fileCode,
-          documentTitle: document.title,
-          documentType: document.documentType.name,
-          version: document.version,
-          owner: `${document.owner.firstName} ${document.owner.lastName}`,
-          department: document.owner.department || '',
-          status: 'PUBLISHED'
-        }
-      });
+      if (existingRegister) {
+        await prisma.documentRegister.update({
+          where: { fileCode: document.fileCode },
+          data: { 
+            status: 'PUBLISHED',
+            registeredDate: new Date()
+          }
+        });
+      } else {
+        await prisma.documentRegister.create({
+          data: {
+            fileCode: document.fileCode,
+            documentTitle: document.title,
+            documentType: document.documentType.name,
+            version: document.version,
+            owner: `${document.owner.firstName} ${document.owner.lastName}`,
+            department: document.owner.department || '',
+            status: 'PUBLISHED'
+          }
+        });
+      }
     }
 
     return updated;
@@ -673,11 +674,12 @@ class WorkflowService {
       }
     });
 
-    // Update document register
-    await prisma.documentRegister.updateMany({
-      where: { fileCode: document.fileCode },
-      data: { status: 'PUBLISHED' }
-    });
+    if (!document.isClientDocument) {
+      await prisma.documentRegister.updateMany({
+        where: { fileCode: document.fileCode },
+        data: { status: 'PUBLISHED' }
+      });
+    }
 
     // Send notification to document owner
     try {

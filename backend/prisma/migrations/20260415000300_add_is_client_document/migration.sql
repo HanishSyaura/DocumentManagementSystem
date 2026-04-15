@@ -1,0 +1,1 @@
+ALTER TABLE `Document` ADD COLUMN `isClientDocument` BOOLEAN NOT NULL DEFAULT false;
