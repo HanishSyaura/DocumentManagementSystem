@@ -956,7 +956,10 @@ class DocumentController {
 
     // Set headers for download
     res.setHeader('Content-Type', version.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${version.fileName}"`);
+    const rawFileName = String(version.fileName || 'document')
+    const asciiFileName = rawFileName.replace(/[^A-Za-z0-9._-]/g, '_') || 'document'
+    const encodedFileName = encodeURIComponent(rawFileName)
+    res.setHeader('Content-Disposition', `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`);
 
     // Check if file is encrypted and decrypt it
     if (version.isEncrypted) {

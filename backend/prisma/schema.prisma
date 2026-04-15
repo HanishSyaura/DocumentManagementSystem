@@ -15,56 +15,57 @@ generator client {
 // ============================================
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
-  password      String
-  firstName     String?
-  lastName      String?
-  phone         String?
-  department    String?
-  position      String?
-  employeeId    String?   @unique
-  dateJoined    DateTime  @default(now())
-  profileImage  String?
-  status        UserStatus @default(ACTIVE)
-  lastLogin     DateTime?
-  failedAttempts Int      @default(0)
-  lockedUntil   DateTime?
+  id                  Int        @id @default(autoincrement())
+  email               String     @unique
+  password            String
+  firstName           String?
+  lastName            String?
+  phone               String?
+  department          String?
+  position            String?
+  employeeId          String?    @unique
+  dateJoined          DateTime   @default(now())
+  profileImage        String?
+  status              UserStatus @default(ACTIVE)
+  lastLogin           DateTime?
+  failedAttempts      Int        @default(0)
+  lockedUntil         DateTime?
   // Two-Factor Authentication
-  twoFactorEnabled Boolean @default(false)
-  twoFactorCode    String?
+  twoFactorEnabled    Boolean    @default(false)
+  twoFactorCode       String?
   twoFactorCodeExpiry DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   // Relations
-  roles         UserRole[]
-  sessions      UserSession[]
-  preferences   UserPreference?
-  createdDocuments Document[] @relation("DocumentCreator")
-  ownedDocuments Document[] @relation("DocumentOwner")
-  reviewingDocuments Document[] @relation("DocumentReviewer")
-  firstApprovingDocuments Document[] @relation("DocumentFirstApprover")
-  secondApprovingDocuments Document[] @relation("DocumentSecondApprover")
-  createdFolders Folder[] @relation("FolderCreator")
-  approvalHistory ApprovalHistory[]
-  comments      DocumentComment[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
-  versionUploads DocumentVersion[] @relation("VersionUploader")
-  generatedReports GeneratedReport[]
-  backups       Backup[]
+  roles                     UserRole[]
+  sessions                  UserSession[]
+  preferences               UserPreference?
+  createdDocuments          Document[]                 @relation("DocumentCreator")
+  ownedDocuments            Document[]                 @relation("DocumentOwner")
+  reviewingDocuments        Document[]                 @relation("DocumentReviewer")
+  firstApprovingDocuments   Document[]                 @relation("DocumentFirstApprover")
+  secondApprovingDocuments  Document[]                 @relation("DocumentSecondApprover")
+  createdFolders            Folder[]                   @relation("FolderCreator")
+  approvalHistory           ApprovalHistory[]
+  comments                  DocumentComment[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
+  versionUploads            DocumentVersion[]          @relation("VersionUploader")
+  generatedReports          GeneratedReport[]
+  backups                   Backup[]
   createdSupersedeRequests  SupersedeObsoleteRequest[] @relation("RequestCreator")
   reviewedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestReviewer")
   approvedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestApprover")
   rejectedSupersedeRequests SupersedeObsoleteRequest[] @relation("RequestRejector")
-  createdVersionRequests    VersionRequest[] @relation("VersionRequestCreator")
-  reviewedVersionRequests   VersionRequest[] @relation("VersionRequestReviewer")
-  approvedVersionRequests   VersionRequest[] @relation("VersionRequestApprover")
-  rejectedVersionRequests   VersionRequest[] @relation("VersionRequestRejector")
+  createdVersionRequests    VersionRequest[]           @relation("VersionRequestCreator")
+  reviewedVersionRequests   VersionRequest[]           @relation("VersionRequestReviewer")
+  approvedVersionRequests   VersionRequest[]           @relation("VersionRequestApprover")
+  rejectedVersionRequests   VersionRequest[]           @relation("VersionRequestRejector")
   documentAssignments       DocumentAssignment[]
-  createdTemplateRequests   TemplateRequest[] @relation("TemplateRequestCreator")
-  resolvedTemplateRequests  TemplateRequest[] @relation("TemplateRequestResolver")
+  createdTemplateRequests   TemplateRequest[]          @relation("TemplateRequestCreator")
+  resolvedTemplateRequests  TemplateRequest[]          @relation("TemplateRequestResolver")
+  folderPermissions         FolderPermission[]
 
   @@index([email])
   @@index([employeeId])
@@ -88,30 +89,31 @@ enum TemplateRequestStatus {
 }
 
 model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   displayName String
   description String?
-  permissions Json?     // Store permissions as JSON
-  isSystem    Boolean   @default(false) // System roles cannot be deleted
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  permissions Json? // Store permissions as JSON
+  isSystem    Boolean  @default(false) // System roles cannot be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  users       UserRole[]
-  workflowSteps WorkflowStep[]
+  users             UserRole[]
+  workflowSteps     WorkflowStep[]
+  folderPermissions FolderPermission[]
 }
 
 model UserRole {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  roleId    Int
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  roleId     Int
   assignedAt DateTime @default(now())
   assignedBy Int?
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
   @@index([userId])
@@ -119,39 +121,39 @@ model UserRole {
 }
 
 model UserSession {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  token       String   @unique @db.VarChar(512)
-  refreshToken String? @unique @db.VarChar(512)
-  device      String?
-  ipAddress   String?
-  userAgent   String?  @db.Text
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  token        String   @unique @db.VarChar(512)
+  refreshToken String?  @unique @db.VarChar(512)
+  device       String?
+  ipAddress    String?
+  userAgent    String?  @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
 model UserPreference {
-  id              Int      @id @default(autoincrement())
-  userId          Int      @unique
-  language        String   @default("en")
-  timezone        String   @default("Asia/Kuala_Lumpur")
-  dateFormat      String   @default("DD/MM/YYYY")
-  timeFormat      String   @default("24h")
-  itemsPerPage    Int      @default(15)
-  defaultView     String   @default("list")
-  emailDigest     String   @default("daily")
-  notifications   Json?    // Email and in-app notification preferences
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  language      String   @default("en")
+  timezone      String   @default("Asia/Kuala_Lumpur")
+  dateFormat    String   @default("DD/MM/YYYY")
+  timeFormat    String   @default("24h")
+  itemsPerPage  Int      @default(15)
+  defaultView   String   @default("list")
+  emailDigest   String   @default("daily")
+  notifications Json? // Email and in-app notification preferences
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============================================
@@ -168,11 +170,11 @@ model DocumentType {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  documents   Document[]
-  templates   Template[]
+  documents        Document[]
+  templates        Template[]
   templateRequests TemplateRequest[]
-  workflows   Workflow[]
-  codeRegistries CodeRegistry[]
+  workflows        Workflow[]
+  codeRegistries   CodeRegistry[]
 }
 
 model ProjectCategory {
@@ -185,7 +187,7 @@ model ProjectCategory {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  documents   Document[]
+  documents      Document[]
   codeRegistries CodeRegistry[]
 }
 
@@ -200,20 +202,20 @@ model Department {
 }
 
 model Folder {
-  id          Int      @id @default(autoincrement())
-  name        String
-  parentId    Int?
-  createdById Int
-  accessMode  String   @default("PUBLIC")
-  inheritPermissions Boolean @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  name               String
+  parentId           Int?
+  createdById        Int
+  accessMode         String   @default("PUBLIC")
+  inheritPermissions Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Relations
-  parent      Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children    Folder[]  @relation("FolderHierarchy")
+  parent      Folder?            @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Folder[]           @relation("FolderHierarchy")
   documents   Document[]
-  createdBy   User      @relation("FolderCreator", fields: [createdById], references: [id])
+  createdBy   User               @relation("FolderCreator", fields: [createdById], references: [id])
   permissions FolderPermission[]
 
   @@index([parentId])
@@ -233,9 +235,9 @@ model FolderPermission {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  folder      Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role?    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role?  @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([folderId, userId])
   @@unique([folderId, roleId])
@@ -245,66 +247,66 @@ model FolderPermission {
 }
 
 model Document {
-  id              Int      @id @default(autoincrement())
-  fileCode        String   @unique // e.g., DOC-2025-001
-  isClientDocument Boolean @default(false)
-  title           String
-  description     String?  @db.Text
-  documentTypeId  Int
+  id                Int           @id @default(autoincrement())
+  fileCode          String        @unique // e.g., DOC-2025-001
+  isClientDocument  Boolean       @default(false)
+  title             String
+  description       String?       @db.Text
+  documentTypeId    Int
   projectCategoryId Int?
-  folderId        Int?     // Folder assignment
-  status          DocStatus @default(DRAFT)
-  stage           WorkflowStage @default(DRAFT)
-  version         String   @default("1.0")
-  
+  folderId          Int? // Folder assignment
+  status            DocStatus     @default(DRAFT)
+  stage             WorkflowStage @default(DRAFT)
+  version           String        @default("1.0")
+
   // User references
-  createdById     Int
-  ownerId         Int      // Current document owner
-  submittedById   Int?
-  reviewerId      Int?     // Assigned reviewer
-  reviewedById    Int?     // User who completed the review
-  firstApproverId Int?     // First level approver
-  secondApproverId Int?    // Second level approver
-  publishedById   Int?     // User who published the document
+  createdById      Int
+  ownerId          Int // Current document owner
+  submittedById    Int?
+  reviewerId       Int? // Assigned reviewer
+  reviewedById     Int? // User who completed the review
+  firstApproverId  Int? // First level approver
+  secondApproverId Int? // Second level approver
+  publishedById    Int? // User who published the document
   acknowledgedById Int?
-  
+
   // Supersede/Obsolete
-  supersededById  Int?     // Document that supersedes this one
-  obsoleteReason  String?  @db.Text
-  obsoleteDate    DateTime?
-  
+  supersededById Int? // Document that supersedes this one
+  obsoleteReason String?   @db.Text
+  obsoleteDate   DateTime?
+
   // Document date (for file code generation)
-  dateOfDocument  DateTime? // User-specified document date (used in file code)
-  
+  dateOfDocument DateTime? // User-specified document date (used in file code)
+
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  submittedAt       DateTime?
-  reviewedAt        DateTime?
-  firstApprovedAt   DateTime?
-  secondApprovedAt  DateTime?
-  acknowledgedAt    DateTime?
-  publishedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  firstApprovedAt  DateTime?
+  secondApprovedAt DateTime?
+  acknowledgedAt   DateTime?
+  publishedAt      DateTime?
 
   // Relations
-  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
-  projectCategory ProjectCategory? @relation(fields: [projectCategoryId], references: [id], onDelete: SetNull)
-  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  createdBy       User     @relation("DocumentCreator", fields: [createdById], references: [id])
-  owner           User     @relation("DocumentOwner", fields: [ownerId], references: [id])
-  reviewer        User?    @relation("DocumentReviewer", fields: [reviewerId], references: [id])
-  firstApprover   User?    @relation("DocumentFirstApprover", fields: [firstApproverId], references: [id])
-  secondApprover  User?    @relation("DocumentSecondApprover", fields: [secondApproverId], references: [id])
-  versions        DocumentVersion[]
-  approvalHistory ApprovalHistory[]
-  comments        DocumentComment[]
-  metadata        DocumentMetadata[]
-  supersededBy    Document? @relation("DocumentSupersede", fields: [supersededById], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  supersedes      Document[] @relation("DocumentSupersede")
+  documentType           DocumentType               @relation(fields: [documentTypeId], references: [id])
+  projectCategory        ProjectCategory?           @relation(fields: [projectCategoryId], references: [id], onDelete: SetNull)
+  folder                 Folder?                    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdBy              User                       @relation("DocumentCreator", fields: [createdById], references: [id])
+  owner                  User                       @relation("DocumentOwner", fields: [ownerId], references: [id])
+  reviewer               User?                      @relation("DocumentReviewer", fields: [reviewerId], references: [id])
+  firstApprover          User?                      @relation("DocumentFirstApprover", fields: [firstApproverId], references: [id])
+  secondApprover         User?                      @relation("DocumentSecondApprover", fields: [secondApproverId], references: [id])
+  versions               DocumentVersion[]
+  approvalHistory        ApprovalHistory[]
+  comments               DocumentComment[]
+  metadata               DocumentMetadata[]
+  supersededBy           Document?                  @relation("DocumentSupersede", fields: [supersededById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  supersedes             Document[]                 @relation("DocumentSupersede")
   supersedeRequests      SupersedeObsoleteRequest[] @relation("DocumentToObsolete")
   supersedingForRequests SupersedeObsoleteRequest[] @relation("SupersedingDocument")
-  versionRequests        VersionRequest[] @relation("VersionRequestSource")
-  newVersionRequests     VersionRequest[] @relation("VersionRequestNew")
+  versionRequests        VersionRequest[]           @relation("VersionRequestSource")
+  newVersionRequests     VersionRequest[]           @relation("VersionRequestNew")
   assignments            DocumentAssignment[]
 
   @@index([fileCode])
@@ -336,7 +338,7 @@ enum DocStatus {
   SUPERSEDED
   OBSOLETE
   ARCHIVED
-  
+
   // Legacy statuses (deprecated but kept for backward compatibility)
   PENDING_APPROVAL
   IN_APPROVAL
@@ -352,57 +354,57 @@ enum WorkflowStage {
   PUBLISHED
   SUPERSEDED
   OBSOLETE
-  
+
   // Legacy stage (deprecated but kept for backward compatibility)
   APPROVAL
 }
 
 model DocumentVersion {
-  id          Int      @id @default(autoincrement())
-  documentId  Int
-  version     String   // e.g., "1.0", "1.1", "2.0"
-  filePath    String
-  fileName    String
-  mimeType    String
-  fileSize    Int      // in bytes
+  id           Int      @id @default(autoincrement())
+  documentId   Int
+  version      String // e.g., "1.0", "1.1", "2.0"
+  filePath     String
+  fileName     String
+  mimeType     String
+  fileSize     Int // in bytes
   uploadedById Int
-  isPublished Boolean  @default(false)
-  isEncrypted Boolean  @default(false)  // Whether file is AES-256 encrypted
-  uploadedAt  DateTime @default(now())
-  
+  isPublished  Boolean  @default(false)
+  isEncrypted  Boolean  @default(false) // Whether file is AES-256 encrypted
+  uploadedAt   DateTime @default(now())
+
   // Relations
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  uploadedBy  User     @relation("VersionUploader", fields: [uploadedById], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy User     @relation("VersionUploader", fields: [uploadedById], references: [id])
 
   @@index([documentId])
   @@index([version])
 }
 
 model DocumentMetadata {
-  id          Int      @id @default(autoincrement())
-  documentId  Int
-  key         String
-  value       String   @db.Text
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  documentId Int
+  key        String
+  value      String   @db.Text
+  createdAt  DateTime @default(now())
 
   // Relations
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@unique([documentId, key])
   @@index([documentId])
 }
 
 model DocumentComment {
-  id          Int      @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   documentId  Int
   userId      Int
-  comment     String   @db.Text
+  comment     String      @db.Text
   commentType CommentType @default(GENERAL)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime    @default(now())
 
   // Relations
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
 
   @@index([documentId])
   @@index([userId])
@@ -417,18 +419,18 @@ enum CommentType {
 }
 
 model DocumentAssignment {
-  id          Int      @id @default(autoincrement())
-  documentId  Int
-  userId      Int
+  id             Int            @id @default(autoincrement())
+  documentId     Int
+  userId         Int
   assignmentType AssignmentType
-  assignedById Int?
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime?  // Optional: auto-cleanup after workflow completion
+  assignedById   Int?
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime? // Optional: auto-cleanup after workflow completion
 
   // Relations
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([documentId, userId, assignmentType])
   @@index([documentId])
   @@index([userId])
@@ -447,48 +449,48 @@ enum AssignmentType {
 // ============================================
 
 model VersionRequest {
-  id                Int      @id @default(autoincrement())
-  documentId        Int      // Original document to create new version for
-  reasonForRevision String   @db.Text
-  proposedChanges   String   @db.Text
+  id                Int                  @id @default(autoincrement())
+  documentId        Int // Original document to create new version for
+  reasonForRevision String               @db.Text
+  proposedChanges   String               @db.Text
   targetDate        DateTime?
-  priority          String   @default("Normal") // Low, Normal, High, Critical
-  remarks           String?  @db.Text
-  filePath          String?  // Optional draft file uploaded with request
+  priority          String               @default("Normal") // Low, Normal, High, Critical
+  remarks           String?              @db.Text
+  filePath          String? // Optional draft file uploaded with request
   fileName          String?
   requestedById     Int
-  status            RequestStatus @default(PENDING_REVIEW)
+  status            RequestStatus        @default(PENDING_REVIEW)
   stage             RequestWorkflowStage @default(REVIEW)
-  
+
   // Review stage
-  reviewedById      Int?
-  reviewedAt        DateTime?
-  reviewComments    String?  @db.Text
-  
+  reviewedById   Int?
+  reviewedAt     DateTime?
+  reviewComments String?   @db.Text
+
   // Approval stage
-  approvedById      Int?
-  approvedAt        DateTime?
-  approvalComments  String?  @db.Text
-  
+  approvedById     Int?
+  approvedAt       DateTime?
+  approvalComments String?   @db.Text
+
   // Rejection
-  rejectedById      Int?
-  rejectedAt        DateTime?
-  rejectionReason   String?  @db.Text
-  
+  rejectedById    Int?
+  rejectedAt      DateTime?
+  rejectionReason String?   @db.Text
+
   // New document created after approval
-  newDocumentId     Int?     // Links to the newly created document
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  newDocumentId Int? // Links to the newly created document
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  document          Document @relation("VersionRequestSource", fields: [documentId], references: [id], onDelete: Cascade)
-  newDocument       Document? @relation("VersionRequestNew", fields: [newDocumentId], references: [id], onDelete: SetNull)
-  requestedBy       User @relation("VersionRequestCreator", fields: [requestedById], references: [id])
-  reviewedBy        User? @relation("VersionRequestReviewer", fields: [reviewedById], references: [id])
-  approvedBy        User? @relation("VersionRequestApprover", fields: [approvedById], references: [id])
-  rejectedBy        User? @relation("VersionRequestRejector", fields: [rejectedById], references: [id])
-  
+  document    Document  @relation("VersionRequestSource", fields: [documentId], references: [id], onDelete: Cascade)
+  newDocument Document? @relation("VersionRequestNew", fields: [newDocumentId], references: [id], onDelete: SetNull)
+  requestedBy User      @relation("VersionRequestCreator", fields: [requestedById], references: [id])
+  reviewedBy  User?     @relation("VersionRequestReviewer", fields: [reviewedById], references: [id])
+  approvedBy  User?     @relation("VersionRequestApprover", fields: [approvedById], references: [id])
+  rejectedBy  User?     @relation("VersionRequestRejector", fields: [rejectedById], references: [id])
+
   @@index([documentId])
   @@index([status])
   @@index([requestedById])
@@ -500,41 +502,41 @@ model VersionRequest {
 // ============================================
 
 model SupersedeObsoleteRequest {
-  id                Int      @id @default(autoincrement())
-  documentId        Int      // Document to be obsoleted/superseded
-  actionType        SupersedeAction // SUPERSEDE or OBSOLETE
-  supersedingDocId  Int?     // For SUPERSEDE only - the new document replacing this one
-  reason            String   @db.Text
-  requestedById     Int
-  status            RequestStatus @default(PENDING_REVIEW)
-  stage             RequestWorkflowStage @default(REVIEW)
-  
+  id               Int                  @id @default(autoincrement())
+  documentId       Int // Document to be obsoleted/superseded
+  actionType       SupersedeAction // SUPERSEDE or OBSOLETE
+  supersedingDocId Int? // For SUPERSEDE only - the new document replacing this one
+  reason           String               @db.Text
+  requestedById    Int
+  status           RequestStatus        @default(PENDING_REVIEW)
+  stage            RequestWorkflowStage @default(REVIEW)
+
   // Review stage
-  reviewedById      Int?
-  reviewedAt        DateTime?
-  reviewComments    String?  @db.Text
-  
+  reviewedById   Int?
+  reviewedAt     DateTime?
+  reviewComments String?   @db.Text
+
   // Approval stage
-  approvedById      Int?
-  approvedAt        DateTime?
-  approvalComments  String?  @db.Text
-  
+  approvedById     Int?
+  approvedAt       DateTime?
+  approvalComments String?   @db.Text
+
   // Rejection
-  rejectedById      Int?
-  rejectedAt        DateTime?
-  rejectionReason   String?  @db.Text
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  rejectedById    Int?
+  rejectedAt      DateTime?
+  rejectionReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  document          Document @relation("DocumentToObsolete", fields: [documentId], references: [id], onDelete: Cascade)
-  supersedingDoc    Document? @relation("SupersedingDocument", fields: [supersedingDocId], references: [id], onDelete: SetNull)
-  requestedBy       User @relation("RequestCreator", fields: [requestedById], references: [id])
-  reviewedBy        User? @relation("RequestReviewer", fields: [reviewedById], references: [id])
-  approvedBy        User? @relation("RequestApprover", fields: [approvedById], references: [id])
-  rejectedBy        User? @relation("RequestRejector", fields: [rejectedById], references: [id])
-  
+  document       Document  @relation("DocumentToObsolete", fields: [documentId], references: [id], onDelete: Cascade)
+  supersedingDoc Document? @relation("SupersedingDocument", fields: [supersedingDocId], references: [id], onDelete: SetNull)
+  requestedBy    User      @relation("RequestCreator", fields: [requestedById], references: [id])
+  reviewedBy     User?     @relation("RequestReviewer", fields: [reviewedById], references: [id])
+  approvedBy     User?     @relation("RequestApprover", fields: [approvedById], references: [id])
+  rejectedBy     User?     @relation("RequestRejector", fields: [rejectedById], references: [id])
+
   @@index([documentId])
   @@index([status])
   @@index([requestedById])
@@ -566,33 +568,33 @@ enum RequestWorkflowStage {
 // ============================================
 
 model Workflow {
-  id              Int      @id @default(autoincrement())
-  name            String
-  description     String?  @db.Text
-  documentTypeId  Int      @unique
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?  @db.Text
+  documentTypeId Int      @unique
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
-  steps           WorkflowStep[]
+  documentType DocumentType   @relation(fields: [documentTypeId], references: [id])
+  steps        WorkflowStep[]
 
   @@index([documentTypeId])
 }
 
 model WorkflowStep {
-  id          Int      @id @default(autoincrement())
-  workflowId  Int
-  stepOrder   Int
-  stepName    String   // e.g., "Review", "Approval", "Acknowledgment"
-  roleId      Int
-  isRequired  Boolean  @default(true)
-  dueInDays   Int?     // Optional SLA in days
+  id         Int     @id @default(autoincrement())
+  workflowId Int
+  stepOrder  Int
+  stepName   String // e.g., "Review", "Approval", "Acknowledgment"
+  roleId     Int
+  isRequired Boolean @default(true)
+  dueInDays  Int? // Optional SLA in days
 
   // Relations
-  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  role        Role     @relation(fields: [roleId], references: [id])
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  role     Role     @relation(fields: [roleId], references: [id])
 
   @@unique([workflowId, stepOrder])
   @@index([workflowId])
@@ -600,17 +602,17 @@ model WorkflowStep {
 }
 
 model ApprovalHistory {
-  id          Int      @id @default(autoincrement())
-  documentId  Int
-  userId      Int
-  action      ApprovalAction
-  stage       WorkflowStage
-  comments    String?  @db.Text
-  createdAt   DateTime @default(now())
+  id         Int            @id @default(autoincrement())
+  documentId Int
+  userId     Int
+  action     ApprovalAction
+  stage      WorkflowStage
+  comments   String?        @db.Text
+  createdAt  DateTime       @default(now())
 
   // Relations
-  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
 
   @@index([documentId])
   @@index([userId])
@@ -630,7 +632,7 @@ enum ApprovalAction {
   SUPERSEDED
   OBSOLETED
   ARCHIVED
-  
+
   // Legacy action (deprecated)
   APPROVED
 }
@@ -640,45 +642,45 @@ enum ApprovalAction {
 // ============================================
 
 model Template {
-  id              Int      @id @default(autoincrement())
-  documentTypeId  Int
-  templateName    String
-  version         String
-  filePath        String
-  fileName        String
-  uploadedBy      String
-  uploadedOn      DateTime @default(now())
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  documentTypeId Int
+  templateName   String
+  version        String
+  filePath       String
+  fileName       String
+  uploadedBy     String
+  uploadedOn     DateTime @default(now())
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  documentType    DocumentType @relation(fields: [documentTypeId], references: [id])
+  documentType     DocumentType      @relation(fields: [documentTypeId], references: [id])
   templateRequests TemplateRequest[]
 
   @@index([documentTypeId])
 }
 
 model TemplateRequest {
-  id               Int      @id @default(autoincrement())
+  id               Int                   @id @default(autoincrement())
   requestType      TemplateRequestType
   status           TemplateRequestStatus @default(PENDING)
   documentTypeId   Int?
   documentTypeName String?
   templateId       Int?
   templateName     String?
-  description      String?  @db.Text
+  description      String?               @db.Text
   requestedById    Int
   resolvedById     Int?
   resolvedAt       DateTime?
-  resolutionNote   String?  @db.Text
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  resolutionNote   String?               @db.Text
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
-  documentType     DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
-  template         Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  requestedBy      User @relation("TemplateRequestCreator", fields: [requestedById], references: [id])
-  resolvedBy       User? @relation("TemplateRequestResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  documentType DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  template     Template?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  requestedBy  User          @relation("TemplateRequestCreator", fields: [requestedById], references: [id])
+  resolvedBy   User?         @relation("TemplateRequestResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([documentTypeId])
@@ -692,18 +694,18 @@ model TemplateRequest {
 // ============================================
 
 model Notification {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  type        NotificationType
-  title       String
-  message     String   @db.Text
-  link        String?
-  isRead      Boolean  @default(false)
-  readAt      DateTime?
-  createdAt   DateTime @default(now())
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  link      String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isRead])
@@ -728,25 +730,25 @@ enum NotificationType {
 // ============================================
 
 model CodeRegistry {
-  id                Int      @id @default(autoincrement())
-  fileCode          String   @unique
+  id                 Int       @id @default(autoincrement())
+  fileCode           String    @unique
   normalizedFileCode String
-  documentTitle     String?
-  documentDate      DateTime?
-  registryStatus    String?
-  revision          String?
-  projectCategoryId Int
-  documentTypeId    Int?
-  codeKey           String
-  runningNumber     Int
-  source            String   @default("SYSTEM")
-  sourceRefId       Int?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  documentTitle      String?
+  documentDate       DateTime?
+  registryStatus     String?
+  revision           String?
+  projectCategoryId  Int
+  documentTypeId     Int?
+  codeKey            String
+  runningNumber      Int
+  source             String    @default("SYSTEM")
+  sourceRefId        Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relations
-  projectCategory   ProjectCategory @relation(fields: [projectCategoryId], references: [id], onDelete: Restrict)
-  documentType      DocumentType? @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  projectCategory ProjectCategory @relation(fields: [projectCategoryId], references: [id], onDelete: Restrict)
+  documentType    DocumentType?   @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
 
   @@unique([projectCategoryId, codeKey, runningNumber])
   @@index([projectCategoryId, codeKey])
@@ -754,15 +756,15 @@ model CodeRegistry {
 }
 
 model DocumentRegister {
-  id              Int      @id @default(autoincrement())
-  fileCode        String   @unique
-  documentTitle   String
-  documentType    String
-  version         String
-  registeredDate  DateTime @default(now())
-  owner           String
-  department      String?
-  status          String
+  id             Int      @id @default(autoincrement())
+  fileCode       String   @unique
+  documentTitle  String
+  documentType   String
+  version        String
+  registeredDate DateTime @default(now())
+  owner          String
+  department     String?
+  status         String
 
   @@index([fileCode])
   @@index([registeredDate])
@@ -784,31 +786,31 @@ model VersionRegister {
 }
 
 model ObsoleteRegister {
-  id              Int      @id @default(autoincrement())
-  fileCode        String
-  documentTitle   String
-  documentType    String
-  obsoleteDate    DateTime
-  reason          String   @db.Text
-  replacedBy      String?
-  lastOwner       String
-  createdAt       DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  fileCode      String
+  documentTitle String
+  documentType  String
+  obsoleteDate  DateTime
+  reason        String   @db.Text
+  replacedBy    String?
+  lastOwner     String
+  createdAt     DateTime @default(now())
 
   @@index([fileCode])
   @@index([obsoleteDate])
 }
 
 model ArchiveRegister {
-  id              Int      @id @default(autoincrement())
-  fileCode        String
-  documentTitle   String
-  version         String
-  archivedDate    DateTime
-  archivedBy      String
-  currentVersion  String
-  retentionUntil  DateTime?
-  filePath        String
-  createdAt       DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  fileCode       String
+  documentTitle  String
+  version        String
+  archivedDate   DateTime
+  archivedBy     String
+  currentVersion String
+  retentionUntil DateTime?
+  filePath       String
+  createdAt      DateTime  @default(now())
 
   @@index([fileCode])
   @@index([archivedDate])
@@ -823,17 +825,17 @@ model AuditLog {
   id          Int      @id @default(autoincrement())
   userId      Int?
   action      String
-  entity      String?  // e.g., "Document", "User", "Template"
+  entity      String? // e.g., "Document", "User", "Template"
   entityId    Int?
   description String?  @db.Text
   metadata    Json?
   ipAddress   String?
   userAgent   String?  @db.Text
-  isArchived  Boolean  @default(false)  // For log archiving functionality
+  isArchived  Boolean  @default(false) // For log archiving functionality
   createdAt   DateTime @default(now())
 
   // Relations
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([entity])
@@ -846,21 +848,21 @@ model AuditLog {
 // ============================================
 
 model GeneratedReport {
-  id            Int      @id @default(autoincrement())
-  reportType    String   // e.g., 'document-stats', 'user-activity'
+  id            Int          @id @default(autoincrement())
+  reportType    String // e.g., 'document-stats', 'user-activity'
   reportName    String
   filePath      String?
-  format        String   // PDF, EXCEL, CSV
-  fileSize      Int?     // in bytes
+  format        String // PDF, EXCEL, CSV
+  fileSize      Int? // in bytes
   status        ReportStatus @default(PENDING)
-  config        Json?    // Report configuration (date range, filters, etc)
+  config        Json? // Report configuration (date range, filters, etc)
   generatedById Int?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime     @default(now())
   completedAt   DateTime?
-  
+
   // Relations
-  generatedBy   User?    @relation(fields: [generatedById], references: [id], onDelete: SetNull)
-  
+  generatedBy User? @relation(fields: [generatedById], references: [id], onDelete: SetNull)
+
   @@index([generatedById])
   @@index([reportType])
   @@index([status])
@@ -900,10 +902,10 @@ model Backup {
   status      String   @default("completed") // completed, failed, in_progress
   createdById Int
   createdAt   DateTime @default(now())
-  
+
   // Relations
-  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
   @@index([createdById])
   @@index([createdAt])
 }
@@ -913,18 +915,18 @@ model Backup {
 // ============================================
 
 model Inquiry {
-  id                Int      @id @default(autoincrement())
-  name              String
-  email             String
-  subject           String   @default("General Inquiry")
-  message           String   @db.Text
-  organizationType  String?  // e.g., "Corporate", "Government", "SME", "Other"
-  status            String   @default("new") // new, in_progress, resolved, closed
-  submittedAt       DateTime @default(now())
-  respondedAt       DateTime?
-  respondedBy       Int?
-  notes             String?  @db.Text
-  
+  id               Int       @id @default(autoincrement())
+  name             String
+  email            String
+  subject          String    @default("General Inquiry")
+  message          String    @db.Text
+  organizationType String? // e.g., "Corporate", "Government", "SME", "Other"
+  status           String    @default("new") // new, in_progress, resolved, closed
+  submittedAt      DateTime  @default(now())
+  respondedAt      DateTime?
+  respondedBy      Int?
+  notes            String?   @db.Text
+
   @@index([email])
   @@index([status])
   @@index([submittedAt])
