@@ -1,8 +1,10 @@
 const documentService = require('../services/documentService');
+const folderPermissionService = require('../services/folderPermissionService');
 const auditLogService = require('../services/auditLogService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
 const path = require('path');
+const fs = require('fs');
 const config = require('../config/app');
 const prisma = require('../config/database');
 
@@ -918,6 +920,9 @@ class DocumentController {
     const { versionId } = req.query;
 
     const document = await documentService.getDocumentById(documentId);
+    if (document?.folderId) {
+      await folderPermissionService.assertCan(document.folderId, req.user, 'download')
+    }
 
     let version;
     if (versionId) {
@@ -938,6 +943,10 @@ class DocumentController {
     let absolutePath = path.isAbsolute(version.filePath)
       ? version.filePath
       : path.resolve(process.cwd(), version.filePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return ResponseFormatter.notFound(res, 'File');
+    }
 
     // Log download
     await auditLogService.logDocument(req.user.id, 'DOWNLOAD', document, req, {
@@ -1055,6 +1064,7 @@ class DocumentController {
     const filters = {};
 
     if (folderId) {
+      await folderPermissionService.assertCan(parseInt(folderId), req.user, 'view')
       // If folder is specified, show published, superseded, and obsolete documents
       // but exclude draft/in-process documents
       filters.folderId = parseInt(folderId);

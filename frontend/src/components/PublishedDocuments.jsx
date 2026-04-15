@@ -36,6 +36,14 @@ export default function PublishedDocuments() {
   const [contextMenuFolder, setContextMenuFolder] = useState(null)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
+  const [accessModalOpen, setAccessModalOpen] = useState(false)
+  const [accessFolder, setAccessFolder] = useState(null)
+  const [accessLoading, setAccessLoading] = useState(false)
+  const [accessError, setAccessError] = useState('')
+  const [accessMode, setAccessMode] = useState('PUBLIC')
+  const [inheritPermissions, setInheritPermissions] = useState(true)
+  const [accessEntries, setAccessEntries] = useState([])
+  const [subjects, setSubjects] = useState({ users: [], roles: [] })
 
   // Folder structure
   const [folders, setFolders] = useState([])
@@ -61,7 +69,12 @@ export default function PublishedDocuments() {
         path: currentPath.join(' › '),
         fullPath: currentPath,
         hasChildren: hasChildren,
-        icon: level === 0 ? '📁' : '📂'
+        icon: level === 0 ? '📁' : '📂',
+        canCreate: Boolean(folder.canCreate),
+        canEdit: Boolean(folder.canEdit),
+        canDelete: Boolean(folder.canDelete),
+        canDownload: Boolean(folder.canDownload),
+        canManage: Boolean(folder.canManage)
       })
       if (hasChildren) {
         result = result.concat(flattenFolders(folder.children, level + 1, currentPath))
@@ -89,6 +102,12 @@ export default function PublishedDocuments() {
 
   // Get flattened folders for dropdown
   const flatFolders = flattenFolders(folders)
+  const selectedFolderMeta = useMemo(() => {
+    if (!selectedFolder) return null
+    return flatFolders.find((f) => f.id === selectedFolder) || null
+  }, [flatFolders, selectedFolder])
+  const canCreateInSelected = Boolean(selectedFolderMeta?.canCreate)
+  const hasAnyCreatableFolder = useMemo(() => flatFolders.some((f) => Boolean(f.canCreate)), [flatFolders])
 
   useEffect(() => {
     loadFolders()
@@ -442,6 +461,83 @@ export default function PublishedDocuments() {
     setCurrentPage(1)
   }
 
+  const openManageAccess = async (folder) => {
+    setAccessFolder(folder)
+    setAccessModalOpen(true)
+    setAccessLoading(true)
+    setAccessError('')
+    try {
+      const [cfgRes, subjRes] = await Promise.all([
+        api.get(`/folders/${folder.id}/access`),
+        api.get('/folders/access/subjects')
+      ])
+      const cfg = cfgRes.data?.data || {}
+      setAccessMode(String(cfg.folder?.accessMode || 'PUBLIC').toUpperCase())
+      setInheritPermissions(Boolean(cfg.folder?.inheritPermissions))
+      const entries = (cfg.permissions || []).map((p) => {
+        const subjectType = p.userId ? 'USER' : 'ROLE'
+        const subjectId = p.userId || p.roleId
+        const label = p.userId
+          ? `${p.user?.email || ''}`.trim()
+          : `${p.role?.displayName || p.role?.name || ''}`.trim()
+        return {
+          subjectType,
+          subjectId,
+          label,
+          canView: Boolean(p.canView),
+          canCreate: Boolean(p.canCreate),
+          canEdit: Boolean(p.canEdit),
+          canDelete: Boolean(p.canDelete),
+          canDownload: Boolean(p.canDownload)
+        }
+      })
+      setAccessEntries(entries)
+      setSubjects({ users: subjRes.data?.data?.users || [], roles: subjRes.data?.data?.roles || [] })
+    } catch (e) {
+      setAccessError(e?.response?.data?.message || 'Failed to load folder access')
+    } finally {
+      setAccessLoading(false)
+    }
+  }
+
+  const closeManageAccess = () => {
+    setAccessModalOpen(false)
+    setAccessFolder(null)
+    setAccessLoading(false)
+    setAccessError('')
+    setAccessEntries([])
+    setSubjects({ users: [], roles: [] })
+  }
+
+  const saveManageAccess = async () => {
+    if (!accessFolder) return
+    setAccessLoading(true)
+    setAccessError('')
+    try {
+      const payload = {
+        accessMode,
+        inheritPermissions,
+        entries: accessEntries.map((e) => ({
+          subjectType: e.subjectType,
+          subjectId: e.subjectId,
+          canView: Boolean(e.canView),
+          canCreate: Boolean(e.canCreate),
+          canEdit: Boolean(e.canEdit),
+          canDelete: Boolean(e.canDelete),
+          canDownload: Boolean(e.canDownload)
+        }))
+      }
+      await api.put(`/folders/${accessFolder.id}/access`, payload)
+      closeManageAccess()
+      await loadFolders()
+      setAlertModal({ show: true, title: 'Saved', message: 'Folder access updated.', type: 'success' })
+    } catch (e) {
+      setAccessError(e?.response?.data?.message || 'Failed to save folder access')
+    } finally {
+      setAccessLoading(false)
+    }
+  }
+
   // Recursive component for rendering folder tree
   const FolderTreeItem = ({ folder, level = 0 }) => {
     const hasChildren = folder.children && folder.children.length > 0
@@ -453,7 +549,7 @@ export default function PublishedDocuments() {
     const handleContextMenu = (e) => {
       e.preventDefault()
       e.stopPropagation()
-      if (isAdmin) {
+      if (folder?.canManage) {
         setContextMenuPosition({ x: e.clientX, y: e.clientY })
         setShowContextMenu(true)
         setContextMenuFolder(folder.id)
@@ -519,6 +615,20 @@ export default function PublishedDocuments() {
                 top: `${contextMenuPosition.y}px` 
               }}
             >
+              {folder?.canManage && (
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false)
+                    openManageAccess(folder)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Manage Access
+                </button>
+              )}
               {isAdmin && (
                 <button
                   onClick={() => {
@@ -558,6 +668,163 @@ export default function PublishedDocuments() {
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false })}
       />
+
+      {accessModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={closeManageAccess} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full">
+              <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Folder Access</h2>
+                  <p className="text-sm text-gray-600 mt-1">{accessFolder?.name || ''}</p>
+                </div>
+                <button onClick={closeManageAccess} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="px-6 py-4 space-y-4">
+                {accessError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    {accessError}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Access mode</label>
+                    <select
+                      value={accessMode}
+                      onChange={(e) => setAccessMode(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                      disabled={accessLoading}
+                    >
+                      <option value="PUBLIC">Public (default)</option>
+                      <option value="RESTRICTED">Restricted</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 flex items-end">
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(inheritPermissions)}
+                        onChange={(e) => setInheritPermissions(e.target.checked)}
+                        disabled={accessLoading || accessMode !== 'RESTRICTED'}
+                      />
+                      Inherit permissions from parent (if no explicit rule)
+                    </label>
+                  </div>
+                </div>
+
+                {accessMode === 'RESTRICTED' && (
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
+                      <div className="text-sm font-medium text-gray-900">Rules</div>
+                      <button
+                        type="button"
+                        onClick={() => setAccessEntries((prev) => prev.concat([{
+                          subjectType: 'USER',
+                          subjectId: subjects.users?.[0]?.id || null,
+                          label: subjects.users?.[0]?.email || '',
+                          canView: true,
+                          canCreate: true,
+                          canEdit: true,
+                          canDelete: true,
+                          canDownload: true
+                        }]))}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        disabled={accessLoading}
+                      >
+                        Add rule
+                      </button>
+                    </div>
+                    <div className="max-h-[360px] overflow-auto divide-y divide-gray-100">
+                      {accessEntries.length === 0 ? (
+                        <div className="px-4 py-4 text-sm text-gray-600">No rules yet. Add at least one rule.</div>
+                      ) : accessEntries.map((r, idx) => (
+                        <div key={`${r.subjectType}-${r.subjectId}-${idx}`} className="px-4 py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                          <div className="lg:col-span-4">
+                            <select
+                              value={`${r.subjectType}:${r.subjectId || ''}`}
+                              onChange={(e) => {
+                                const [st, sid] = String(e.target.value).split(':')
+                                const id = sid ? parseInt(sid, 10) : null
+                                const label = st === 'ROLE'
+                                  ? (subjects.roles.find((x) => x.id === id)?.displayName || subjects.roles.find((x) => x.id === id)?.name || '')
+                                  : (subjects.users.find((x) => x.id === id)?.email || '')
+                                setAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, subjectType: st, subjectId: id, label } : x))
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                              disabled={accessLoading}
+                            >
+                              <optgroup label="Users">
+                                {(subjects.users || []).map((u) => (
+                                  <option key={`U-${u.id}`} value={`USER:${u.id}`}>{u.email}</option>
+                                ))}
+                              </optgroup>
+                              <optgroup label="Roles">
+                                {(subjects.roles || []).map((ro) => (
+                                  <option key={`R-${ro.id}`} value={`ROLE:${ro.id}`}>{ro.displayName || ro.name}</option>
+                                ))}
+                              </optgroup>
+                            </select>
+                          </div>
+                          <div className="lg:col-span-7 flex flex-wrap gap-3 text-sm text-gray-700">
+                            {['View', 'Create', 'Edit', 'Delete', 'Download'].map((label) => {
+                              const key = `can${label}` 
+                              return (
+                                <label key={label} className="inline-flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(r[key])}
+                                    onChange={(e) => setAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, [key]: e.target.checked } : x))}
+                                    disabled={accessLoading}
+                                  />
+                                  {label}
+                                </label>
+                              )
+                            })}
+                          </div>
+                          <div className="lg:col-span-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setAccessEntries((prev) => prev.filter((_, i) => i !== idx))}
+                              className="text-sm text-red-600 hover:text-red-700 font-medium"
+                              disabled={accessLoading}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={closeManageAccess}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={accessLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveManageAccess}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  disabled={accessLoading}
+                >
+                  {accessLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Left Sidebar - Folder Tree */}
       <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
@@ -634,18 +901,42 @@ export default function PublishedDocuments() {
                 </PermissionGate>
                 <PermissionGate module="documents.published" action="create">
                   <button 
-                    onClick={() => { setParentFolderForSub(selectedFolder || ''); setShowCreateSubFolderModal(true) }}
+                    onClick={() => {
+                      if (!hasAnyCreatableFolder) {
+                        setAlertModal({ show: true, title: 'Access denied', message: 'You do not have permission to create folders here.', type: 'error' })
+                        return
+                      }
+                      setParentFolderForSub(selectedFolder || '')
+                      setShowCreateSubFolderModal(true)
+                    }}
                     data-tour-id="pub-btn-create-subfolder"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                      hasAnyCreatableFolder ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                    disabled={!hasAnyCreatableFolder}
                   >
                     {t('create_new_subfolder')}
                   </button>
                 </PermissionGate>
                 <PermissionGate module="documents.published" action="create">
                   <button 
-                    onClick={() => setShowUploadFileModal(true)}
+                    onClick={() => {
+                      if (!selectedFolder) {
+                        setAlertModal({ show: true, title: 'Folder required', message: 'Please select a folder first.', type: 'error' })
+                        return
+                      }
+                      if (!canCreateInSelected) {
+                        setAlertModal({ show: true, title: 'Access denied', message: 'You do not have permission to upload in this folder.', type: 'error' })
+                        return
+                      }
+                      setShowUploadFileModal(true)
+                    }}
                     data-tour-id="pub-btn-upload-import"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                      selectedFolder && canCreateInSelected ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                    disabled={!selectedFolder || !canCreateInSelected}
+                    title={!selectedFolder ? 'Select a folder first' : (!canCreateInSelected ? 'No upload permission' : '')}
                   >
                     {t('upload_file')}
                   </button>
@@ -838,7 +1129,7 @@ export default function PublishedDocuments() {
           isOpen={showUploadFileModal}
           onClose={() => setShowUploadFileModal(false)}
           onSubmit={handleUploadFile}
-          folders={flatFolders}
+          folders={flatFolders.filter((f) => Boolean(f.canCreate))}
           selectedFolderId={selectedFolder}
         />
       )}
@@ -868,7 +1159,7 @@ export default function PublishedDocuments() {
                     style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
                   >
                     <option value="" className="text-gray-500">{t('select_a_folder')}</option>
-                    {flatFolders.map((folder) => (
+                    {flatFolders.filter((f) => Boolean(f.canCreate)).map((folder) => (
                       <option 
                         key={folder.id} 
                         value={folder.id}

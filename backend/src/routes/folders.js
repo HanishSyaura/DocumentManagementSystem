@@ -9,6 +9,7 @@ router.use(authenticate);
 
 // Folder CRUD operations
 router.get('/', folderController.listFolders);
+router.get('/access/subjects', folderController.listAccessSubjects);
 router.post('/', folderController.createFolder);
 router.put('/:id', folderController.updateFolder);
 router.delete('/:id/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), folderController.purgeFolder);
@@ -16,5 +17,7 @@ router.delete('/:id', folderController.deleteFolder);
 
 // Get documents in a folder
 router.get('/:id/documents', folderController.getFolderDocuments);
+router.get('/:id/access', folderController.getFolderAccess);
+router.put('/:id/access', folderController.updateFolderAccess);
 
 module.exports = router;

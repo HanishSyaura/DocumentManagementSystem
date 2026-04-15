@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
 const fileStorageService = require('./fileStorageService');
 const path = require('path');
 
@@ -37,6 +36,9 @@ class FolderService {
           id: folder.id,
           name: folder.name,
           parentId: folder.parentId,
+          createdById: folder.createdById,
+          accessMode: folder.accessMode,
+          inheritPermissions: folder.inheritPermissions,
           documentsCount: folder._count.documents,
           createdAt: folder.createdAt,
           updatedAt: folder.updatedAt,

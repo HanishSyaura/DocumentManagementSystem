@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { normalizeAppPath } from '../utils/normalizeUrl'
 
-export default function Topbar({ onMenu, onToggleSidebarCollapse, isSidebarCollapsed, onGettingStarted, showGettingStartedHint }) {
+export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHint }) {
   const { t } = usePreferences()
   const navigate = useNavigate()
   const [logo, setLogo] = useState(() => {
@@ -161,24 +161,6 @@ export default function Topbar({ onMenu, onToggleSidebarCollapse, isSidebarColla
           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold shadow-sm">
             {companyName.substring(0, 2).toUpperCase()}
           </div>
-        )}
-        {typeof onToggleSidebarCollapse === 'function' && (
-          <button
-            type="button"
-            onClick={() => onToggleSidebarCollapse()}
-            className="hidden md:inline-flex p-2 rounded-lg hover:bg-white/20 transition-colors"
-            aria-label="Toggle sidebar"
-          >
-            {isSidebarCollapsed ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M4 5h2v14H4z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M20 5h-2v14h2z" />
-              </svg>
-            )}
-          </button>
         )}
         <div className="hidden md:flex flex-col">
           <span className="text-sm font-semibold">{companyName}</span>

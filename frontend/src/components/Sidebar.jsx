@@ -119,7 +119,7 @@ function NavItem({ item, isActive, isTourTarget, onClick, isCollapsed }) {
   )
 }
 
-export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
+export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   const { t } = usePreferences()
   const location = useLocation()
   const [tourTargetPath, setTourTargetPath] = useState('')
@@ -271,24 +271,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             ) : (
               <div className="font-semibold text-base text-white">{companyName}</div>
             )
-          )}
-          {typeof onToggleCollapse === 'function' && (
-            <button
-              type="button"
-              onClick={() => onToggleCollapse()}
-              className="p-2 hover:bg-white/10 rounded text-white"
-              aria-label="Toggle sidebar"
-            >
-              {isCollapsed ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M4 5h2v14H4z" />
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M20 5h-2v14h2z" />
-                </svg>
-              )}
-            </button>
           )}
         </div>
         <nav className="space-y-1">

@@ -190,6 +190,14 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     return ci ? String(ci.id) : ''
   }
 
+  const autoMatchClientDocumentTypeId = () => {
+    const byPrefix = documentTypes.find((dt) => String(dt?.prefix || '').toLowerCase() === 'cd')
+    if (byPrefix) return String(byPrefix.id)
+    const byName = documentTypes.find((dt) => String(dt?.name || '').toLowerCase() === 'client documentation')
+    if (byName) return String(byName.id)
+    return ''
+  }
+
   const addFiles = (incoming) => {
     const next = []
     for (const file of incoming) {
@@ -213,6 +221,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           nonClientFileCode: extracted.fileCode,
           title: extracted.title,
           documentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
+          nonClientDocumentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
           projectCategoryId: '',
           isClientDocument: false,
           collapsed: true
@@ -522,11 +531,14 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                     const checked = e.target.checked
                                     setFileItems((prev) => prev.map((x, i) => {
                                       if (i !== idx) return x
+                                      const clientTypeId = checked ? autoMatchClientDocumentTypeId() : ''
                                       return {
                                         ...x,
                                         isClientDocument: checked,
                                         nonClientFileCode: checked ? (x.fileCode || x.nonClientFileCode) : x.nonClientFileCode,
-                                        fileCode: checked ? '' : (x.nonClientFileCode || x.fileCode)
+                                        fileCode: checked ? '' : (x.nonClientFileCode || x.fileCode),
+                                        nonClientDocumentTypeId: checked ? (x.documentTypeId || x.nonClientDocumentTypeId) : x.nonClientDocumentTypeId,
+                                        documentTypeId: checked ? (clientTypeId || x.documentTypeId) : (x.nonClientDocumentTypeId || x.documentTypeId)
                                       }
                                     }))
                                   }}

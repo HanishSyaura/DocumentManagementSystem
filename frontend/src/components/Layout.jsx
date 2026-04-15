@@ -165,17 +165,6 @@ export default function Layout({ children }) {
     <div className="h-screen flex flex-col">
       <Topbar
         onMenu={() => setSidebarOpen(true)}
-        onToggleSidebarCollapse={() => {
-          setSidebarCollapsed((prev) => {
-            const next = !prev
-            try {
-              localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
-            } catch {
-            }
-            return next
-          })
-        }}
-        isSidebarCollapsed={sidebarCollapsed}
         onGettingStarted={() => {
           setGettingStartedOpen(true)
           setShowGettingStartedHint(false)
@@ -184,21 +173,32 @@ export default function Layout({ children }) {
       />
       <div className="flex flex-1 overflow-hidden">
         {sidebarPosition === 'left' && (
-          <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => {
-              setSidebarCollapsed((prev) => {
-                const next = !prev
-                try {
-                  localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
-                } catch {
-                }
-                return next
-              })
-            }}
-          />
+          <div className="relative">
+            <Sidebar
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              isCollapsed={sidebarCollapsed}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSidebarCollapsed((prev) => {
+                  const next = !prev
+                  try {
+                    localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
+                  } catch {
+                  }
+                  return next
+                })
+              }}
+              className="hidden md:flex items-center justify-center absolute -right-3 top-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarCollapsed ? 'M13 5l7 7-7 7M4 5h2v14H4z' : 'M11 19l-7-7 7-7M20 5h-2v14h2z'} />
+              </svg>
+            </button>
+          </div>
         )}
         <main className="flex-1 app-main-content overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-6">
@@ -263,21 +263,32 @@ export default function Layout({ children }) {
           </footer>
         </main>
         {sidebarPosition === 'right' && (
-          <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            isCollapsed={sidebarCollapsed}
-            onToggleCollapse={() => {
-              setSidebarCollapsed((prev) => {
-                const next = !prev
-                try {
-                  localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
-                } catch {
-                }
-                return next
-              })
-            }}
-          />
+          <div className="relative">
+            <Sidebar
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              isCollapsed={sidebarCollapsed}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSidebarCollapsed((prev) => {
+                  const next = !prev
+                  try {
+                    localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
+                  } catch {
+                  }
+                  return next
+                })
+              }}
+              className="hidden md:flex items-center justify-center absolute -left-3 top-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarCollapsed ? 'M11 19l-7-7 7-7M20 5h-2v14h2z' : 'M13 5l7 7-7 7M4 5h2v14H4z'} />
+              </svg>
+            </button>
+          </div>
         )}
         {/* Right Panel - Always available on all pages */}
         <div className={`hidden lg:block transition-all duration-300 ${isRightPanelCollapsed ? 'w-0' : 'w-80'}`}>

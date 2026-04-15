@@ -1,7 +1,9 @@
 const folderService = require('../services/folderService');
+const folderPermissionService = require('../services/folderPermissionService');
 const auditLogService = require('../services/auditLogService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
+const prisma = require('../config/database');
 
 class FolderController {
   /**
@@ -10,10 +12,101 @@ class FolderController {
    */
   listFolders = asyncHandler(async (req, res) => {
     const folders = await folderService.listFolders();
+    const roleIds = await folderPermissionService.getRoleIdsByNames(req.user?.roles || [])
+    const isAdmin = folderPermissionService.isAdminRoleNames(req.user?.roles || [])
+    const flat = []
+    const walk = (nodes) => {
+      for (const n of nodes || []) {
+        flat.push(n)
+        walk(n.children)
+      }
+    }
+    walk(folders)
+    const permMap = await folderPermissionService.getEffectivePermissionsMap(flat.map((f) => f.id), req.user?.id, roleIds)
+    const byId = new Map(flat.map((f) => [f.id, f]))
+
+    const canViewCache = new Map()
+    const canViewFolder = (folderId) => {
+      if (canViewCache.has(folderId)) return canViewCache.get(folderId)
+      const f = byId.get(folderId)
+      if (!f) return false
+      if (String(f.accessMode || 'PUBLIC').toUpperCase() === 'PUBLIC') {
+        canViewCache.set(folderId, true)
+        return true
+      }
+      if (isAdmin || f.createdById === req.user?.id) {
+        canViewCache.set(folderId, true)
+        return true
+      }
+      const rows = permMap.get(folderId) || []
+      if (rows.length > 0) {
+        const ok = folderPermissionService.hasActionFromPermRows(rows, 'view')
+        canViewCache.set(folderId, ok)
+        return ok
+      }
+      if (f.inheritPermissions && f.parentId) {
+        const ok = canViewFolder(f.parentId)
+        canViewCache.set(folderId, ok)
+        return ok
+      }
+      canViewCache.set(folderId, false)
+      return false
+    }
+
+    const actionCaches = {
+      create: new Map(),
+      edit: new Map(),
+      delete: new Map(),
+      download: new Map()
+    }
+
+    const canActionFolder = (folderId, action) => {
+      const a = String(action || '').toLowerCase()
+      const cache = actionCaches[a]
+      if (!cache) return false
+      if (cache.has(folderId)) return cache.get(folderId)
+      const f = byId.get(folderId)
+      if (!f) return false
+      if (String(f.accessMode || 'PUBLIC').toUpperCase() === 'PUBLIC') {
+        cache.set(folderId, true)
+        return true
+      }
+      if (isAdmin || f.createdById === req.user?.id) {
+        cache.set(folderId, true)
+        return true
+      }
+      const rows = permMap.get(folderId) || []
+      if (rows.length > 0) {
+        const ok = folderPermissionService.hasActionFromPermRows(rows, a)
+        cache.set(folderId, ok)
+        return ok
+      }
+      if (f.inheritPermissions && f.parentId) {
+        const ok = canActionFolder(f.parentId, a)
+        cache.set(folderId, ok)
+        return ok
+      }
+      cache.set(folderId, false)
+      return false
+    }
+
+    const decorate = (node) => {
+      const manage = isAdmin || node.createdById === req.user?.id
+      return {
+        ...node,
+        canManage: manage,
+        canCreate: canActionFolder(node.id, 'create'),
+        canEdit: canActionFolder(node.id, 'edit'),
+        canDelete: canActionFolder(node.id, 'delete'),
+        canDownload: canActionFolder(node.id, 'download'),
+        children: (node.children || []).map(decorate).filter((c) => canViewFolder(c.id))
+      }
+    }
+    const filtered = (folders || []).filter((f) => canViewFolder(f.id)).map(decorate)
 
     return ResponseFormatter.success(
       res,
-      { folders },
+      { folders: filtered },
       'Folders retrieved successfully'
     );
   });
@@ -31,6 +124,10 @@ class FolderController {
 
     if (errors.length > 0) {
       return ResponseFormatter.validationError(res, errors);
+    }
+
+    if (parentId) {
+      await folderPermissionService.assertCan(parseInt(parentId), req.user, 'create')
     }
 
     const folder = await folderService.createFolder({
@@ -61,6 +158,11 @@ class FolderController {
     const folderId = parseInt(req.params.id);
     const { name, parentId } = req.body;
 
+    await folderPermissionService.assertCan(folderId, req.user, 'edit')
+    if (parentId !== undefined && parentId) {
+      await folderPermissionService.assertCan(parseInt(parentId), req.user, 'create')
+    }
+
     const folder = await folderService.updateFolder(folderId, {
       name,
       parentId: parentId !== undefined ? (parentId ? parseInt(parentId) : null) : undefined
@@ -85,6 +187,7 @@ class FolderController {
    */
   deleteFolder = asyncHandler(async (req, res) => {
     const folderId = parseInt(req.params.id);
+    await folderPermissionService.assertCan(folderId, req.user, 'delete')
 
     // Log folder deletion before deleting
     await auditLogService.logSystem(req.user.id, 'FOLDER_DELETE', 'Folder', req, {
@@ -131,6 +234,8 @@ class FolderController {
     const folderId = parseInt(req.params.id);
     const { page, limit, search } = req.query;
 
+    await folderPermissionService.assertCan(folderId, req.user, 'view')
+
     const pagination = {
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 15
@@ -150,6 +255,27 @@ class FolderController {
       'Folder documents retrieved successfully'
     );
   });
+
+  getFolderAccess = asyncHandler(async (req, res) => {
+    const folderId = parseInt(req.params.id)
+    await folderPermissionService.assertCanManage(folderId, req.user)
+    const data = await folderPermissionService.getFolderAccessConfig(folderId)
+    return ResponseFormatter.success(res, data, 'Folder access retrieved successfully')
+  })
+
+  updateFolderAccess = asyncHandler(async (req, res) => {
+    const folderId = parseInt(req.params.id)
+    await folderPermissionService.assertCanManage(folderId, req.user)
+    const data = await folderPermissionService.setFolderAccessConfig(folderId, req.user, req.body)
+    await auditLogService.logSystem(req.user.id, 'FOLDER_ACCESS_UPDATE', 'Folder', req, { folderId })
+    return ResponseFormatter.success(res, data, 'Folder access updated successfully')
+  })
+
+  listAccessSubjects = asyncHandler(async (req, res) => {
+    const q = req.query?.q || ''
+    const data = await folderPermissionService.listSubjects(q)
+    return ResponseFormatter.success(res, data, 'Subjects retrieved successfully')
+  })
 }
 
 module.exports = new FolderController();
