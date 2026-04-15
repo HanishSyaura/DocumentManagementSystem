@@ -94,28 +94,32 @@ const menuItems = [
   }
 ]
 
-function NavItem({ item, isActive, isTourTarget, onClick }) {
+function NavItem({ item, isActive, isTourTarget, onClick, isCollapsed }) {
+  const activeClass = isCollapsed
+    ? 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg'
+    : 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg border-l-4 border-blue-400'
+  const hoverClass = isCollapsed
+    ? 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium'
+    : 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium hover:border-l-4 hover:border-white/30'
   return (
     <Link
       to={item.path}
       onClick={onClick}
       data-tour-id={item.tourId}
-      className={`flex items-center gap-3 text-sm px-4 py-3 rounded-lg transition-all duration-200 ${
-        isActive
-          ? 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg border-l-4 border-blue-400'
-          : 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium hover:border-l-4 hover:border-white/30'
+      className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} text-sm py-3 rounded-lg transition-all duration-200 ${
+        isActive ? activeClass : hoverClass
       } ${isTourTarget ? 'ring-2 ring-yellow-300 animate-pulse' : ''}`}
       style={{
         color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'
       }}
     >
       <span className={`transition-all ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
-      <span className="transition-all">{item.name}</span>
+      {!isCollapsed && <span className="transition-all">{item.name}</span>}
     </Link>
   )
 }
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const { t } = usePreferences()
   const location = useLocation()
   const [tourTargetPath, setTourTargetPath] = useState('')
@@ -257,7 +261,36 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="app-sidebar hidden md:block md:w-56 lg:w-64 p-4 h-full overflow-y-auto" style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+      <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-64 lg:w-72 p-4'} h-full overflow-y-auto transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-3`}>
+          {!isCollapsed && (
+            logo ? (
+              <div className="h-9 flex items-center bg-white rounded-lg px-2 shadow-sm">
+                <img src={logo} alt="Company Logo" className="max-h-7 max-w-[170px] object-contain" />
+              </div>
+            ) : (
+              <div className="font-semibold text-base text-white">{companyName}</div>
+            )
+          )}
+          {typeof onToggleCollapse === 'function' && (
+            <button
+              type="button"
+              onClick={() => onToggleCollapse()}
+              className="p-2 hover:bg-white/10 rounded text-white"
+              aria-label="Toggle sidebar"
+            >
+              {isCollapsed ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M4 5h2v14H4z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M20 5h-2v14h2z" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
         <nav className="space-y-1">
           {visibleMenuItems.map((item) => (
             <NavItem
@@ -265,6 +298,7 @@ export default function Sidebar({ isOpen, onClose }) {
               item={{...item, name: t(item.translationKey), tourId: pathToTourId(item.path)}}
               isActive={location.pathname === item.path}
               isTourTarget={tourTargetPath === item.path}
+              isCollapsed={Boolean(isCollapsed)}
             />
           ))}
         </nav>
@@ -273,7 +307,7 @@ export default function Sidebar({ isOpen, onClose }) {
       {/* Mobile overlay sidebar */}
       <div className={`fixed inset-0 z-40 md:hidden ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
         <div className={`absolute inset-0 bg-black/40 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
-        <div className={`absolute left-0 top-0 h-full w-64 md:w-72 p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+        <div className={`absolute left-0 top-0 h-full w-72 p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
           <div className="flex justify-between items-center mb-4">
             {logo ? (
               <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
@@ -296,6 +330,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 isActive={location.pathname === item.path}
                 isTourTarget={tourTargetPath === item.path}
                 onClick={onClose}
+                isCollapsed={false}
               />
             ))}
           </nav>

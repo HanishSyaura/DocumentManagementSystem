@@ -14,6 +14,13 @@ export default function Layout({ children }) {
   const location = useLocation()
   const { t } = usePreferences()
   const [sidebarPosition, setSidebarPosition] = useState('left')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('dms_sidebar_collapsed') === '1'
+    } catch {
+      return false
+    }
+  })
   const [footerConfig, setFooterConfig] = useState(null)
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false)
   const [showAdminGuide, setShowAdminGuide] = useState(false)
@@ -158,6 +165,17 @@ export default function Layout({ children }) {
     <div className="h-screen flex flex-col">
       <Topbar
         onMenu={() => setSidebarOpen(true)}
+        onToggleSidebarCollapse={() => {
+          setSidebarCollapsed((prev) => {
+            const next = !prev
+            try {
+              localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
+            } catch {
+            }
+            return next
+          })
+        }}
+        isSidebarCollapsed={sidebarCollapsed}
         onGettingStarted={() => {
           setGettingStartedOpen(true)
           setShowGettingStartedHint(false)
@@ -166,7 +184,21 @@ export default function Layout({ children }) {
       />
       <div className="flex flex-1 overflow-hidden">
         {sidebarPosition === 'left' && (
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => {
+              setSidebarCollapsed((prev) => {
+                const next = !prev
+                try {
+                  localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
+                } catch {
+                }
+                return next
+              })
+            }}
+          />
         )}
         <main className="flex-1 app-main-content overflow-y-auto">
           <div className="p-4 sm:p-6 lg:p-6">
@@ -231,7 +263,21 @@ export default function Layout({ children }) {
           </footer>
         </main>
         {sidebarPosition === 'right' && (
-          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={() => {
+              setSidebarCollapsed((prev) => {
+                const next = !prev
+                try {
+                  localStorage.setItem('dms_sidebar_collapsed', next ? '1' : '0')
+                } catch {
+                }
+                return next
+              })
+            }}
+          />
         )}
         {/* Right Panel - Always available on all pages */}
         <div className={`hidden lg:block transition-all duration-300 ${isRightPanelCollapsed ? 'w-0' : 'w-80'}`}>
