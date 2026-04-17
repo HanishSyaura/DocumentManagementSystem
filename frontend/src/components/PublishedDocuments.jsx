@@ -45,6 +45,12 @@ export default function PublishedDocuments() {
   const [accessEntries, setAccessEntries] = useState([])
   const [subjects, setSubjects] = useState({ users: [], roles: [] })
 
+  const [createAccessMode, setCreateAccessMode] = useState('PUBLIC')
+  const [createInheritPermissions, setCreateInheritPermissions] = useState(true)
+  const [createAccessEntries, setCreateAccessEntries] = useState([])
+  const [createAccessError, setCreateAccessError] = useState('')
+  const [createAccessLoading, setCreateAccessLoading] = useState(false)
+
   // Folder structure
   const [folders, setFolders] = useState([])
 
@@ -147,6 +153,40 @@ export default function PublishedDocuments() {
     } catch (error) {
       console.error('Failed to load folders:', error)
     }
+  }
+
+  const loadSubjectsIfNeeded = async () => {
+    if ((subjects.users || []).length > 0 || (subjects.roles || []).length > 0) return
+    try {
+      const subjRes = await api.get('/folders/access/subjects')
+      setSubjects({ users: subjRes.data?.data?.users || [], roles: subjRes.data?.data?.roles || [] })
+    } catch {
+    }
+  }
+
+  const resetCreateAccess = () => {
+    setCreateAccessMode('PUBLIC')
+    setCreateInheritPermissions(true)
+    setCreateAccessEntries([])
+    setCreateAccessError('')
+    setCreateAccessLoading(false)
+  }
+
+  const applyCreateAccessToFolder = async (folderId) => {
+    const payload = {
+      accessMode: createAccessMode,
+      inheritPermissions: createInheritPermissions,
+      entries: createAccessEntries.map((e) => ({
+        subjectType: e.subjectType,
+        subjectId: e.subjectId,
+        canView: Boolean(e.canView),
+        canCreate: Boolean(e.canCreate),
+        canEdit: Boolean(e.canEdit),
+        canDelete: Boolean(e.canDelete),
+        canDownload: Boolean(e.canDownload)
+      }))
+    }
+    await api.put(`/folders/${folderId}/access`, payload)
   }
 
   // Get child folders of current folder
@@ -359,12 +399,21 @@ export default function PublishedDocuments() {
     }
 
     try {
+      setCreateAccessLoading(true)
+      setCreateAccessError('')
       const resp = await api.post('/folders', { name: newFolderName })
       const createdFolder = resp?.data?.data?.folder
       const folderNameCopy = newFolderName
       setNewFolderName('')
       setShowCreateFolderModal(false)
       setAlertModal({ show: true, title: 'Success', message: `Folder "${folderNameCopy}" created successfully!`, type: 'success' })
+      if (createdFolder?.id) {
+        try {
+          await applyCreateAccessToFolder(createdFolder.id)
+        } catch (e) {
+          setAlertModal({ show: true, title: 'Warning', message: e?.response?.data?.message || 'Folder created but failed to set access rules', type: 'warning' })
+        }
+      }
       await loadFolders()
       if (createdFolder?.id) {
         setSelectedFolder(createdFolder.id)
@@ -373,7 +422,10 @@ export default function PublishedDocuments() {
       }
     } catch (error) {
       console.error('Failed to create folder:', error)
+      setCreateAccessError(error.response?.data?.message || 'Failed to create folder')
       setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create folder', type: 'error' })
+    } finally {
+      setCreateAccessLoading(false)
     }
   }
 
@@ -388,6 +440,8 @@ export default function PublishedDocuments() {
     }
 
     try {
+      setCreateAccessLoading(true)
+      setCreateAccessError('')
       const resp = await api.post('/folders', { 
         name: newFolderName,
         parentId: parentFolderForSub 
@@ -398,6 +452,13 @@ export default function PublishedDocuments() {
       setParentFolderForSub(null)
       setShowCreateSubFolderModal(false)
       setAlertModal({ show: true, title: 'Success', message: `Subfolder "${folderNameCopy}" created successfully!`, type: 'success' })
+      if (createdFolder?.id) {
+        try {
+          await applyCreateAccessToFolder(createdFolder.id)
+        } catch (e) {
+          setAlertModal({ show: true, title: 'Warning', message: e?.response?.data?.message || 'Subfolder created but failed to set access rules', type: 'warning' })
+        }
+      }
       await loadFolders()
       if (parentFolderForSub) {
         setExpandedFolders((prev) => prev.includes(parentFolderForSub) ? prev : [...prev, parentFolderForSub])
@@ -407,7 +468,10 @@ export default function PublishedDocuments() {
       }
     } catch (error) {
       console.error('Failed to create subfolder:', error)
+      setCreateAccessError(error.response?.data?.message || 'Failed to create subfolder')
       setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to create subfolder', type: 'error' })
+    } finally {
+      setCreateAccessLoading(false)
     }
   }
 
@@ -845,7 +909,7 @@ export default function PublishedDocuments() {
       )}
 
       {/* Left Sidebar - Folder Tree */}
-      <div className="w-80 shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
+      <div className="w-96 shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
         <div className="p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
           <div className="space-y-1">
@@ -903,7 +967,11 @@ export default function PublishedDocuments() {
               <div className="flex gap-2">
                 <PermissionGate module="documents.published" action="create">
                   <button 
-                    onClick={() => setShowCreateFolderModal(true)}
+                    onClick={async () => {
+                      resetCreateAccess()
+                      await loadSubjectsIfNeeded()
+                      setShowCreateFolderModal(true)
+                    }}
                     data-tour-id="pub-btn-create-folder"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
@@ -917,6 +985,8 @@ export default function PublishedDocuments() {
                         setAlertModal({ show: true, title: 'Access denied', message: 'You do not have permission to create folders here.', type: 'error' })
                         return
                       }
+                      resetCreateAccess()
+                      loadSubjectsIfNeeded()
                       setParentFolderForSub(selectedFolder || '')
                       setShowCreateSubFolderModal(true)
                     }}
@@ -1096,38 +1166,165 @@ export default function PublishedDocuments() {
       {/* Create Folder Modal */}
       {showCreateFolderModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">{t('create_new_folder')}</h3>
             </div>
-            <div className="px-6 py-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('folder_name_label')}
-              </label>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder={t('enter_folder_name')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                autoFocus
-              />
+            <div className="px-6 py-4 space-y-4">
+              {createAccessError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  {createAccessError}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('folder_name_label')}
+                </label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder={t('enter_folder_name')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  autoFocus
+                  disabled={createAccessLoading}
+                />
+              </div>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-gray-50 text-sm font-medium text-gray-900">Access control</div>
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Access mode</label>
+                      <select
+                        value={createAccessMode}
+                        onChange={(e) => setCreateAccessMode(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                        disabled={createAccessLoading}
+                      >
+                        <option value="PUBLIC">Public (default)</option>
+                        <option value="RESTRICTED">Restricted</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 flex items-end">
+                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(createInheritPermissions)}
+                          onChange={(e) => setCreateInheritPermissions(e.target.checked)}
+                          disabled={createAccessLoading || createAccessMode !== 'RESTRICTED'}
+                        />
+                        Inherit permissions from parent (if no explicit rule)
+                      </label>
+                    </div>
+                  </div>
+
+                  {createAccessMode === 'RESTRICTED' && (
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">Rules</div>
+                        <button
+                          type="button"
+                          onClick={() => setCreateAccessEntries((prev) => prev.concat([{
+                            subjectType: 'USER',
+                            subjectId: subjects.users?.[0]?.id || null,
+                            label: subjects.users?.[0]?.email || '',
+                            canView: true,
+                            canCreate: true,
+                            canEdit: true,
+                            canDelete: true,
+                            canDownload: true
+                          }]))}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          disabled={createAccessLoading || ((subjects.users || []).length === 0 && (subjects.roles || []).length === 0)}
+                        >
+                          Add rule
+                        </button>
+                      </div>
+                      <div className="max-h-[280px] overflow-auto divide-y divide-gray-100">
+                        {createAccessEntries.length === 0 ? (
+                          <div className="px-4 py-4 text-sm text-gray-600">No rules yet. Add at least one rule.</div>
+                        ) : createAccessEntries.map((r, idx) => (
+                          <div key={`${r.subjectType}-${r.subjectId}-${idx}`} className="px-4 py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                            <div className="lg:col-span-4">
+                              <select
+                                value={`${r.subjectType}:${r.subjectId || ''}`}
+                                onChange={(e) => {
+                                  const [st, sid] = String(e.target.value).split(':')
+                                  const id = sid ? parseInt(sid, 10) : null
+                                  const label = st === 'ROLE'
+                                    ? (subjects.roles.find((x) => x.id === id)?.displayName || subjects.roles.find((x) => x.id === id)?.name || '')
+                                    : (subjects.users.find((x) => x.id === id)?.email || '')
+                                  setCreateAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, subjectType: st, subjectId: id, label } : x))
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                                disabled={createAccessLoading}
+                              >
+                                <optgroup label="Users">
+                                  {(subjects.users || []).map((u) => (
+                                    <option key={`U-${u.id}`} value={`USER:${u.id}`}>{u.email}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Roles">
+                                  {(subjects.roles || []).map((ro) => (
+                                    <option key={`R-${ro.id}`} value={`ROLE:${ro.id}`}>{ro.displayName || ro.name}</option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                            </div>
+                            <div className="lg:col-span-7 flex flex-wrap gap-3 text-sm text-gray-700">
+                              {['View', 'Create', 'Edit', 'Delete', 'Download'].map((label) => {
+                                const key = `can${label}`
+                                return (
+                                  <label key={label} className="inline-flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(r[key])}
+                                      onChange={(e) => setCreateAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, [key]: e.target.checked } : x))}
+                                      disabled={createAccessLoading}
+                                    />
+                                    {label}
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            <div className="lg:col-span-1 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setCreateAccessEntries((prev) => prev.filter((_, i) => i !== idx))}
+                                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                                disabled={createAccessLoading}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowCreateFolderModal(false)
                   setNewFolderName('')
+                  resetCreateAccess()
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={createAccessLoading}
               >
                 {t('cancel')}
               </button>
               <button
                 onClick={handleCreateFolder}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={createAccessLoading}
               >
-                {t('create')}
+                {createAccessLoading ? 'Creating...' : t('create')}
               </button>
             </div>
           </div>
@@ -1148,11 +1345,16 @@ export default function PublishedDocuments() {
       {/* Create Sub Folder Modal */}
       {showCreateSubFolderModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">{t('create_new_subfolder')}</h3>
             </div>
             <div className="px-6 py-4 space-y-4">
+              {createAccessError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  {createAccessError}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('select_parent_folder')}
@@ -1168,6 +1370,7 @@ export default function PublishedDocuments() {
                     onChange={(e) => setParentFolderForSub(e.target.value ? parseInt(e.target.value) : null)}
                     className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm appearance-none bg-white cursor-pointer hover:border-gray-400 transition-colors"
                     style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}
+                    disabled={createAccessLoading}
                   >
                     <option value="" className="text-gray-500">{t('select_a_folder')}</option>
                     {flatFolders.filter((f) => Boolean(f.canCreate)).map((folder) => (
@@ -1218,6 +1421,122 @@ export default function PublishedDocuments() {
                   disabled={!parentFolderForSub}
                 />
               </div>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-gray-50 text-sm font-medium text-gray-900">Access control</div>
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Access mode</label>
+                      <select
+                        value={createAccessMode}
+                        onChange={(e) => setCreateAccessMode(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                        disabled={createAccessLoading}
+                      >
+                        <option value="PUBLIC">Public (default)</option>
+                        <option value="RESTRICTED">Restricted</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 flex items-end">
+                      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(createInheritPermissions)}
+                          onChange={(e) => setCreateInheritPermissions(e.target.checked)}
+                          disabled={createAccessLoading || createAccessMode !== 'RESTRICTED'}
+                        />
+                        Inherit permissions from parent (if no explicit rule)
+                      </label>
+                    </div>
+                  </div>
+
+                  {createAccessMode === 'RESTRICTED' && (
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">Rules</div>
+                        <button
+                          type="button"
+                          onClick={() => setCreateAccessEntries((prev) => prev.concat([{
+                            subjectType: 'USER',
+                            subjectId: subjects.users?.[0]?.id || null,
+                            label: subjects.users?.[0]?.email || '',
+                            canView: true,
+                            canCreate: true,
+                            canEdit: true,
+                            canDelete: true,
+                            canDownload: true
+                          }]))}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                          disabled={createAccessLoading || ((subjects.users || []).length === 0 && (subjects.roles || []).length === 0)}
+                        >
+                          Add rule
+                        </button>
+                      </div>
+                      <div className="max-h-[280px] overflow-auto divide-y divide-gray-100">
+                        {createAccessEntries.length === 0 ? (
+                          <div className="px-4 py-4 text-sm text-gray-600">No rules yet. Add at least one rule.</div>
+                        ) : createAccessEntries.map((r, idx) => (
+                          <div key={`${r.subjectType}-${r.subjectId}-${idx}`} className="px-4 py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                            <div className="lg:col-span-4">
+                              <select
+                                value={`${r.subjectType}:${r.subjectId || ''}`}
+                                onChange={(e) => {
+                                  const [st, sid] = String(e.target.value).split(':')
+                                  const id = sid ? parseInt(sid, 10) : null
+                                  const label = st === 'ROLE'
+                                    ? (subjects.roles.find((x) => x.id === id)?.displayName || subjects.roles.find((x) => x.id === id)?.name || '')
+                                    : (subjects.users.find((x) => x.id === id)?.email || '')
+                                  setCreateAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, subjectType: st, subjectId: id, label } : x))
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                                disabled={createAccessLoading}
+                              >
+                                <optgroup label="Users">
+                                  {(subjects.users || []).map((u) => (
+                                    <option key={`U-${u.id}`} value={`USER:${u.id}`}>{u.email}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Roles">
+                                  {(subjects.roles || []).map((ro) => (
+                                    <option key={`R-${ro.id}`} value={`ROLE:${ro.id}`}>{ro.displayName || ro.name}</option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                            </div>
+                            <div className="lg:col-span-7 flex flex-wrap gap-3 text-sm text-gray-700">
+                              {['View', 'Create', 'Edit', 'Delete', 'Download'].map((label) => {
+                                const key = `can${label}`
+                                return (
+                                  <label key={label} className="inline-flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(r[key])}
+                                      onChange={(e) => setCreateAccessEntries((prev) => prev.map((x, i) => i === idx ? { ...x, [key]: e.target.checked } : x))}
+                                      disabled={createAccessLoading}
+                                    />
+                                    {label}
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            <div className="lg:col-span-1 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => setCreateAccessEntries((prev) => prev.filter((_, i) => i !== idx))}
+                                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                                disabled={createAccessLoading}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
               <button
@@ -1225,16 +1544,19 @@ export default function PublishedDocuments() {
                   setShowCreateSubFolderModal(false)
                   setNewFolderName('')
                   setParentFolderForSub('')
+                  resetCreateAccess()
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={createAccessLoading}
               >
                 {t('cancel')}
               </button>
               <button
                 onClick={handleCreateSubFolder}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={createAccessLoading}
               >
-                {t('create')}
+                {createAccessLoading ? 'Creating...' : t('create')}
               </button>
             </div>
           </div>
