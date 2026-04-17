@@ -14,6 +14,11 @@ import { usePreferences } from '../contexts/PreferencesContext'
 
 export default function PublishedDocuments() {
   const { itemsPerPage, formatDate, t } = usePreferences()
+  const toFolderId = (v) => {
+    if (v === null || v === undefined || v === '') return null
+    const n = parseInt(v, 10)
+    return Number.isFinite(n) ? n : null
+  }
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedFolder, setSelectedFolder] = useState(null)
@@ -191,14 +196,15 @@ export default function PublishedDocuments() {
 
   // Get child folders of current folder
   const getChildFolders = (folderId) => {
-    if (!folderId) {
+    const fid = toFolderId(folderId)
+    if (!fid) {
       return folders || []
     }
     
     // Find the folder and return its children
     const findChildren = (folderList) => {
       for (const folder of folderList) {
-        if (folder.id === folderId) {
+        if (toFolderId(folder.id) === fid) {
           return folder.children || []
         }
         if (folder.children) {
@@ -265,10 +271,13 @@ export default function PublishedDocuments() {
 
   // Auto-expand folder tree to show the path to selected folder
   const expandPathToFolder = (folderId) => {
+    const targetId = toFolderId(folderId)
+    if (!targetId) return
     const findPathIds = (folders, targetId, path = []) => {
       for (const folder of folders) {
-        const currentPath = [...path, folder.id]
-        if (folder.id === targetId) {
+        const id = toFolderId(folder.id)
+        const currentPath = [...path, id]
+        if (id === targetId) {
           return currentPath.slice(0, -1) // Return all parent IDs, not including the target itself
         }
         if (folder.children && folder.children.length > 0) {
@@ -279,7 +288,7 @@ export default function PublishedDocuments() {
       return null
     }
     
-    const pathIds = findPathIds(folders, folderId)
+    const pathIds = findPathIds(folders, targetId)
     if (pathIds) {
       setExpandedFolders(prev => {
         // Add all parent folder IDs to expanded folders
@@ -622,11 +631,12 @@ export default function PublishedDocuments() {
 
     const handleClick = (e) => {
       e.stopPropagation()
-      setSelectedFolder(folder.id)
-      setBreadcrumbs(buildBreadcrumbs(folder.id))
+      const id = toFolderId(folder.id)
+      setSelectedFolder(id)
+      setBreadcrumbs(buildBreadcrumbs(id))
       // Expand this folder when clicked
       if (hasChildren && !isExpanded) {
-        toggleFolder(folder.id)
+        toggleFolder(id)
       }
     }
 
@@ -950,8 +960,9 @@ export default function PublishedDocuments() {
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedFolder(crumb.id)
-                          setBreadcrumbs(buildBreadcrumbs(crumb.id))
+                          const id = toFolderId(crumb.id)
+                          setSelectedFolder(id)
+                          setBreadcrumbs(buildBreadcrumbs(id))
                           setCurrentPage(1)
                         }}
                         className="hover:text-gray-900 hover:underline"
