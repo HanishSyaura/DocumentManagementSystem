@@ -604,7 +604,7 @@ export default function PublishedDocuments() {
 
   // Recursive component for rendering folder tree
   const FolderTreeItem = ({ folder, level = 0 }) => {
-    const hasChildren = (folder.children && folder.children.length > 0) || (folder.childrenCount && folder.childrenCount > 0)
+    const hasChildren = Boolean((folder.children && folder.children.length > 0) || (Number(folder.childrenCount) > 0))
     const isExpanded = expandedFolders.includes(folder.id)
     const isSelected = selectedFolder === folder.id
     const [showContextMenu, setShowContextMenu] = useState(false)
