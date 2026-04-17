@@ -3,6 +3,15 @@ import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import { usePreferences } from '../contexts/PreferencesContext'
 
+function getClientDocumentTypeId(documentTypes) {
+  const types = Array.isArray(documentTypes) ? documentTypes : []
+  const byPrefix = types.find((dt) => String(dt?.prefix || '').toLowerCase() === 'cd')
+  if (byPrefix) return String(byPrefix.id)
+  const byName = types.find((dt) => String(dt?.name || '').toLowerCase() === 'client documentation')
+  if (byName) return String(byName.id)
+  return ''
+}
+
 export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, selectedFolderId }) {
   const [folderId, setFolderId] = useState(selectedFolderId || '')
   const [projectCategoryId, setProjectCategoryId] = useState('')
@@ -20,7 +29,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
 
-  const clientTypeId = useMemo(() => autoMatchClientDocumentTypeId(), [documentTypes])
+  const clientTypeId = useMemo(() => getClientDocumentTypeId(documentTypes), [documentTypes])
   const allClientChecked = useMemo(() => fileItems.length > 0 && fileItems.every((it) => Boolean(it.isClientDocument)), [fileItems])
   const someClientChecked = useMemo(() => fileItems.some((it) => Boolean(it.isClientDocument)), [fileItems])
   const clientDeclarationRef = useRef(null)
@@ -213,11 +222,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   }
 
   const autoMatchClientDocumentTypeId = () => {
-    const byPrefix = documentTypes.find((dt) => String(dt?.prefix || '').toLowerCase() === 'cd')
-    if (byPrefix) return String(byPrefix.id)
-    const byName = documentTypes.find((dt) => String(dt?.name || '').toLowerCase() === 'client documentation')
-    if (byName) return String(byName.id)
-    return ''
+    return getClientDocumentTypeId(documentTypes)
   }
 
   const applyClientDeclaration = (item, checked) => {
@@ -260,7 +265,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           isClientDocument: false,
           collapsed: true
         }
-        byKey.set(key, someClientChecked ? applyClientDeclaration(base, true) : base)
+        byKey.set(key, allClientChecked ? applyClientDeclaration(base, true) : base)
       })
       return Array.from(byKey.values())
     })
