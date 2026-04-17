@@ -824,6 +824,81 @@ class DocumentController {
     );
   });
 
+  renameDocument = asyncHandler(async (req, res) => {
+    const documentId = parseInt(req.params.id);
+    const rawName = req.body?.fileName ?? req.body?.name ?? req.body?.title
+    const inputName = String(rawName || '').trim()
+
+    if (!inputName) {
+      return ResponseFormatter.validationError(res, [{ field: 'fileName', message: 'File name is required' }])
+    }
+
+    if (/[\\\/]/.test(inputName)) {
+      return ResponseFormatter.validationError(res, [{ field: 'fileName', message: 'Invalid file name' }])
+    }
+
+    const existing = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { id: true, title: true, fileCode: true, folderId: true }
+    })
+    if (!existing) {
+      return ResponseFormatter.notFound(res, 'Document')
+    }
+
+    const isAdmin = req.user?.roles?.some((roleName) =>
+      ['Admin', 'Administrator', 'ADMIN', 'admin'].includes(roleName)
+    ) || false
+
+    if (existing.folderId) {
+      await folderPermissionService.assertCan(existing.folderId, req.user, 'edit')
+    } else if (!isAdmin) {
+      return ResponseFormatter.error(res, 'Permission denied', 403)
+    }
+
+    const versions = await documentService.getDocumentVersions(documentId)
+    const latest = versions[0]
+    if (!latest) {
+      return ResponseFormatter.notFound(res, 'Document version')
+    }
+
+    const currentFileName = String(latest.fileName || '')
+    const currentExt = currentFileName.includes('.') ? currentFileName.split('.').pop() : ''
+    const inputHasExt = inputName.includes('.') && !inputName.endsWith('.')
+    const finalFileName = inputHasExt
+      ? inputName
+      : (currentExt ? `${inputName}.${currentExt}` : inputName)
+
+    const nextTitle = inputHasExt
+      ? inputName.replace(/\.[^.]+$/, '')
+      : inputName
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.document.update({
+        where: { id: documentId },
+        data: { title: nextTitle }
+      })
+      await tx.documentVersion.update({
+        where: { id: latest.id },
+        data: { fileName: finalFileName }
+      })
+      return tx.document.findUnique({
+        where: { id: documentId },
+        include: {
+          documentType: true,
+          projectCategory: true,
+          versions: { orderBy: { uploadedAt: 'desc' }, take: 1 }
+        }
+      })
+    })
+
+    await auditLogService.logDocument(req.user.id, 'RENAME', updated, req, {
+      oldFileName: currentFileName,
+      newFileName: finalFileName
+    });
+
+    return ResponseFormatter.success(res, { document: updated }, 'Document renamed successfully')
+  });
+
   /**
    * Delete document
    * DELETE /api/documents/:id

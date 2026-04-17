@@ -116,12 +116,11 @@ export default function useFileUploadSettings() {
     
     allowedTypes.forEach(type => {
       const normalizedType = type.toUpperCase()
-      if (EXTENSION_MAP[normalizedType]) {
-        extensions.push(EXTENSION_MAP[normalizedType])
-      }
+      if (EXTENSION_MAP[normalizedType]) extensions.push(EXTENSION_MAP[normalizedType])
+      else extensions.push(`.${String(type).toLowerCase()}`)
     })
     
-    return extensions
+    return Array.from(new Set(extensions.filter(Boolean)))
   }
 
   /**

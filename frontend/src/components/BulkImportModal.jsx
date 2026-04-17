@@ -27,7 +27,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   const { t } = usePreferences()
 
-  const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
+  const { validateFile, getAcceptString, getAllowedTypesDisplay, refreshSettings } = useFileUploadSettings()
 
   const clientTypeId = useMemo(() => getClientDocumentTypeId(documentTypes), [documentTypes])
   const allClientChecked = useMemo(() => fileItems.length > 0 && fileItems.every((it) => Boolean(it.isClientDocument)), [fileItems])
@@ -42,6 +42,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   useEffect(() => {
     if (!isOpen) return
     setFolderId(selectedFolderId || '')
+    refreshSettings()
   }, [isOpen, selectedFolderId])
 
   useEffect(() => {

@@ -39,6 +39,10 @@ export default function PublishedDocuments() {
   const [parentFolderForSub, setParentFolderForSub] = useState(null)
   const [userRole, setUserRole] = useState('Admin') // Get from localStorage/context
   const [contextMenuFolder, setContextMenuFolder] = useState(null)
+  const [renameModal, setRenameModal] = useState({ show: false, type: '', id: null, currentName: '' })
+  const [renameName, setRenameName] = useState('')
+  const [renameLoading, setRenameLoading] = useState(false)
+  const [renameError, setRenameError] = useState('')
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
   const [accessModalOpen, setAccessModalOpen] = useState(false)
@@ -94,12 +98,13 @@ export default function PublishedDocuments() {
     return result
   }
 
-  // Build breadcrumbs for a folder
-  const buildBreadcrumbs = (folderId) => {
+  const buildBreadcrumbsFrom = (folderTree, folderId) => {
+    const fid = toFolderId(folderId)
+    if (!fid) return [{ id: null, name: 'Root' }]
     const findFolder = (foldersList, id, path = []) => {
       for (const folder of foldersList) {
         const currentPath = [...path, { id: folder.id, name: folder.name }]
-        if (folder.id === id) return currentPath
+        if (toFolderId(folder.id) === id) return currentPath
         if (folder.children && folder.children.length > 0) {
           const found = findFolder(folder.children, id, currentPath)
           if (found) return found
@@ -107,9 +112,12 @@ export default function PublishedDocuments() {
       }
       return null
     }
-    const path = folderId ? (findFolder(folders, folderId) || []) : []
+    const path = findFolder(folderTree || [], fid) || []
     return [{ id: null, name: 'Root' }, ...path]
   }
+
+  // Build breadcrumbs for a folder
+  const buildBreadcrumbs = (folderId) => buildBreadcrumbsFrom(folders, folderId)
 
   // Get flattened folders for dropdown
   const flatFolders = flattenFolders(folders)
@@ -154,9 +162,56 @@ export default function PublishedDocuments() {
   const loadFolders = async () => {
     try {
       const res = await api.get('/folders')
-      setFolders(res.data.data.folders || [])
+      const list = res.data.data.folders || []
+      setFolders(list)
+      return list
     } catch (error) {
       console.error('Failed to load folders:', error)
+      return []
+    }
+  }
+
+  const openRename = (type, id, currentName) => {
+    setRenameError('')
+    setRenameLoading(false)
+    setRenameName(String(currentName || ''))
+    setRenameModal({ show: true, type, id, currentName: String(currentName || '') })
+  }
+
+  const closeRename = () => {
+    setRenameModal({ show: false, type: '', id: null, currentName: '' })
+    setRenameName('')
+    setRenameError('')
+    setRenameLoading(false)
+  }
+
+  const submitRename = async () => {
+    const name = String(renameName || '').trim()
+    if (!renameModal?.id) return
+    if (!name) {
+      setRenameError('Name is required')
+      return
+    }
+    setRenameLoading(true)
+    setRenameError('')
+    try {
+      if (renameModal.type === 'folder') {
+        await api.put(`/folders/${renameModal.id}`, { name })
+        const list = await loadFolders()
+        if (selectedFolder) {
+          setBreadcrumbs(buildBreadcrumbsFrom(list, selectedFolder))
+        }
+        setAlertModal({ show: true, title: 'Success', message: 'Folder renamed successfully', type: 'success' })
+      } else if (renameModal.type === 'file') {
+        await api.put(`/documents/${renameModal.id}/rename`, { fileName: name })
+        await loadDocuments()
+        setAlertModal({ show: true, title: 'Success', message: 'File renamed successfully', type: 'success' })
+      }
+      closeRename()
+    } catch (e) {
+      setRenameError(e?.response?.data?.message || 'Failed to rename')
+    } finally {
+      setRenameLoading(false)
     }
   }
 
@@ -622,7 +677,7 @@ export default function PublishedDocuments() {
     const handleContextMenu = (e) => {
       e.preventDefault()
       e.stopPropagation()
-      if (folder?.canManage) {
+      if (folder?.canManage || folder?.canEdit || isAdmin) {
         setContextMenuPosition({ x: e.clientX, y: e.clientY })
         setShowContextMenu(true)
         setContextMenuFolder(folder.id)
@@ -707,6 +762,20 @@ export default function PublishedDocuments() {
                 top: `${contextMenuPosition.y}px` 
               }}
             >
+              {(folder?.canEdit || folder?.canManage || isAdmin) && (
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false)
+                    openRename('folder', folder.id, folder.name)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Rename
+                </button>
+              )}
               {folder?.canManage && (
                 <button
                   onClick={() => {
@@ -760,6 +829,63 @@ export default function PublishedDocuments() {
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false })}
       />
+
+      {renameModal.show && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={closeRename} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">{renameModal.type === 'folder' ? 'Rename Folder' : 'Rename File'}</h2>
+                  <p className="text-sm text-gray-600 mt-1">{renameModal.currentName}</p>
+                </div>
+                <button onClick={closeRename} className="text-gray-400 hover:text-gray-600 transition-colors" disabled={renameLoading}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-4 space-y-3">
+                {renameError && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    {renameError}
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New name</label>
+                  <input
+                    type="text"
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    autoFocus
+                    disabled={renameLoading}
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeRename}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={renameLoading}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={submitRename}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={renameLoading}
+                >
+                  {renameLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {accessModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -1130,6 +1256,10 @@ export default function PublishedDocuments() {
                                       ...(doc.canDownload ? [{ label: t('download'), onClick: () => handleDownload(doc) }] : []),
                                       { label: t('view'), onClick: () => handleView(doc) }
                                     ]
+                                  : []
+                                ),
+                                ...(hasPermission('documents.published', 'update')
+                                  ? [{ label: 'Rename', onClick: () => openRename('file', doc.id, doc.fileName) }]
                                   : []
                                 ),
                                 ...(hasPermission('documents.published', 'update') && !['OBSOLETE', 'SUPERSEDED'].includes(doc.status)

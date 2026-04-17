@@ -47,6 +47,7 @@ router.get('/code/:fileCode', documentController.getDocumentByCode);
 router.delete('/code/:fileCode/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), documentController.purgeDocumentByCode);
 router.get('/:id', documentController.getDocument);
 router.put('/:id', documentController.updateDocument);
+router.put('/:id/rename', documentController.renameDocument);
 router.delete('/:id/purge', authorize('admin', 'Admin', 'Administrator', 'ADMIN'), documentController.purgeDocument);
 router.delete('/:id', documentController.deleteDocument);
 
