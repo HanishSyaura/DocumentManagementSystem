@@ -310,9 +310,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: `linear-gradient(to bottom right, var(--dms-login-bg-start, #F9FAFB), var(--dms-login-bg-end, #EFF6FF))` }}>
+    <div className="min-h-screen pt-16" style={{ background: `linear-gradient(to bottom right, var(--dms-login-bg-start, #F9FAFB), var(--dms-login-bg-end, #EFF6FF))` }}>
       {/* Navigation Bar */}
-      <nav className="app-topbar text-white shadow-md">
+      <nav className="app-topbar fixed top-0 inset-x-0 z-50 text-white shadow-md" style={{ backdropFilter: 'blur(10px)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
@@ -327,10 +327,10 @@ export default function Login() {
               )}
               <div className="hidden md:flex flex-col">
                 <span className="text-sm font-semibold">{companyName}</span>
-                <span className="text-xs opacity-90">{t('secure_dms')}</span>
+                <span className="text-xs opacity-90">{t('dms_label')}</span>
               </div>
             </div>
-            <div className="flex space-x-1">
+            <div className="hidden md:flex space-x-1">
               <button
                 onClick={() => navigate('/')}
                 className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -361,6 +361,13 @@ export default function Login() {
                 {t('login_btn')}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="md:hidden text-white hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {t('home')}
+            </button>
           </div>
         </div>
       </nav>

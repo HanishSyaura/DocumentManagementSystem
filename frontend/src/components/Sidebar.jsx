@@ -106,7 +106,8 @@ function NavItem({ item, isActive, isTourTarget, onClick, isCollapsed }) {
       to={item.path}
       onClick={onClick}
       data-tour-id={item.tourId}
-      className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} text-sm py-3 rounded-lg transition-all duration-200 ${
+      title={isCollapsed ? item.name : undefined}
+      className={`relative group flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} text-sm py-3 rounded-lg transition-all duration-200 ${
         isActive ? activeClass : hoverClass
       } ${isTourTarget ? 'ring-2 ring-yellow-300 animate-pulse' : ''}`}
       style={{
@@ -115,6 +116,11 @@ function NavItem({ item, isActive, isTourTarget, onClick, isCollapsed }) {
     >
       <span className={`transition-all ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
       {!isCollapsed && <span className="transition-all">{item.name}</span>}
+      {isCollapsed && (
+        <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-900/95 text-white text-xs px-2 py-1 opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 transition-all duration-150 z-50 shadow-lg">
+          {item.name}
+        </span>
+      )}
     </Link>
   )
 }
@@ -264,15 +270,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
     <>
       {/* Desktop sidebar */}
       <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-64 lg:w-72 p-4'} h-full overflow-y-auto transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-3`}>
-          {!isCollapsed && (
-            logo ? (
-              <img src={logo} alt="Company Logo" className="h-9 w-auto max-w-[170px] object-contain" />
-            ) : (
-              <div className="font-semibold text-base text-white">{companyName}</div>
-            )
-          )}
-        </div>
+        {!isCollapsed && (
+          logo ? (
+            <img src={logo} alt="Company Logo" className="h-9 w-auto max-w-[170px] object-contain mb-3" />
+          ) : (
+            <div className="font-semibold text-base text-white mb-3">{companyName}</div>
+          )
+        )}
         <nav className="space-y-1">
           {visibleMenuItems.map((item) => (
             <NavItem
