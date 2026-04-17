@@ -270,13 +270,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
     <>
       {/* Desktop sidebar */}
       <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-64 lg:w-72 p-4'} h-full overflow-y-auto transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-        {!isCollapsed && (
-          logo ? (
-            <img src={logo} alt="Company Logo" className="h-9 w-auto max-w-[170px] object-contain mb-3" />
-          ) : (
-            <div className="font-semibold text-base text-white mb-3">{companyName}</div>
-          )
-        )}
         <nav className="space-y-1">
           {visibleMenuItems.map((item) => (
             <NavItem

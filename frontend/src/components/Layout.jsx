@@ -193,7 +193,7 @@ export default function Layout({ children }) {
                   return next
                 })
               }}
-              className="hidden md:flex items-center justify-center absolute -right-3 top-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              className="hidden md:flex items-center justify-center absolute -right-3 bottom-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
               aria-label="Toggle sidebar"
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@ export default function Layout({ children }) {
                   return next
                 })
               }}
-              className="hidden md:flex items-center justify-center absolute -left-3 top-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              className="hidden md:flex items-center justify-center absolute -left-3 bottom-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
               aria-label="Toggle sidebar"
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
