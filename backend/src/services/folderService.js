@@ -40,6 +40,7 @@ class FolderService {
           accessMode: folder.accessMode,
           inheritPermissions: folder.inheritPermissions,
           documentsCount: folder._count.documents,
+          childrenCount: folder._count.children,
           createdAt: folder.createdAt,
           updatedAt: folder.updatedAt,
           children: this.buildFolderTree(folders, folder.id)

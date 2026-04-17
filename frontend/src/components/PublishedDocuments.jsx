@@ -540,7 +540,7 @@ export default function PublishedDocuments() {
 
   // Recursive component for rendering folder tree
   const FolderTreeItem = ({ folder, level = 0 }) => {
-    const hasChildren = folder.children && folder.children.length > 0
+    const hasChildren = (folder.children && folder.children.length > 0) || (folder.childrenCount && folder.childrenCount > 0)
     const isExpanded = expandedFolders.includes(folder.id)
     const isSelected = selectedFolder === folder.id
     const [showContextMenu, setShowContextMenu] = useState(false)
@@ -580,24 +580,42 @@ export default function PublishedDocuments() {
           <span className="flex-1">{folder.name}</span>
           <div className="flex items-center gap-1">
             {hasChildren && (
-              <svg
-                className={`w-4 h-4 transition-transform ${
-                  isExpanded ? 'rotate-90' : ''
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  toggleFolder(folder.id)
+                }}
+                className="p-1 rounded hover:bg-gray-200 transition-colors"
+                aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+                <svg
+                  className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             )}
           </div>
         </div>
         {isExpanded && hasChildren && (
           <div>
-            {folder.children.map((child) => (
-              <FolderTreeItem key={child.id} folder={child} level={level + 1} />
-            ))}
+            {(folder.children || []).length === 0 && folder.childrenCount > 0 ? (
+              <div
+                className="px-3 py-2 text-xs text-gray-500"
+                style={{ paddingLeft: `${12 + (level + 1) * 20}px` }}
+              >
+                No accessible subfolders
+              </div>
+            ) : (
+              folder.children.map((child) => (
+                <FolderTreeItem key={child.id} folder={child} level={level + 1} />
+              ))
+            )}
           </div>
         )}
 
@@ -827,7 +845,7 @@ export default function PublishedDocuments() {
       )}
 
       {/* Left Sidebar - Folder Tree */}
-      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
+      <div className="w-80 shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
         <div className="p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
           <div className="space-y-1">
