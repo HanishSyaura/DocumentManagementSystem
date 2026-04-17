@@ -207,15 +207,15 @@ export default function PublishedDocuments() {
         if (toFolderId(folder.id) === fid) {
           return folder.children || []
         }
-        if (folder.children) {
+        if (folder.children && folder.children.length > 0) {
           const found = findChildren(folder.children)
-          if (found) return found
+          if (found !== null) return found
         }
       }
-      return []
+      return null
     }
     
-    return findChildren(folders)
+    return findChildren(folders) || []
   }
 
   const loadDocuments = async () => {

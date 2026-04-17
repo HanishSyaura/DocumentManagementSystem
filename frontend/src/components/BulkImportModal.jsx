@@ -5,6 +5,7 @@ import { usePreferences } from '../contexts/PreferencesContext'
 
 export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, selectedFolderId }) {
   const [folderId, setFolderId] = useState(selectedFolderId || '')
+  const [projectCategoryId, setProjectCategoryId] = useState('')
   const [description, setDescription] = useState('')
   const [fileItems, setFileItems] = useState([])
   const [isDragging, setIsDragging] = useState(false)
@@ -23,6 +24,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     if (!isOpen) return
     setFolderId(selectedFolderId || '')
   }, [isOpen, selectedFolderId])
+
+  useEffect(() => {
+    if (!isOpen) return
+    setProjectCategoryId('')
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -47,6 +53,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       cancelled = true
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    setFileItems((prev) => prev.map((it) => ({ ...it, projectCategoryId: projectCategoryId || '' })))
+  }, [projectCategoryId, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -82,6 +93,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     setSubmitting(false)
     setFileItems([])
     setDescription('')
+    setProjectCategoryId('')
     setFormError('')
     setDocumentTypes([])
     setNumberingSettings(null)
@@ -222,7 +234,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           title: extracted.title,
           documentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
           nonClientDocumentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
-          projectCategoryId: '',
+          projectCategoryId: projectCategoryId || '',
           isClientDocument: false,
           collapsed: true
         })
@@ -263,6 +275,10 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       setFormError('Please select a folder')
       return
     }
+    if (projectCategories.length > 0 && !String(projectCategoryId || '').trim()) {
+      setFormError('Please select a project category')
+      return
+    }
     if (fileItems.length === 0) {
       setFormError('Please select at least one file')
       return
@@ -276,11 +292,6 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       }
       if (!String(item.documentTypeId || '').trim()) {
         setFormError(`Please select document type for "${item.file.name}"`)
-        setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
-        return
-      }
-      if (projectCategories.length > 0 && !String(item.projectCategoryId || '').trim()) {
-        setFormError(`Please select project category for "${item.file.name}"`)
         setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
         return
       }
@@ -345,6 +356,22 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                   {(folders || []).map((folder) => (
                     <option key={folder.id} value={folder.id}>
                       {folder.icon} {folder.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Project category</label>
+                <select
+                  value={projectCategoryId || ''}
+                  onChange={(e) => setProjectCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                  disabled={projectCategories.length === 0}
+                >
+                  <option value="">{projectCategories.length > 0 ? 'Select project category' : 'No project categories'}</option>
+                  {projectCategories.map((pc) => (
+                    <option key={pc.id} value={pc.id}>
+                      {pc.name}
                     </option>
                   ))}
                 </select>
@@ -425,7 +452,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                   {fileItems.map((it, idx) => {
                     const matchedType = documentTypes.find((dt) => String(dt.id) === String(it.documentTypeId))
                     const typeLabel = matchedType ? `${matchedType.name} (${matchedType.prefix})` : 'Not selected'
-                    const matchedProject = projectCategories.find((pc) => String(pc.id) === String(it.projectCategoryId))
+                    const matchedProject = projectCategories.find((pc) => String(pc.id) === String(projectCategoryId))
                     const projectLabel = matchedProject ? matchedProject.name : 'Not selected'
                     return (
                       <div key={`${it.file.name}:${it.file.size}:${it.file.lastModified}`} className="px-4 py-3">
@@ -440,8 +467,12 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               <span className="font-mono">{it.fileCode || '-'}</span>
                               <span className="mx-2">•</span>
                               <span>{typeLabel}</span>
-                              <span className="mx-2">•</span>
-                              <span>{projectLabel}</span>
+                              {projectCategories.length > 0 && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  <span>{projectLabel}</span>
+                                </>
+                              )}
                               <span className="mx-2">•</span>
                               <span>{(it.file.size / 1024 / 1024).toFixed(2)} MB</span>
                               {it.isClientDocument && (
@@ -454,9 +485,9 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              it.documentTypeId && (projectCategories.length === 0 || it.projectCategoryId) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                              it.documentTypeId && (projectCategories.length === 0 || projectCategoryId) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                             }`}>
-                              {it.documentTypeId && (projectCategories.length === 0 || it.projectCategoryId) ? 'Ready' : 'Needs attention'}
+                              {it.documentTypeId && (projectCategories.length === 0 || projectCategoryId) ? 'Ready' : 'Needs attention'}
                             </span>
                             <svg className={`w-5 h-5 text-gray-500 transition-transform ${it.collapsed ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -465,7 +496,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                         </button>
 
                         {!it.collapsed && (
-                          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">File code</label>
                               <input
@@ -505,23 +536,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               </select>
                             </div>
 
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Project category</label>
-                              <select
-                                value={it.projectCategoryId || ''}
-                                onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, projectCategoryId: e.target.value } : x))}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
-                              >
-                                <option value="">{projectCategories.length > 0 ? 'Select project category' : 'No project categories'}</option>
-                                {projectCategories.map((pc) => (
-                                  <option key={pc.id} value={pc.id}>
-                                    {pc.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div className="md:col-span-3">
+                            <div className="md:col-span-2">
                               <label className="inline-flex items-start gap-2 text-xs text-gray-700">
                                 <input
                                   type="checkbox"
@@ -549,7 +564,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               </label>
                             </div>
 
-                            <div className="md:col-span-3">
+                            <div className="md:col-span-2">
                               <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
                               <input
                                 type="text"
@@ -559,7 +574,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               />
                             </div>
 
-                            <div className="md:col-span-3 flex justify-end">
+                            <div className="md:col-span-2 flex justify-end">
                               <button
                                 type="button"
                                 onClick={() => removeFile(idx)}
