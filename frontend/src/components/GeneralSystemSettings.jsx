@@ -70,7 +70,7 @@ function CompanyInfo() {
           setFormData(companyInfo)
           try {
             localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
-            window.dispatchEvent(new Event('storage'))
+            window.dispatchEvent(new Event('brandingUpdated'))
           } catch {}
           return
         }
@@ -102,7 +102,7 @@ function CompanyInfo() {
       const savedCompanyInfo = res.data?.data?.companyInfo || formData
       try {
         localStorage.setItem('dms_company_info', JSON.stringify(savedCompanyInfo))
-        window.dispatchEvent(new Event('storage'))
+        window.dispatchEvent(new Event('brandingUpdated'))
       } catch {}
       alert('Company information saved successfully!')
     } catch (error) {
@@ -1259,7 +1259,7 @@ const ThemeBranding = () => {
         if (savedTheme && typeof savedTheme === 'object') {
           try {
             localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
-            window.dispatchEvent(new Event('storage'))
+            window.dispatchEvent(new Event('brandingUpdated'))
           } catch {}
           if (!mounted) return
           applyLoadedTheme(savedTheme)
@@ -1388,12 +1388,12 @@ const ThemeBranding = () => {
       const res = await api.put('/system/config/theme-settings', newTheme)
       const savedTheme = res.data?.data?.theme || newTheme
       localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
-      window.dispatchEvent(new Event('storage'))
+      window.dispatchEvent(new Event('brandingUpdated'))
       setOriginalTheme(savedTheme)
       return
     } catch {}
     localStorage.setItem('dms_theme_settings', JSON.stringify(newTheme))
-    window.dispatchEvent(new Event('storage'))
+    window.dispatchEvent(new Event('brandingUpdated'))
     setOriginalTheme(newTheme)
   }
 
@@ -1416,14 +1416,14 @@ const ThemeBranding = () => {
       const res = await api.put('/system/config/theme-settings', theme)
       const savedTheme = res.data?.data?.theme || theme
       localStorage.setItem('dms_theme_settings', JSON.stringify(savedTheme))
-      window.dispatchEvent(new Event('storage'))
+      window.dispatchEvent(new Event('brandingUpdated'))
       setOriginalTheme(savedTheme)
       setShowConfirmModal(false)
       setHasChanges(false)
       return
     } catch {}
     localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
-    window.dispatchEvent(new Event('storage'))
+    window.dispatchEvent(new Event('brandingUpdated'))
     setOriginalTheme(theme)
     setShowConfirmModal(false)
     setHasChanges(false)
@@ -3597,6 +3597,7 @@ function DocumentSettings() {
       xltx: false,
       png: true,
       jpg: true,
+      jpeg: true,
       txt: true
     },
     bulkUploadLimit: 10,

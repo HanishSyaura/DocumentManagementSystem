@@ -20,9 +20,36 @@ export default function Login() {
   const [tempUserId, setTempUserId] = useState(null)
   const [resendTimer, setResendTimer] = useState(0)
 
-  const [logo, setLogo] = useState(null)
-  const [companyName, setCompanyName] = useState('FileNix')
-  const [welcomeMessage, setWelcomeMessage] = useState('Welcome to {companyName}')
+  const [logo, setLogo] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings')
+      if (!savedTheme) return null
+      const theme = JSON.parse(savedTheme)
+      return theme.mainLogo || null
+    } catch {
+      return null
+    }
+  })
+  const [companyName, setCompanyName] = useState(() => {
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info')
+      if (!savedCompanyInfo) return 'FileNix'
+      const companyInfo = JSON.parse(savedCompanyInfo)
+      return companyInfo.companyName || 'FileNix'
+    } catch {
+      return 'FileNix'
+    }
+  })
+  const [welcomeMessage, setWelcomeMessage] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings')
+      if (!savedTheme) return 'Welcome to {companyName}'
+      const theme = JSON.parse(savedTheme)
+      return theme.loginWelcomeMessage || 'Welcome to {companyName}'
+    } catch {
+      return 'Welcome to {companyName}'
+    }
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
   const [changePasswordData, setChangePasswordData] = useState({
@@ -58,55 +85,38 @@ export default function Login() {
   }, [resendTimer])
 
   useEffect(() => {
-    // Load logo and company name from localStorage
-    const loadBranding = async () => {
-      let loadedCompanyName = 'FileNix'
-
+    const loadBrandingFromStorage = () => {
       try {
-        const res = await api.get('/public/branding')
-        const companyInfo = res.data?.data?.companyInfo
-        const theme = res.data?.data?.theme
-        try {
-          if (theme) localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
-          if (companyInfo) localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
-          window.dispatchEvent(new Event('storage'))
-        } catch {}
-      } catch {}
-      
-      const savedTheme = localStorage.getItem('dms_theme_settings')
-      if (savedTheme) {
-        try {
+        const savedTheme = localStorage.getItem('dms_theme_settings')
+        if (savedTheme) {
           const theme = JSON.parse(savedTheme)
-          if (theme.mainLogo) {
-            setLogo(theme.mainLogo)
-          }
-          if (theme.loginWelcomeMessage) {
-            setWelcomeMessage(theme.loginWelcomeMessage)
-          }
-        } catch (e) {
-          console.error('Failed to parse theme settings', e)
+          setLogo(theme.mainLogo || null)
+          if (theme.loginWelcomeMessage) setWelcomeMessage(theme.loginWelcomeMessage)
+        } else {
+          setLogo(null)
         }
+      } catch {
+        setLogo(null)
       }
 
-      const savedCompanyInfo = localStorage.getItem('dms_company_info')
-      if (savedCompanyInfo) {
-        try {
+      try {
+        const savedCompanyInfo = localStorage.getItem('dms_company_info')
+        if (savedCompanyInfo) {
           const companyInfo = JSON.parse(savedCompanyInfo)
-          if (companyInfo.companyName) {
-            loadedCompanyName = companyInfo.companyName
-            setCompanyName(loadedCompanyName)
-          }
-        } catch (e) {
-          console.error('Failed to parse company info', e)
+          if (companyInfo.companyName) setCompanyName(companyInfo.companyName)
         }
+      } catch {
       }
     }
 
-    loadBranding()
+    loadBrandingFromStorage()
 
-    // Listen for storage events
-    window.addEventListener('storage', loadBranding)
-    return () => window.removeEventListener('storage', loadBranding)
+    window.addEventListener('storage', loadBrandingFromStorage)
+    window.addEventListener('brandingUpdated', loadBrandingFromStorage)
+    return () => {
+      window.removeEventListener('storage', loadBrandingFromStorage)
+      window.removeEventListener('brandingUpdated', loadBrandingFromStorage)
+    }
   }, [])
 
   async function submit(e) {

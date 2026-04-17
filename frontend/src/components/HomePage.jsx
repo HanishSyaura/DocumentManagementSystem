@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePreferences } from '../contexts/PreferencesContext';
 import {
@@ -46,8 +46,26 @@ const HomePage = () => {
   });
   const [submitStatus, setSubmitStatus] = useState(null);
   const [pdfModal, setPdfModal] = useState({ isOpen: false, pdfData: null, title: '' });
-  const [logo, setLogo] = useState(null);
-  const [companyName, setCompanyName] = useState('FileNix');
+  const [logo, setLogo] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings');
+      if (!savedTheme) return null;
+      const theme = JSON.parse(savedTheme);
+      return theme.mainLogo || null;
+    } catch {
+      return null;
+    }
+  });
+  const [companyName, setCompanyName] = useState(() => {
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info');
+      if (!savedCompanyInfo) return 'FileNix';
+      const companyInfo = JSON.parse(savedCompanyInfo);
+      return companyInfo.companyName || 'FileNix';
+    } catch {
+      return 'FileNix';
+    }
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHexColor = (v) => typeof v === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
@@ -109,8 +127,10 @@ const HomePage = () => {
     loadLandingContent();
     loadBranding();
     window.addEventListener('storage', loadBranding)
+    window.addEventListener('brandingUpdated', loadBranding)
     return () => {
       window.removeEventListener('storage', loadBranding)
+      window.removeEventListener('brandingUpdated', loadBranding)
     }
   }, []);
 
@@ -137,43 +157,28 @@ const HomePage = () => {
     }
   };
 
-  const loadBranding = async () => {
+  const loadBranding = () => {
     try {
-      const res = await api.get('/public/branding')
-      const companyInfo = res.data?.data?.companyInfo
-      const theme = res.data?.data?.theme
-      if (theme?.mainLogo) setLogo(theme.mainLogo)
-      if (companyInfo?.companyName) setCompanyName(companyInfo.companyName)
-      try {
-        if (theme) localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
-        if (companyInfo) localStorage.setItem('dms_company_info', JSON.stringify(companyInfo))
-      } catch {}
-      return
-    } catch {}
-
-    const savedTheme = localStorage.getItem('dms_theme_settings');
-    if (savedTheme) {
-      try {
+      const savedTheme = localStorage.getItem('dms_theme_settings');
+      if (savedTheme) {
         const theme = JSON.parse(savedTheme);
-        if (theme.mainLogo) {
-          setLogo(theme.mainLogo);
-        }
-      } catch (e) {
-        console.error('Failed to parse theme settings', e);
+        setLogo(theme.mainLogo || null);
+      } else {
+        setLogo(null);
       }
+    } catch {
+      setLogo(null);
     }
 
-    const savedCompanyInfo = localStorage.getItem('dms_company_info');
-    if (savedCompanyInfo) {
-      try {
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info');
+      if (savedCompanyInfo) {
         const companyInfo = JSON.parse(savedCompanyInfo);
         if (companyInfo.companyName) {
           setCompanyName(companyInfo.companyName);
         }
-      } catch (e) {
-        console.error('Failed to parse company info', e);
       }
-    }
+    } catch {}
   };
 
   const fetchFeatures = async () => {

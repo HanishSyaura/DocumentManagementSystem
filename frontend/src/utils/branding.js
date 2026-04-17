@@ -116,5 +116,5 @@ export function persistBranding({ companyInfo, theme }) {
       localStorage.setItem('dms_theme_settings', JSON.stringify(theme))
     } catch {}
   }
-  window.dispatchEvent(new Event('storage'))
+  window.dispatchEvent(new Event('brandingUpdated'))
 }

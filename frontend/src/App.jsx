@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useLayoutEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import HomePage from './components/HomePage'
 import DiagnosticPage from './components/DiagnosticPage'
@@ -23,6 +23,17 @@ import api from './api/axios'
 import { applyCompanyInfo, applyTheme, persistBranding } from './utils/branding'
 
 export default function App() {
+  useLayoutEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem('dms_theme_settings')
+      if (savedTheme) applyTheme(JSON.parse(savedTheme))
+    } catch {}
+    try {
+      const savedCompanyInfo = localStorage.getItem('dms_company_info')
+      if (savedCompanyInfo) applyCompanyInfo(JSON.parse(savedCompanyInfo))
+    } catch {}
+  }, [])
+
   useEffect(() => {
     let mounted = true
     const load = async () => {

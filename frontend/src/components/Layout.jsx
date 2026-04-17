@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
@@ -30,7 +30,7 @@ export default function Layout({ children }) {
   // Right panel is collapsed by default on all pages except dashboard
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(location.pathname !== '/dashboard')
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Load theme settings to get sidebar position and apply theme
     const loadThemeSettings = () => {
       const savedTheme = localStorage.getItem('dms_theme_settings')
@@ -101,9 +101,11 @@ export default function Layout({ children }) {
     loadThemeSettings()
 
     window.addEventListener('storage', loadThemeSettings)
+    window.addEventListener('brandingUpdated', loadThemeSettings)
 
     return () => {
       window.removeEventListener('storage', loadThemeSettings)
+      window.removeEventListener('brandingUpdated', loadThemeSettings)
     }
   }, [])
 

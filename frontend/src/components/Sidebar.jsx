@@ -252,9 +252,11 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
 
     // Listen for storage events (theme/company changes)
     window.addEventListener('storage', loadLogo)
+    window.addEventListener('brandingUpdated', loadLogo)
     
     return () => {
       window.removeEventListener('storage', loadLogo)
+      window.removeEventListener('brandingUpdated', loadLogo)
     }
   }, [])
 
@@ -265,9 +267,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} mb-3`}>
           {!isCollapsed && (
             logo ? (
-              <div className="h-9 flex items-center bg-white rounded-lg px-2 shadow-sm">
-                <img src={logo} alt="Company Logo" className="max-h-7 max-w-[170px] object-contain" />
-              </div>
+              <img src={logo} alt="Company Logo" className="h-9 w-auto max-w-[170px] object-contain" />
             ) : (
               <div className="font-semibold text-base text-white">{companyName}</div>
             )

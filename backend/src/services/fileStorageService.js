@@ -232,7 +232,9 @@ class FileStorageService {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain'
+      'text/plain',
+      'image/png',
+      'image/jpeg'
     ];
 
     return allowed.includes(mimetype);

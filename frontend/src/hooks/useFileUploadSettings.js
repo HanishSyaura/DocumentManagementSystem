@@ -42,7 +42,7 @@ const EXTENSION_MAP = {
 // Default settings (fallback)
 const DEFAULT_SETTINGS = {
   maxFileSize: 10, // MB
-  allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'TXT'],
+  allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'TXT', 'PNG', 'JPG', 'JPEG'],
   bulkUploadLimit: 10
 }
 

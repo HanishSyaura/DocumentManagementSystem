@@ -357,7 +357,7 @@ class ConfigService {
     // Return default settings if not configured
     return {
       maxFileSize: 10, // MB
-      allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'PPT', 'PPTX', 'TXT'],
+      allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'PPT', 'PPTX', 'TXT', 'PNG', 'JPG', 'JPEG'],
       bulkUploadLimit: 10
     };
   }
