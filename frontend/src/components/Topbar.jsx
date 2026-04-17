@@ -153,16 +153,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
             <path fillRule="evenodd" d="M3 5h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2zm0 4h14a1 1 0 010 2H3a1 1 0 010-2z" clipRule="evenodd" />
           </svg>
         </button>
-        {logo ? (
-          <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
-            <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
-          </div>
-        ) : (
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold shadow-sm">
-            {companyName.substring(0, 2).toUpperCase()}
-          </div>
-        )}
-        <div className="hidden md:flex flex-col">
+        <div className="flex flex-col">
           <span className="text-sm font-semibold">{companyName}</span>
           <span className="text-xs opacity-90">{t('dms_label')}</span>
         </div>

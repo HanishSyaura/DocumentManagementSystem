@@ -355,9 +355,6 @@ const translations = {
     'first_time_user_hint_title': 'First time login?',
     'first_time_user_hint_body': 'Click here to open the guidelines and start the guided tour.',
     'logout': 'Logout',
-    'first_time_user_hint_title': '首次登录？',
-    'first_time_user_hint_body': '点击这里打开指南并开始引导。',
-    'logout': 'Logout',
 
     'gs_subtitle': 'A quick guide to help you navigate the system confidently.',
     'gs_user_tab': 'User Guide',
