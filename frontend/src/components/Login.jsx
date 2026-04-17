@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DocumentTextIcon, UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, DocumentTextIcon, UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '../api/axios'
 import { getDefaultRoute } from '../utils/defaultRoute'
 import { updateUserData } from '../utils/userDataEvents'
@@ -61,6 +61,7 @@ export default function Login() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [changePasswordMessage, setChangePasswordMessage] = useState('')
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState({
@@ -330,45 +331,64 @@ export default function Login() {
                 <span className="text-xs opacity-90">{t('dms_label')}</span>
               </div>
             </div>
-            <div className="hidden md:flex space-x-1">
+            <div className="hidden md:flex items-center space-x-1">
               <button
                 onClick={() => navigate('/')}
                 className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {t('home')}
+                {t('hp_home')}
               </button>
               <button
                 onClick={() => navigate('/#about')}
                 className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {t('about')}
+                {t('hp_about')}
               </button>
               <button
                 onClick={() => navigate('/#features')}
                 className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {t('features')}
+                {t('hp_features')}
+              </button>
+              <button
+                onClick={() => navigate('/#workflow')}
+                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Overview
               </button>
               <button
                 onClick={() => navigate('/#contact')}
                 className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                {t('contact')}
+                {t('hp_contact')}
               </button>
               <button
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold ml-2 hover:bg-blue-50 transition-colors"
               >
-                {t('login_btn')}
+                {t('hp_login')}
               </button>
             </div>
             <button
               type="button"
-              onClick={() => navigate('/')}
-              className="md:hidden text-white hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-white/20 transition-colors"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="login-mobile-nav"
+              onClick={() => setMobileMenuOpen(v => !v)}
             >
-              {t('home')}
+              {mobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
             </button>
           </div>
+          {mobileMenuOpen && (
+            <div id="login-mobile-nav" className="md:hidden pb-3 flex flex-col gap-1">
+              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_home')}</button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#about') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_about')}</button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#features') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_features')}</button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#workflow') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Overview</button>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#contact') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_contact')}</button>
+              <button type="button" className="mt-1 bg-white text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors">{t('hp_login')}</button>
+            </div>
+          )}
         </div>
       </nav>
 
