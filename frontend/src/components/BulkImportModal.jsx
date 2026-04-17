@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import { usePreferences } from '../contexts/PreferencesContext'
@@ -19,6 +19,16 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const { t } = usePreferences()
 
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
+
+  const clientTypeId = useMemo(() => autoMatchClientDocumentTypeId(), [documentTypes])
+  const allClientChecked = useMemo(() => fileItems.length > 0 && fileItems.every((it) => Boolean(it.isClientDocument)), [fileItems])
+  const someClientChecked = useMemo(() => fileItems.some((it) => Boolean(it.isClientDocument)), [fileItems])
+  const clientDeclarationRef = useRef(null)
+
+  useEffect(() => {
+    if (!clientDeclarationRef.current) return
+    clientDeclarationRef.current.indeterminate = Boolean(!allClientChecked && someClientChecked)
+  }, [allClientChecked, someClientChecked])
 
   useEffect(() => {
     if (!isOpen) return
@@ -210,6 +220,18 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     return ''
   }
 
+  const applyClientDeclaration = (item, checked) => {
+    const nextClientTypeId = checked ? clientTypeId : ''
+    return {
+      ...item,
+      isClientDocument: checked,
+      nonClientFileCode: checked ? (item.fileCode || item.nonClientFileCode) : item.nonClientFileCode,
+      fileCode: checked ? '' : (item.nonClientFileCode || item.fileCode),
+      nonClientDocumentTypeId: checked ? (item.documentTypeId || item.nonClientDocumentTypeId) : item.nonClientDocumentTypeId,
+      documentTypeId: checked ? (nextClientTypeId || item.documentTypeId) : (item.nonClientDocumentTypeId || item.documentTypeId)
+    }
+  }
+
   const addFiles = (incoming) => {
     const next = []
     for (const file of incoming) {
@@ -227,7 +249,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
         const key = `${f.name}:${f.size}:${f.lastModified}`
         if (byKey.has(key)) return
         const extracted = extractFromFilename(f.name)
-        byKey.set(key, {
+        const base = {
           file: f,
           fileCode: extracted.fileCode,
           nonClientFileCode: extracted.fileCode,
@@ -237,7 +259,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           projectCategoryId: projectCategoryId || '',
           isClientDocument: false,
           collapsed: true
-        })
+        }
+        byKey.set(key, someClientChecked ? applyClientDeclaration(base, true) : base)
       })
       return Array.from(byKey.values())
     })
@@ -448,6 +471,21 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                     </button>
                   </div>
                 </div>
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <label className="inline-flex items-start gap-2 text-xs text-gray-700">
+                    <input
+                      ref={clientDeclarationRef}
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={allClientChecked}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setFileItems((prev) => prev.map((x) => applyClientDeclaration(x, checked)))
+                      }}
+                    />
+                    <span>{t('client_document_declaration')}</span>
+                  </label>
+                </div>
                 <div className="max-h-[420px] overflow-auto divide-y divide-gray-100">
                   {fileItems.map((it, idx) => {
                     const matchedType = documentTypes.find((dt) => String(dt.id) === String(it.documentTypeId))
@@ -546,15 +584,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                     const checked = e.target.checked
                                     setFileItems((prev) => prev.map((x, i) => {
                                       if (i !== idx) return x
-                                      const clientTypeId = checked ? autoMatchClientDocumentTypeId() : ''
-                                      return {
-                                        ...x,
-                                        isClientDocument: checked,
-                                        nonClientFileCode: checked ? (x.fileCode || x.nonClientFileCode) : x.nonClientFileCode,
-                                        fileCode: checked ? '' : (x.nonClientFileCode || x.fileCode),
-                                        nonClientDocumentTypeId: checked ? (x.documentTypeId || x.nonClientDocumentTypeId) : x.nonClientDocumentTypeId,
-                                        documentTypeId: checked ? (clientTypeId || x.documentTypeId) : (x.nonClientDocumentTypeId || x.documentTypeId)
-                                      }
+                                      return applyClientDeclaration(x, checked)
                                     }))
                                   }}
                                 />
