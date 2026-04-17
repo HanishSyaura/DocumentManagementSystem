@@ -1035,7 +1035,7 @@ export default function PublishedDocuments() {
                               actions={[
                                 ...(hasPermission('documents.published', 'read')
                                   ? [
-                                      { label: t('download'), onClick: () => handleDownload(doc) },
+                                      ...(doc.canDownload ? [{ label: t('download'), onClick: () => handleDownload(doc) }] : []),
                                       { label: t('view'), onClick: () => handleView(doc) }
                                     ]
                                   : []

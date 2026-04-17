@@ -53,6 +53,7 @@ router.delete('/:id', documentController.deleteDocument);
 // Document file operations
 router.post('/:id/upload', uploadDocument.single('file'), documentController.uploadDocument);
 router.get('/:id/download', documentController.downloadDocument);
+router.get('/:id/preview', documentController.previewDocument);
 router.get('/:id/versions', documentController.getDocumentVersions);
 
 // Document comments

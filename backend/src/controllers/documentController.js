@@ -977,6 +977,56 @@ class DocumentController {
     return res.sendFile(absolutePath);
   });
 
+  previewDocument = asyncHandler(async (req, res) => {
+    const documentId = parseInt(req.params.id);
+    const { versionId } = req.query;
+
+    const document = await documentService.getDocumentById(documentId);
+    if (document?.folderId) {
+      await folderPermissionService.assertCan(document.folderId, req.user, 'view')
+    }
+
+    let version;
+    if (versionId) {
+      const versions = await documentService.getDocumentVersions(documentId);
+      version = versions.find(v => v.id === parseInt(versionId));
+    } else {
+      const versions = await documentService.getDocumentVersions(documentId);
+      version = versions[0];
+    }
+
+    if (!version) {
+      return ResponseFormatter.notFound(res, 'Document version');
+    }
+
+    let absolutePath = path.isAbsolute(version.filePath)
+      ? version.filePath
+      : path.resolve(process.cwd(), version.filePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return ResponseFormatter.notFound(res, 'File');
+    }
+
+    res.setHeader('Content-Type', version.mimeType);
+    const rawFileName = String(version.fileName || 'document')
+    const asciiFileName = rawFileName.replace(/[^A-Za-z0-9._-]/g, '_') || 'document'
+    const encodedFileName = encodeURIComponent(rawFileName)
+    res.setHeader('Content-Disposition', `inline; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`);
+
+    if (version.isEncrypted) {
+      try {
+        const encryptionService = require('../services/encryptionService');
+        const decryptedBuffer = await encryptionService.getDecryptedBuffer(absolutePath);
+        return res.send(decryptedBuffer);
+      } catch (error) {
+        console.error('Failed to decrypt file:', error);
+        return ResponseFormatter.error(res, 'Failed to decrypt file', 500);
+      }
+    }
+
+    return res.sendFile(absolutePath);
+  });
+
   /**
    * Add comment to document
    * POST /api/documents/:id/comments
@@ -1088,6 +1138,12 @@ class DocumentController {
 
     const result = await documentService.listDocuments(filters, pagination, req.user.id);
 
+    const folderDownloadMap = new Map()
+    const folderIds = Array.from(new Set(result.documents.map((d) => d.folderId).filter((id) => id !== null && id !== undefined)))
+    for (const fid of folderIds) {
+      folderDownloadMap.set(fid, await folderPermissionService.canUser(fid, req.user, 'download'))
+    }
+
     // Format documents with file information from latest version
     const formattedDocs = result.documents.map(doc => {
       const latestVersion = doc.versions && doc.versions[0];
@@ -1106,6 +1162,8 @@ class DocumentController {
 
       return {
         id: doc.id,
+        folderId: doc.folderId,
+        canDownload: doc.folderId ? Boolean(folderDownloadMap.get(doc.folderId)) : true,
         fileCode: doc.isClientDocument ? '-' : doc.fileCode,
         title: doc.title,
         documentType: doc.documentType?.name || '',
