@@ -16,6 +16,11 @@ class SecurityService {
     lockoutDuration: 30, // minutes
     sessionTimeout: 480, // minutes (8 hours)
     enable2FA: false,
+    twoFAMethods: {
+      email: true,
+      sms: false,
+      app: false
+    },
     encryptDocuments: false,
     encryptDatabase: false
   };

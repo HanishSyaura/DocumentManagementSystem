@@ -20,6 +20,9 @@ router.post('/change-password', authenticate, authController.changePassword);
 router.get('/sessions', authenticate, authController.getSessions);
 router.delete('/sessions/:sessionId', authenticate, authController.revokeSession);
 router.put('/2fa', authenticate, authController.toggleTwoFactor);
+router.get('/2fa/status', authenticate, authController.getTwoFactorStatus);
+router.post('/2fa/setup-authenticator', authenticate, authController.setupAuthenticator);
+router.post('/2fa/verify-authenticator', authenticate, authController.verifyAuthenticatorSetup);
 router.post('/deactivate', authenticate, authController.deactivateAccount);
 
 module.exports = router;

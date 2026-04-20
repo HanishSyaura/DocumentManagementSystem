@@ -19,6 +19,8 @@ export default function Login() {
   const [verificationCode, setVerificationCode] = useState('')
   const [tempUserId, setTempUserId] = useState(null)
   const [resendTimer, setResendTimer] = useState(0)
+  const [twoFAMethod, setTwoFAMethod] = useState('email')
+  const [twoFAMessage, setTwoFAMessage] = useState('')
 
   const [logo, setLogo] = useState(() => {
     try {
@@ -132,10 +134,12 @@ export default function Login() {
       // Check for 2FA Requirement
       if (res.data?.data?.requires2FA) {
         setTempUserId(res.data.data.userId)
+        setTwoFAMethod(res.data.data.method || 'email')
+        setTwoFAMessage(res.data.data.message || '')
         setShow2FA(true)
         setLoading(false)
         setError(null)
-        setResendTimer(60) // Start 60s timer
+        setResendTimer((res.data.data.method || 'email') === 'email' ? 60 : 0)
         return
       }
 
@@ -175,7 +179,8 @@ export default function Login() {
     try {
       const res = await api.post('/auth/verify-2fa', { 
         userId: tempUserId,
-        code: verificationCode
+        code: verificationCode,
+        method: twoFAMethod
       })
 
       const token = res.data?.data?.accessToken
@@ -202,10 +207,11 @@ export default function Login() {
 
   async function handleResend2FA() {
     if (resendTimer > 0) return
+    if (twoFAMethod !== 'email') return
     setError(null)
     
     try {
-      await api.post('/auth/resend-2fa', { userId: tempUserId })
+      await api.post('/auth/resend-2fa', { userId: tempUserId, method: twoFAMethod })
       setResendTimer(60)
       setError(null)
       // Optional: show success message
@@ -450,7 +456,9 @@ export default function Login() {
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900">{t('two_factor_auth')}</h3>
                     <p className="text-sm text-gray-500 mt-2">
-                      {t('enter_verification_code')}
+                      {twoFAMethod === 'app'
+                        ? (twoFAMessage || 'Open your authenticator app and enter the 6-digit code.')
+                        : (twoFAMessage || t('enter_verification_code'))}
                     </p>
                   </div>
 
@@ -479,21 +487,25 @@ export default function Login() {
                   </button>
 
                   <div className="flex flex-col items-center gap-4 mt-6">
-                    <button
-                      type="button"
-                      onClick={handleResend2FA}
-                      disabled={resendTimer > 0}
-                      className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {resendTimer > 0 ? t('resend_code_timer').replace('{seconds}', resendTimer) : t('resend_code')}
-                    </button>
-                    
+                    {twoFAMethod === 'email' && (
+                      <button
+                        type="button"
+                        onClick={handleResend2FA}
+                        disabled={resendTimer > 0}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {resendTimer > 0 ? t('resend_code_timer').replace('{seconds}', resendTimer) : t('resend_code')}
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => {
                         setShow2FA(false)
                         setTempUserId(null)
                         setVerificationCode('')
+                        setTwoFAMethod('email')
+                        setTwoFAMessage('')
                         setError(null)
                       }}
                       className="text-sm text-gray-500 hover:text-gray-700"

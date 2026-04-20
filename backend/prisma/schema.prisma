@@ -32,6 +32,9 @@ model User {
   lockedUntil         DateTime?
   // Two-Factor Authentication
   twoFactorEnabled    Boolean    @default(false)
+  twoFactorMethod     String?    @default("email")
+  twoFactorSecret     String?
+  twoFactorTempSecret String?
   twoFactorCode       String?
   twoFactorCodeExpiry DateTime?
   createdAt           DateTime   @default(now())

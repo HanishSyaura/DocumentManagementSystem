@@ -74,8 +74,15 @@ class AuthService {
       }
     });
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Remove sensitive auth/2FA fields from response
+    const {
+      password: _,
+      twoFactorCode: __,
+      twoFactorCodeExpiry: ___,
+      twoFactorSecret: ____,
+      twoFactorTempSecret: _____,
+      ...userWithoutPassword
+    } = user;
 
     // If skipSession is true (2FA required), return user only without creating session
     if (skipSession) {

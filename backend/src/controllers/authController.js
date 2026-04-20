@@ -76,12 +76,24 @@ class AuthController {
     const requires2FA = is2FASystemEnabled || isUser2FAEnabled;
 
     if (requires2FA) {
-      // Send 2FA code via email
-      await twoFactorService.sendTwoFactorCode(result.user.id);
+      const twoFactorMethod = await twoFactorService.getPreferredMethod(result.user);
+      if (!twoFactorMethod) {
+        return ResponseFormatter.error(
+          res,
+          '2FA is enabled but no supported verification method is configured.',
+          400
+        );
+      }
+
+      // Send OTP only for email method
+      if (twoFactorMethod === 'email') {
+        await twoFactorService.sendTwoFactorCode(result.user.id);
+      }
       
       // Log 2FA initiated
       await auditLogService.logAuth(result.user.id, 'TWO_FACTOR_INITIATED', req, {
-        email: result.user.email
+        email: result.user.email,
+        method: twoFactorMethod
       });
 
       // Return partial response - user needs to verify 2FA
@@ -91,7 +103,10 @@ class AuthController {
           requires2FA: true,
           userId: result.user.id,
           email: result.user.email,
-          message: 'Verification code sent to your email'
+          method: twoFactorMethod,
+          message: twoFactorMethod === 'app'
+            ? 'Enter code from your authenticator app'
+            : 'Verification code sent to your email'
         },
         'Two-factor authentication required',
         200
@@ -317,7 +332,7 @@ class AuthController {
    * POST /api/auth/verify-2fa
    */
   verify2FA = asyncHandler(async (req, res) => {
-    const { userId, code } = req.body;
+    const { userId, code, method } = req.body;
 
     if (!userId || !code) {
       return ResponseFormatter.validationError(res, [
@@ -327,7 +342,7 @@ class AuthController {
     }
 
     // Verify the 2FA code
-    const verification = await twoFactorService.verifyCode(parseInt(userId), code);
+    const verification = await twoFactorService.verifyCode(parseInt(userId), code, method || 'email');
 
     if (!verification.valid) {
       // Log failed 2FA attempt
@@ -401,8 +416,15 @@ class AuthController {
       twoFactorVerified: true
     });
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Remove sensitive auth/2FA fields from response
+    const {
+      password: _,
+      twoFactorCode: __,
+      twoFactorCodeExpiry: ___,
+      twoFactorSecret: ____,
+      twoFactorTempSecret: _____,
+      ...userWithoutPassword
+    } = user;
 
     return ResponseFormatter.success(
       res,
@@ -421,12 +443,20 @@ class AuthController {
    * POST /api/auth/resend-2fa
    */
   resend2FA = asyncHandler(async (req, res) => {
-    const { userId } = req.body;
+    const { userId, method } = req.body;
 
     if (!userId) {
       return ResponseFormatter.validationError(res, [
         { field: 'userId', message: 'User ID is required' }
       ]);
+    }
+
+    if ((method || 'email') !== 'email') {
+      return ResponseFormatter.error(
+        res,
+        'Resend is only available for email verification',
+        400
+      );
     }
 
     await twoFactorService.sendTwoFactorCode(parseInt(userId));
@@ -496,6 +526,80 @@ class AuthController {
       res,
       null,
       'Account deactivated successfully'
+    );
+  });
+
+  /**
+   * Begin authenticator app setup
+   * POST /api/auth/2fa/setup-authenticator
+   */
+  setupAuthenticator = asyncHandler(async (req, res) => {
+    const issuer = req.body?.issuer || 'FileNix / DMS';
+    const payload = await twoFactorService.setupAuthenticator(req.user.id, issuer);
+
+    return ResponseFormatter.success(
+      res,
+      payload,
+      'Authenticator setup generated successfully'
+    );
+  });
+
+  /**
+   * Verify authenticator setup
+   * POST /api/auth/2fa/verify-authenticator
+   */
+  verifyAuthenticatorSetup = asyncHandler(async (req, res) => {
+    const { code } = req.body;
+
+    if (!code) {
+      return ResponseFormatter.validationError(res, [
+        { field: 'code', message: 'Verification code is required' }
+      ]);
+    }
+
+    const verification = await twoFactorService.verifyAuthenticatorSetup(req.user.id, code);
+    if (!verification.valid) {
+      return ResponseFormatter.error(res, verification.error, 400);
+    }
+
+    await auditLogService.log({
+      userId: req.user.id,
+      action: 'TWO_FACTOR_AUTHENTICATOR_ENABLED',
+      module: 'AUTH',
+      description: 'User enabled authenticator app for two-factor authentication',
+      ipAddress: this.getClientIp(req),
+      userAgent: req.headers['user-agent']
+    });
+
+    return ResponseFormatter.success(
+      res,
+      { twoFactorEnabled: true, method: 'app' },
+      'Authenticator app enabled successfully'
+    );
+  });
+
+  /**
+   * Get current user 2FA status/method
+   * GET /api/auth/2fa/status
+   */
+  getTwoFactorStatus = asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        twoFactorEnabled: true,
+        twoFactorMethod: true,
+        twoFactorSecret: true
+      }
+    });
+
+    return ResponseFormatter.success(
+      res,
+      {
+        twoFactorEnabled: user?.twoFactorEnabled || false,
+        method: user?.twoFactorMethod || 'email',
+        hasAuthenticator: Boolean(user?.twoFactorSecret)
+      },
+      '2FA status retrieved successfully'
     );
   });
 }

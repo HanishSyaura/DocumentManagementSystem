@@ -1,13 +1,22 @@
 const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const prisma = require('../config/database');
 const emailService = require('./emailService');
 const securityService = require('./securityService');
+const encryptionService = require('./encryptionService');
 
 /**
  * Two-Factor Authentication Service
  * Handles 2FA code generation, verification, and email delivery
  */
 class TwoFactorService {
+  defaultMethods = {
+    email: true,
+    sms: false,
+    app: false
+  };
+
   /**
    * Generate a 6-digit verification code
    */
@@ -16,11 +25,42 @@ class TwoFactorService {
   }
 
   /**
+   * Get enabled 2FA methods from security settings
+   */
+  async getEnabledMethods() {
+    const settings = await securityService.getSecuritySettings();
+    return { ...this.defaultMethods, ...(settings.twoFAMethods || {}) };
+  }
+
+  /**
    * Check if 2FA is enabled system-wide
    */
   async is2FAEnabled() {
     const settings = await securityService.getSecuritySettings();
     return settings.enable2FA || false;
+  }
+
+  /**
+   * Select the best available 2FA method for the user
+   */
+  async getPreferredMethod(user) {
+    const methods = await this.getEnabledMethods();
+    const hasAppSecret = Boolean(user?.twoFactorSecret);
+    const userPrefersApp = user?.twoFactorMethod === 'app';
+
+    if (methods.app && hasAppSecret && userPrefersApp) {
+      return 'app';
+    }
+
+    if (methods.email) {
+      return 'email';
+    }
+
+    if (methods.app && hasAppSecret) {
+      return 'app';
+    }
+
+    return null;
   }
 
   /**
@@ -93,9 +133,137 @@ class TwoFactorService {
   }
 
   /**
+   * Generate authenticator app setup payload for current user
+   */
+  async setupAuthenticator(userId, issuer = 'FileNix / DMS') {
+    const methods = await this.getEnabledMethods();
+    if (!methods.app) {
+      throw new Error('Authenticator app method is disabled by system settings');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const secret = speakeasy.generateSecret({
+      name: `${issuer}:${user.email}`,
+      issuer
+    });
+
+    const encryptedSecret = encryptionService.encryptString(secret.base32);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorTempSecret: encryptedSecret
+      }
+    });
+
+    const qrCodeDataUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+    return {
+      qrCodeDataUrl,
+      manualKey: secret.base32,
+      otpauthUrl: secret.otpauth_url,
+      issuer
+    };
+  }
+
+  /**
+   * Verify authenticator setup code, then activate app-based 2FA
+   */
+  async verifyAuthenticatorSetup(userId, token) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { twoFactorTempSecret: true }
+    });
+
+    if (!user?.twoFactorTempSecret) {
+      return { valid: false, error: 'No authenticator setup in progress. Please generate a new QR code.' };
+    }
+
+    let base32Secret;
+    try {
+      base32Secret = encryptionService.decryptString(user.twoFactorTempSecret);
+    } catch (error) {
+      return { valid: false, error: 'Invalid authenticator secret. Please restart setup.' };
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret: base32Secret,
+      encoding: 'base32',
+      token,
+      window: 1
+    });
+
+    if (!valid) {
+      return { valid: false, error: 'Invalid authenticator code' };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: true,
+        twoFactorMethod: 'app',
+        twoFactorSecret: user.twoFactorTempSecret,
+        twoFactorTempSecret: null,
+        twoFactorCode: null,
+        twoFactorCodeExpiry: null
+      }
+    });
+
+    return { valid: true };
+  }
+
+  /**
+   * Verify TOTP code from authenticator app
+   */
+  async verifyAuthenticatorCode(userId, token) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        twoFactorSecret: true
+      }
+    });
+
+    if (!user?.twoFactorSecret) {
+      return { valid: false, error: 'Authenticator app is not configured for this account' };
+    }
+
+    let base32Secret;
+    try {
+      base32Secret = encryptionService.decryptString(user.twoFactorSecret);
+    } catch (error) {
+      return { valid: false, error: 'Invalid authenticator secret. Please re-setup authenticator app.' };
+    }
+
+    const valid = speakeasy.totp.verify({
+      secret: base32Secret,
+      encoding: 'base32',
+      token,
+      window: 1
+    });
+
+    if (!valid) {
+      return { valid: false, error: 'Invalid authenticator code' };
+    }
+
+    return { valid: true };
+  }
+
+  /**
    * Verify the 2FA code
    */
-  async verifyCode(userId, code) {
+  async verifyCode(userId, code, method = 'email') {
+    if (method === 'app') {
+      return this.verifyAuthenticatorCode(userId, code);
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { 
@@ -161,6 +329,7 @@ class TwoFactorService {
       where: { id: userId },
       data: { 
         twoFactorEnabled: false,
+        twoFactorTempSecret: null,
         twoFactorCode: null,
         twoFactorCodeExpiry: null
       }
@@ -185,6 +354,7 @@ class TwoFactorService {
     await prisma.user.updateMany({
       data: { 
         twoFactorEnabled: false,
+        twoFactorTempSecret: null,
         twoFactorCode: null,
         twoFactorCodeExpiry: null
       }

@@ -399,6 +399,12 @@ function SecuritySettings() {
   })
   const [passwordStrength, setPasswordStrength] = useState(defaultPasswordStrength)
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorMethod, setTwoFactorMethod] = useState('email')
+  const [hasAuthenticator, setHasAuthenticator] = useState(false)
+  const [authenticatorSetup, setAuthenticatorSetup] = useState(null)
+  const [authenticatorCode, setAuthenticatorCode] = useState('')
+  const [settingUpAuthenticator, setSettingUpAuthenticator] = useState(false)
+  const [verifyingAuthenticator, setVerifyingAuthenticator] = useState(false)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
   const [sessions, setSessions] = useState([])
@@ -481,19 +487,89 @@ function SecuritySettings() {
 
   const loadUserSettings = async () => {
     try {
-      // Fetch fresh user data from backend
-      const res = await api.get('/auth/me')
-      if (res.data?.data?.user) {
-        setTwoFactorEnabled(res.data.data.user.twoFactorEnabled || false)
-      }
+      const res = await api.get('/auth/2fa/status')
+      const payload = res.data?.data || {}
+      setTwoFactorEnabled(payload.twoFactorEnabled || false)
+      setTwoFactorMethod(payload.method || 'email')
+      setHasAuthenticator(Boolean(payload.hasAuthenticator))
     } catch (error) {
-      console.error('Failed to load user settings:', error)
-      // Fallback to localStorage
-      const savedUser = localStorage.getItem('user')
-      if (savedUser) {
-        const user = JSON.parse(savedUser)
-        setTwoFactorEnabled(user.twoFactorEnabled || false)
+      console.error('Failed to load 2FA status:', error)
+      try {
+        const res = await api.get('/auth/me')
+        if (res.data?.data?.user) {
+          setTwoFactorEnabled(res.data.data.user.twoFactorEnabled || false)
+          setTwoFactorMethod(res.data.data.user.twoFactorMethod || 'email')
+          setHasAuthenticator(Boolean(res.data.data.user.twoFactorSecret))
+        }
+      } catch (fallbackError) {
+        console.error('Failed to load user settings:', fallbackError)
+        const savedUser = localStorage.getItem('user')
+        if (savedUser) {
+          const user = JSON.parse(savedUser)
+          setTwoFactorEnabled(user.twoFactorEnabled || false)
+          setTwoFactorMethod(user.twoFactorMethod || 'email')
+          setHasAuthenticator(false)
+        }
       }
+    }
+  }
+
+  const handleSetupAuthenticator = async () => {
+    setSettingUpAuthenticator(true)
+    try {
+      const res = await api.post('/auth/2fa/setup-authenticator', {
+        issuer: 'FileNix / DMS'
+      })
+      setAuthenticatorSetup(res.data?.data || null)
+      setAuthenticatorCode('')
+      setAlertModal({
+        show: true,
+        title: 'Authenticator Setup',
+        message: 'Scan QR code in your authenticator app, then enter the 6-digit code to verify.',
+        type: 'info'
+      })
+    } catch (error) {
+      setAlertModal({
+        show: true,
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to generate authenticator setup',
+        type: 'error'
+      })
+    } finally {
+      setSettingUpAuthenticator(false)
+    }
+  }
+
+  const handleVerifyAuthenticator = async () => {
+    if (!authenticatorCode) {
+      setAlertModal({ show: true, title: 'Validation Error', message: 'Please enter the authenticator code', type: 'error' })
+      return
+    }
+
+    setVerifyingAuthenticator(true)
+    try {
+      const res = await api.post('/auth/2fa/verify-authenticator', { code: authenticatorCode })
+      const enabled = res.data?.data?.twoFactorEnabled || false
+      setTwoFactorEnabled(enabled)
+      setTwoFactorMethod('app')
+      setHasAuthenticator(true)
+      setAuthenticatorSetup(null)
+      setAuthenticatorCode('')
+      setAlertModal({
+        show: true,
+        title: 'Success',
+        message: 'Authenticator app has been enabled successfully',
+        type: 'success'
+      })
+    } catch (error) {
+      setAlertModal({
+        show: true,
+        title: 'Error',
+        message: error.response?.data?.message || 'Invalid authenticator code',
+        type: 'error'
+      })
+    } finally {
+      setVerifyingAuthenticator(false)
     }
   }
 
@@ -718,6 +794,73 @@ function SecuritySettings() {
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
               {t('two_factor_enabled_desc')}
+            </p>
+            <p className="text-xs text-blue-700 mt-1">
+              Method: {twoFactorMethod === 'app' ? 'Authenticator App' : 'Email Verification'}
+            </p>
+          </div>
+        )}
+        <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Authenticator App</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {hasAuthenticator
+                  ? 'Configured. You can use app code during login when available.'
+                  : 'Set up Google/Microsoft Authenticator for stronger 2FA.'}
+              </p>
+            </div>
+            {!hasAuthenticator && (
+              <button
+                onClick={handleSetupAuthenticator}
+                disabled={settingUpAuthenticator}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {settingUpAuthenticator ? 'Generating...' : 'Set Up App'}
+              </button>
+            )}
+          </div>
+
+          {hasAuthenticator && (
+            <span className="inline-block mt-3 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded">
+              Authenticator configured
+            </span>
+          )}
+
+          {authenticatorSetup && (
+            <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg space-y-3">
+              <div className="flex justify-center">
+                <img src={authenticatorSetup.qrCodeDataUrl} alt="Authenticator QR Code" className="w-44 h-44 rounded border border-gray-200" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Manual key (if QR scan unavailable):</p>
+                <p className="text-xs font-mono break-all bg-gray-100 p-2 rounded border border-gray-200">
+                  {authenticatorSetup.manualKey}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={authenticatorCode}
+                  onChange={(e) => setAuthenticatorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter 6-digit code"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleVerifyAuthenticator}
+                  disabled={verifyingAuthenticator}
+                  className="px-3 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {verifyingAuthenticator ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        {!twoFactorEnabled && hasAuthenticator && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-800">
+              Authenticator is configured but 2FA is currently disabled. Toggle 2FA on to enforce it on your account.
             </p>
           </div>
         )}

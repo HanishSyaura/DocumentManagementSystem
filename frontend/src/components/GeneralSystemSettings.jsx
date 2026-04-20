@@ -4271,6 +4271,7 @@ function NotificationSettings() {
   const [saving, setSaving] = useState(false)
   const [testingEmail, setTestingEmail] = useState(false)
   const [showPasswordField, setShowPasswordField] = useState(false)
+  const [testEmail, setTestEmail] = useState('')
 
   useEffect(() => {
     loadSettings()
@@ -4285,12 +4286,13 @@ function NotificationSettings() {
         }
       })
       if (response.ok) {
-        const data = await response.json()
+        const body = await response.json()
+        const data = body?.data?.settings || body?.settings || body
         // Ensure notifications object exists with defaults
         const mergedSettings = {
           ...settings,
           ...data,
-          notifications: data.notifications || settings.notifications
+          notifications: data?.notifications || settings.notifications
         }
         setSettings(mergedSettings)
       }
@@ -4331,19 +4333,22 @@ function NotificationSettings() {
   const handleTestEmail = async () => {
     try {
       setTestingEmail(true)
+      const recipient = testEmail || window.prompt('Enter test email recipient')
+      if (!recipient) return
       const response = await fetch('/api/system/config/notification-settings/test-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({ testEmail: recipient })
       })
-      const result = await response.json()
+      const body = await response.json()
       if (response.ok) {
-        alert(`Test email sent successfully!\n\nSMTP Host: ${settings.smtpHost}\nSMTP Port: ${settings.smtpPort}\nFrom: ${settings.fromName} <${settings.fromEmail}>\n\nEmail sent to: ${result.testRecipient || 'system administrator'}`)
+        const result = body?.data?.result || body?.result || body
+        alert(`Test email sent successfully!\n\nSMTP Host: ${settings.smtpHost}\nSMTP Port: ${settings.smtpPort}\nFrom: ${settings.fromName} <${settings.fromEmail}>\n\nEmail sent to: ${recipient}\n\nMessage: ${result.message || 'OK'}`)
       } else {
-        alert(`Test email failed: ${result.message}`)
+        alert(`Test email failed: ${body.message}`)
       }
     } catch (error) {
       console.error('Error testing email:', error)
@@ -4427,6 +4432,16 @@ function NotificationSettings() {
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">From Email</label>
             <input type="email" value={settings.fromEmail} onChange={(e) => setSettings(prev => ({ ...prev, fromEmail: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">Test Recipient Email</label>
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="e.g. you@company.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+            />
           </div>
         </div>
         <button 
@@ -4566,7 +4581,8 @@ function SecuritySettings() {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
-          const data = await response.json()
+          const body = await response.json()
+          const data = body?.data?.settings || body?.settings || body
           setSettings(prev => ({
             ...prev,
             minPasswordLength: data.minLength || 8,
@@ -4577,6 +4593,11 @@ function SecuritySettings() {
             lockoutDuration: data.lockoutDuration || 15,
             sessionTimeout: data.sessionTimeout || 30,
             enable2FA: data.enable2FA ?? false,
+            twoFAMethods: {
+              email: data?.twoFAMethods?.email ?? true,
+              sms: data?.twoFAMethods?.sms ?? false,
+              app: data?.twoFAMethods?.app ?? false
+            },
             encryptDocuments: data.encryptDocuments ?? false,
             encryptDatabase: data.encryptDatabase ?? false
           }))
@@ -4609,6 +4630,7 @@ function SecuritySettings() {
           lockoutDuration: parseInt(settings.lockoutDuration),
           sessionTimeout: parseInt(settings.sessionTimeout),
           enable2FA: settings.enable2FA,
+          twoFAMethods: settings.twoFAMethods,
           encryptDocuments: settings.encryptDocuments,
           encryptDatabase: settings.encryptDatabase
         })
