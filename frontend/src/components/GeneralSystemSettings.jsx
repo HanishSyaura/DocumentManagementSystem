@@ -4178,6 +4178,7 @@ function DocumentSettings() {
 // Tab 5: Notification Settings
 function NotificationSettings() {
   const { t } = usePreferences()
+  const smtpUiRevision = 'smtp-ui-2026-04-20'
   const [settings, setSettings] = useState({
     smtpHost: 'smtp.company.com',
     smtpPort: '587',
@@ -4287,14 +4288,14 @@ function NotificationSettings() {
       })
       if (response.ok) {
         const body = await response.json()
-        const data = body?.data?.settings || body?.settings || body
-        // Ensure notifications object exists with defaults
-        const mergedSettings = {
-          ...settings,
-          ...data,
-          notifications: data?.notifications || settings.notifications
+        const data = body?.data?.settings ?? body?.settings ?? body
+        if (data && typeof data === 'object') {
+          setSettings(prev => ({
+            ...prev,
+            ...data,
+            notifications: data?.notifications || prev.notifications
+          }))
         }
-        setSettings(mergedSettings)
       }
     } catch (error) {
       console.error('Error loading notification settings:', error)
@@ -4315,6 +4316,15 @@ function NotificationSettings() {
         body: JSON.stringify(settings)
       })
       if (response.ok) {
+        const body = await response.json()
+        const saved = body?.data?.settings ?? body?.settings ?? body?.data ?? body
+        if (saved && typeof saved === 'object') {
+          setSettings(prev => ({
+            ...prev,
+            ...saved,
+            notifications: saved?.notifications || prev.notifications
+          }))
+        }
         alert('Notification settings saved successfully!')
         setShowPasswordField(false)
         await loadSettings() // Reload to get masked password
@@ -4371,6 +4381,7 @@ function NotificationSettings() {
       <div>
         <h3 className="text-lg font-semibold text-gray-900">Email & Notification Preferences</h3>
         <p className="text-sm text-gray-600 mt-1">Configure email server and notification rules</p>
+        <p className="text-xs text-gray-400 mt-1">UI: {smtpUiRevision}</p>
       </div>
 
       {/* Email Configuration */}
