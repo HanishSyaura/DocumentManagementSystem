@@ -103,6 +103,94 @@ class DocumentController {
       }
     }
 
+    const baseFolder = await prisma.folder.findUnique({
+      where: { id: folderIdInt },
+      select: { id: true, accessMode: true }
+    })
+    if (!baseFolder) {
+      return ResponseFormatter.validationError(res, [
+        { field: 'folderId', message: 'Folder not found' }
+      ])
+    }
+
+    const folderConfigById = new Map([[baseFolder.id, { accessMode: baseFolder.accessMode }]])
+    const folderByParentAndName = new Map()
+
+    const sanitizeFolderName = (s) => {
+      const v = String(s || '').replace(/\0/g, '').trim()
+      if (!v) return ''
+      if (v === '.' || v === '..') return ''
+      return v.length > 255 ? v.slice(0, 255) : v
+    }
+
+    const extractFolderSegments = (relativePath) => {
+      const rp = String(relativePath || '').trim()
+      if (!rp) return []
+      const normalized = rp.replace(/\\/g, '/').replace(/^\/+/, '')
+      const parts = normalized.split('/').filter(Boolean)
+      if (parts.length <= 1) return []
+      return parts.slice(0, -1).map(sanitizeFolderName).filter(Boolean)
+    }
+
+    const getBaseName = (relativePath, fallback) => {
+      const src = String(relativePath || '').trim()
+      if (src) {
+        const normalized = src.replace(/\\/g, '/')
+        const last = normalized.split('/').filter(Boolean).pop()
+        if (last) return last
+      }
+      return String(fallback || '')
+    }
+
+    const ensureFolderPath = async (rootId, segments) => {
+      let currentId = rootId
+      for (const segRaw of segments || []) {
+        const seg = sanitizeFolderName(segRaw)
+        if (!seg) continue
+        const cacheKey = `${currentId}:${seg}`
+        const cachedId = folderByParentAndName.get(cacheKey)
+        if (cachedId) {
+          currentId = cachedId
+          continue
+        }
+        const existing = await prisma.folder.findFirst({
+          where: { parentId: currentId, name: seg },
+          select: { id: true }
+        })
+        if (existing) {
+          folderByParentAndName.set(cacheKey, existing.id)
+          currentId = existing.id
+          if (!folderConfigById.has(existing.id)) {
+            const cfg = await prisma.folder.findUnique({ where: { id: existing.id }, select: { accessMode: true } })
+            if (cfg) folderConfigById.set(existing.id, { accessMode: cfg.accessMode })
+          }
+          continue
+        }
+
+        let parentCfg = folderConfigById.get(currentId)
+        if (!parentCfg) {
+          const cfg = await prisma.folder.findUnique({ where: { id: currentId }, select: { accessMode: true } })
+          parentCfg = cfg ? { accessMode: cfg.accessMode } : { accessMode: 'PUBLIC' }
+          folderConfigById.set(currentId, parentCfg)
+        }
+
+        const created = await prisma.folder.create({
+          data: {
+            name: seg,
+            parentId: currentId,
+            createdById: req.user.id,
+            accessMode: parentCfg.accessMode,
+            inheritPermissions: true
+          },
+          select: { id: true, accessMode: true }
+        })
+        folderByParentAndName.set(cacheKey, created.id)
+        folderConfigById.set(created.id, { accessMode: created.accessMode })
+        currentId = created.id
+      }
+      return currentId
+    }
+
     const documentTypes = await prisma.documentType.findMany({
       select: { id: true, prefix: true, isActive: true }
     })
@@ -116,8 +204,10 @@ class DocumentController {
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i]
       try {
-        const derivedTitle = path.basename(file.originalname, path.extname(file.originalname)).trim() || file.originalname;
         const meta = parsedMeta?.[i] && typeof parsedMeta[i] === 'object' ? parsedMeta[i] : null
+        const relPath = meta && typeof meta.relativePath === 'string' ? meta.relativePath : ''
+        const baseName = getBaseName(relPath, file.originalname)
+        const derivedTitle = path.basename(baseName, path.extname(baseName)).trim() || baseName
         const metaTitle = meta && typeof meta.title === 'string' ? meta.title.trim() : ''
         const docTitle = req.files.length === 1 && singleTitle ? singleTitle : (metaTitle || derivedTitle)
         const isClientDocument = Boolean(meta?.isClientDocument)
@@ -169,7 +259,11 @@ class DocumentController {
           description: desc,
           documentTypeId: documentTypeIdToUse,
           projectCategoryId: metaProjectCategoryId,
-          folderId: folderIdInt
+          folderId: await (async () => {
+            const segments = extractFolderSegments(relPath)
+            if (segments.length === 0) return folderIdInt
+            return ensureFolderPath(folderIdInt, segments)
+          })()
         }, req.user.id);
 
         await documentService.uploadDocumentVersion(document.id, file, req.user.id);
@@ -180,13 +274,13 @@ class DocumentController {
         });
 
         const workflowService = require('../services/workflowService');
-        await workflowService.publishDocument(document.id, req.user.id, folderIdInt, 'Bulk import');
+        await workflowService.publishDocument(document.id, req.user.id, document.folderId || folderIdInt, 'Bulk import');
 
         imported.push({
           id: document.id,
           fileCode: document.isClientDocument ? '-' : document.fileCode,
           title: document.title,
-          fileName: file.originalname
+          fileName: baseName
         });
       } catch (error) {
         const reasonCode = String(error?.code || error?.name || 'IMPORT_FAILED')

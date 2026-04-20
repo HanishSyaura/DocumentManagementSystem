@@ -24,6 +24,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [numberingSettings, setNumberingSettings] = useState(null)
   const [projectCategories, setProjectCategories] = useState([])
   const fileInputRef = useRef(null)
+  const folderInputRef = useRef(null)
 
   const { t } = usePreferences()
 
@@ -250,13 +251,15 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     }
     if (next.length === 0) return
     setFileItems((prev) => {
-      const byKey = new Map(prev.map((it) => [`${it.file.name}:${it.file.size}:${it.file.lastModified}`, it]))
+      const byKey = new Map(prev.map((it) => [`${it.relativePath || it.file.name}:${it.file.size}:${it.file.lastModified}`, it]))
       next.forEach((f) => {
-        const key = `${f.name}:${f.size}:${f.lastModified}`
+        const rel = String(f?.webkitRelativePath || '').trim()
+        const key = `${rel || f.name}:${f.size}:${f.lastModified}`
         if (byKey.has(key)) return
         const extracted = extractFromFilename(f.name)
         const base = {
           file: f,
+          relativePath: rel,
           fileCode: extracted.fileCode,
           nonClientFileCode: extracted.fileCode,
           title: extracted.title,
@@ -273,6 +276,12 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   }
 
   const handleFileSelect = (e) => {
+    if (!e.target.files) return
+    addFiles(Array.from(e.target.files))
+    e.target.value = ''
+  }
+
+  const handleFolderSelect = (e) => {
     if (!e.target.files) return
     addFiles(Array.from(e.target.files))
     e.target.value = ''
@@ -295,6 +304,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   }
 
   const handleBrowseClick = () => fileInputRef.current?.click()
+  const handleBrowseFolderClick = () => folderInputRef.current?.click()
 
   const removeFile = (idx) => setFileItems((prev) => prev.filter((_, i) => i !== idx))
 
@@ -337,7 +347,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           title: String(it.title || '').trim(),
           documentTypeId: it.documentTypeId ? parseInt(it.documentTypeId) : null,
           projectCategoryId: it.projectCategoryId ? parseInt(it.projectCategoryId) : null,
-          isClientDocument: Boolean(it.isClientDocument)
+          isClientDocument: Boolean(it.isClientDocument),
+          relativePath: String(it.relativePath || '').trim()
         }))
       }
       await onSubmit(payload)
@@ -435,17 +446,36 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                 className="hidden"
                 onChange={handleFileSelect}
               />
+              <input
+                ref={folderInputRef}
+                type="file"
+                multiple
+                accept={getAcceptString()}
+                className="hidden"
+                onChange={handleFolderSelect}
+                webkitdirectory=""
+                directory=""
+              />
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-900">Drag & drop files here</p>
                 <p className="text-xs text-gray-600">Allowed: {getAllowedTypesDisplay()}</p>
-                <button
-                  type="button"
-                  onClick={handleBrowseClick}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Browse files
-                </button>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleBrowseClick}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Browse files
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBrowseFolderClick}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    Browse folder
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -507,6 +537,9 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                         >
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-gray-900 truncate">{it.file.name}</div>
+                            {it.relativePath && (
+                              <div className="mt-0.5 text-xs text-gray-500 font-mono truncate">{it.relativePath}</div>
+                            )}
                             <div className="mt-0.5 text-xs text-gray-600">
                               <span className="font-mono">{it.fileCode || '-'}</span>
                               <span className="mx-2">•</span>
