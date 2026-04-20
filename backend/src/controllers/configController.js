@@ -472,10 +472,14 @@ exports.updateRetentionPolicySettings = asyncHandler(async (req, res) => {
  */
 exports.getNotificationSettings = asyncHandler(async (req, res) => {
   const settings = await configService.getNotificationSettings();
+  const safeSettings = {
+    ...settings,
+    smtpPassword: settings.smtpPassword ? '••••••••' : ''
+  }
   
   return ResponseFormatter.success(
     res,
-    { settings },
+    { settings: safeSettings },
     'Notification settings retrieved successfully'
   );
 });

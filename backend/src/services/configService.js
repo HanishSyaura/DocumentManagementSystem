@@ -573,13 +573,31 @@ class ConfigService {
    * Stores settings in Configuration table
    */
   async updateNotificationSettings(settings) {
+    const current = await this.getNotificationSettings();
     const normalized = this.normalizeNotificationSettings(settings);
-    const settingsJson = JSON.stringify(normalized);
 
+    const incomingPassword = settings?.smtpPassword;
+    const shouldPreservePassword =
+      incomingPassword === undefined ||
+      incomingPassword === null ||
+      incomingPassword === '' ||
+      incomingPassword === '••••••••';
+
+    const merged = {
+      ...current,
+      ...normalized,
+      smtpPassword: shouldPreservePassword ? current.smtpPassword : normalized.smtpPassword,
+      notifications: (normalized?.notifications && typeof normalized.notifications === 'object')
+        ? { ...(current.notifications || {}), ...normalized.notifications }
+        : (current.notifications || {})
+    };
+    const settingsJson = JSON.stringify(normalized);
+    const settingsJson = JSON.stringify(merged);
     const config = await prisma.configuration.upsert({
       where: { key: 'notification_settings' },
       update: { 
         value: settingsJson,
+        description: 'Email and notification configuration'
         description: 'Email and notification configuration'
       },
       create: {
