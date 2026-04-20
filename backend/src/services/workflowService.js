@@ -590,13 +590,14 @@ class WorkflowService {
     });
 
     if (!document.isClientDocument) {
+      const projectCategoryId = document.projectCategoryId ?? null
       const existingRegister = await prisma.documentRegister.findUnique({
-        where: { fileCode: document.fileCode }
-      });
+        where: { fileCode_projectCategoryId: { fileCode: document.fileCode, projectCategoryId } }
+      })
 
       if (existingRegister) {
         await prisma.documentRegister.update({
-          where: { fileCode: document.fileCode },
+          where: { fileCode_projectCategoryId: { fileCode: document.fileCode, projectCategoryId } },
           data: { 
             status: 'PUBLISHED',
             registeredDate: new Date()
@@ -606,6 +607,7 @@ class WorkflowService {
         await prisma.documentRegister.create({
           data: {
             fileCode: document.fileCode,
+            projectCategoryId,
             documentTitle: document.title,
             documentType: document.documentType.name,
             version: document.version,
