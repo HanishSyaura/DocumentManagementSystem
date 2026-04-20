@@ -1564,7 +1564,6 @@ export default function PublishedDocuments() {
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder={t('enter_subfolder_name')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  disabled={parentFolderForSub === null}
                 />
               </div>
 
@@ -1700,7 +1699,7 @@ export default function PublishedDocuments() {
               <button
                 onClick={handleCreateSubFolder}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                disabled={createAccessLoading}
+                disabled={createAccessLoading || parentFolderForSub === null || !String(newFolderName || '').trim()}
               >
                 {createAccessLoading ? 'Creating...' : t('create')}
               </button>
