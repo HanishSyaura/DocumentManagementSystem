@@ -155,43 +155,6 @@ class FolderPermissionService {
     return { accessMode: mode, inheritPermissions, entries: normalized }
   }
 
-  async upsertDefaultAdminsAndCreator(folderId, creatorId) {
-    const folder = await prisma.folder.findUnique({
-      where: { id: parseInt(folderId, 10) },
-      select: { id: true }
-    })
-    if (!folder) throw new NotFoundError('Folder')
-
-    const adminRoles = await prisma.role.findMany({
-      where: { name: { in: ['admin', 'administrator', 'Admin', 'Administrator', 'ADMIN'] } },
-      select: { id: true }
-    })
-
-    const full = {
-      canView: true,
-      canCreate: true,
-      canEdit: true,
-      canDelete: true,
-      canDownload: true
-    }
-
-    if (creatorId) {
-      await prisma.folderPermission.upsert({
-        where: { folderId_userId: { folderId: folder.id, userId: parseInt(creatorId, 10) } },
-        update: full,
-        create: { folderId: folder.id, userId: parseInt(creatorId, 10), ...full }
-      })
-    }
-
-    for (const r of adminRoles) {
-      await prisma.folderPermission.upsert({
-        where: { folderId_roleId: { folderId: folder.id, roleId: r.id } },
-        update: full,
-        create: { folderId: folder.id, roleId: r.id, ...full }
-      })
-    }
-  }
-
   async setFolderAccessConfig(folderId, actor, payload) {
     const folder = await prisma.folder.findUnique({
       where: { id: parseInt(folderId, 10) },
@@ -231,8 +194,6 @@ class FolderPermissionService {
         })
       }
     })
-
-    await this.upsertDefaultAdminsAndCreator(folder.id, folder.createdById || actor?.id)
     return this.getFolderAccessConfig(folder.id)
   }
 
@@ -272,4 +233,3 @@ class FolderPermissionService {
 }
 
 module.exports = new FolderPermissionService()
-

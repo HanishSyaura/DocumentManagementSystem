@@ -173,7 +173,7 @@ export default function Layout({ children }) {
         }}
         showGettingStartedHint={showGettingStartedHint}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {sidebarPosition === 'left' && (
           <div className="relative">
             <Sidebar
@@ -202,8 +202,8 @@ export default function Layout({ children }) {
             </button>
           </div>
         )}
-        <main className="flex-1 app-main-content overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-6">
+        <main className="flex-1 min-h-0 app-main-content overflow-y-auto">
+          <div className="p-3 sm:p-4 lg:p-6">
             <GettingStartedModal
               open={gettingStartedOpen}
               showAdminGuide={showAdminGuide}
@@ -293,7 +293,7 @@ export default function Layout({ children }) {
           </div>
         )}
         {/* Right Panel - Always available on all pages */}
-        <div className={`hidden lg:block transition-all duration-300 ${isRightPanelCollapsed ? 'w-0' : 'w-80'}`}>
+        <div className={`hidden xl:block transition-all duration-300 ${isRightPanelCollapsed ? 'w-0' : 'w-64 xl:w-72 2xl:w-80'}`}>
           <RightPanel 
             onCollapseChange={setIsRightPanelCollapsed}
             isCollapsed={isRightPanelCollapsed}

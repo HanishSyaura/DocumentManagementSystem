@@ -143,7 +143,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
   }
 
   return (
-    <div className="app-topbar text-white flex items-center justify-between px-4 h-16 shadow-md">
+    <div className="app-topbar text-white flex items-center justify-between px-3 sm:px-4 h-14 sm:h-16 shadow-md">
       {/* Left Section */}
       <div className="flex items-center gap-3">
         <button 
@@ -157,7 +157,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
         </button>
         {logo ? (
           <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
-            <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
+            <img src={logo} alt="Company Logo" className="max-h-8 max-w-[120px] sm:max-w-[180px] object-contain" />
           </div>
         ) : (
           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold shadow-sm">
@@ -187,7 +187,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
             </svg>
           </button>
           {showGettingStartedHint && (
-            <div className="absolute right-0 mt-2 w-64 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 p-3">
+            <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 p-3">
               <div className="text-sm font-semibold">{t('first_time_user_hint_title')}</div>
               <div className="text-xs text-gray-600 mt-1">{t('first_time_user_hint_body')}</div>
             </div>

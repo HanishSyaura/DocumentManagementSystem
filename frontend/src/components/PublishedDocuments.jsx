@@ -812,7 +812,7 @@ export default function PublishedDocuments() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-full min-h-0 bg-gray-50">
       {/* Modal Components */}
       <ConfirmModal
         show={confirmModal.show}
@@ -834,7 +834,7 @@ export default function PublishedDocuments() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={closeRename} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden">
               <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">{renameModal.type === 'folder' ? 'Rename Folder' : 'Rename File'}</h2>
@@ -846,7 +846,7 @@ export default function PublishedDocuments() {
                   </svg>
                 </button>
               </div>
-              <div className="px-6 py-4 space-y-3">
+              <div className="px-6 py-4 space-y-3 overflow-y-auto max-h-[70vh]">
                 {renameError && (
                   <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                     {renameError}
@@ -891,7 +891,7 @@ export default function PublishedDocuments() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={closeManageAccess} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full">
+            <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
               <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Folder Access</h2>
@@ -904,7 +904,7 @@ export default function PublishedDocuments() {
                 </button>
               </div>
 
-              <div className="px-6 py-4 space-y-4">
+              <div className="px-6 py-4 space-y-4 overflow-y-auto max-h-[70vh]">
                 {accessError && (
                   <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                     {accessError}
@@ -1045,8 +1045,8 @@ export default function PublishedDocuments() {
       )}
 
       {/* Left Sidebar - Folder Tree */}
-      <div className="w-96 shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
-        <div className="p-4">
+      <div className="w-72 lg:w-80 xl:w-96 xl:shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
+        <div className="p-3 sm:p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
           <div className="space-y-1">
             {folders.map((folder) => (
@@ -1057,8 +1057,8 @@ export default function PublishedDocuments() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="p-3 sm:p-4 lg:p-6">
           {/* Page Header */}
           <div className="mb-6">
             <div className="flex items-start justify-between">
@@ -1186,9 +1186,9 @@ export default function PublishedDocuments() {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_name')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('type')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('size')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_modified')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
+                    <th className="hidden lg:table-cell text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('size')}</th>
+                    <th className="hidden xl:table-cell text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_modified')}</th>
+                    <th className="hidden lg:table-cell text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
                   </tr>
                 </thead>
@@ -1242,9 +1242,9 @@ export default function PublishedDocuments() {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-gray-700">{doc.type}</td>
-                        <td className="py-4 px-4 text-gray-700">{doc.size}</td>
-                        <td className="py-4 px-4 text-gray-700 text-sm">{doc.lastModified}</td>
-                        <td className="py-4 px-4">
+                        <td className="hidden lg:table-cell py-4 px-4 text-gray-700">{doc.size}</td>
+                        <td className="hidden xl:table-cell py-4 px-4 text-gray-700 text-sm">{doc.lastModified}</td>
+                        <td className="hidden lg:table-cell py-4 px-4">
                           {doc.status !== '-' ? <StatusBadge status={doc.status} /> : <span className="text-gray-500">-</span>}
                         </td>
                         <td className="py-4 px-4">

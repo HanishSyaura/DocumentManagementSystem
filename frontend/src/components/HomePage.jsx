@@ -121,6 +121,9 @@ const HomePage = () => {
     const c = typeof color === 'string' ? color : ''
     return workflowStyleMap[c] || workflowStyleMap[workflowPalette[idx % workflowPalette.length]]
   }
+  const effectiveFeatures = Array.isArray(landingContent?.features) && landingContent.features.length
+    ? landingContent.features
+    : (Array.isArray(features?.keyFeatures) ? features.keyFeatures.map((f) => ({ ...f, iconKey: f.icon })) : [])
 
   useEffect(() => {
     fetchFeatures();
@@ -272,13 +275,13 @@ const HomePage = () => {
   }
 
   return (
-    <div className="h-screen bg-white overflow-x-hidden overflow-y-auto snap-y snap-mandatory scroll-smooth scroll-pt-16">
+    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16">
       <a href="#main" className="skip-link">Skip to content</a>
       {/* Navigation Bar */}
       <nav className="app-topbar fixed top-0 inset-x-0 z-50 text-white shadow-md" style={{ backdropFilter: 'blur(10px)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <button type="button" className="flex items-center gap-3 focus-visible:outline-none" onClick={() => navigate('/')} aria-label="Go to home">
+            <button type="button" className="flex items-center gap-3 text-left focus-visible:outline-none" onClick={() => navigate('/')} aria-label="Go to home">
               {logo ? (
                 <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
                   <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
@@ -288,7 +291,7 @@ const HomePage = () => {
                   <DocumentTextIcon className="h-6 w-6" style={{color: 'var(--dms-primary, #0f6fcf)'}} />
                 </div>
               )}
-              <div className="hidden md:flex flex-col">
+              <div className="hidden md:flex flex-col items-start text-left">
                 <span className="text-sm font-semibold">{companyName}</span>
                 <span className="text-xs opacity-90">{t('dms_label')}</span>
               </div>
@@ -466,7 +469,7 @@ const HomePage = () => {
       </section>
 
       {/* Core Features Section */}
-      <section id="features" className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
+      <section id="features" className="snap-start py-12 sm:py-16 lg:min-h-[100svh] lg:pt-16 lg:pb-12" style={{backgroundColor: 'var(--dms-landing-core-features-bg, #F9FAFB)'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3">{t('hp_core_features')}</h2>
@@ -475,13 +478,14 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {(landingContent?.features || []).slice(0, 4).map((feature, idx) => {
+            {(effectiveFeatures || []).slice(0, 4).map((feature, idx) => {
               const bgIsHex = isHexColor(feature.iconBgColor)
               const textIsHex = isHexColor(feature.textColor)
               const titleClass = textIsHex ? 'text-lg sm:text-xl lg:text-2xl font-bold mb-2 leading-tight' : 'text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-tight'
               const titleStyle = textIsHex ? { color: feature.textColor } : undefined
               const descClass = textIsHex ? 'text-sm sm:text-base lg:text-lg leading-relaxed space-y-2' : 'text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed space-y-2'
               const descStyle = textIsHex ? { color: feature.textColor } : undefined
+              const Icon = feature.iconImage ? null : iconMap[String(feature.iconKey || feature.icon || '')]
 
               return (
                 <div key={idx} className="rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 group bg-white">
@@ -494,6 +498,13 @@ const HomePage = () => {
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
                           <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain drop-shadow-sm" />
+                        </div>
+                      </div>
+                    )}
+                    {!feature.iconImage && Icon && (
+                      <div className="flex-shrink-0">
+                        <div className={`w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 p-3 sm:p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`} style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}>
+                          <Icon className="w-full h-full text-gray-700" />
                         </div>
                       </div>
                     )}
@@ -513,7 +524,7 @@ const HomePage = () => {
       </section>
 
       {/* System Features Section */}
-      <section className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
+      <section className="snap-start py-12 sm:py-16 lg:min-h-[100svh] lg:pt-16 lg:pb-12" style={{background: 'var(--dms-landing-system-features-bg, linear-gradient(to bottom right, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4">{t('hp_system_features')}</h2>
@@ -522,13 +533,14 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {(landingContent?.features || []).slice(4, 8).map((feature, idx) => {
+            {(effectiveFeatures || []).slice(4, 8).map((feature, idx) => {
               const bgIsHex = isHexColor(feature.iconBgColor)
               const textIsHex = isHexColor(feature.textColor)
               const titleClass = textIsHex ? 'text-xl lg:text-2xl font-bold mb-3 leading-tight' : 'text-xl lg:text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors leading-tight'
               const titleStyle = textIsHex ? { color: feature.textColor } : undefined
               const descClass = textIsHex ? 'text-base lg:text-lg leading-relaxed space-y-2' : 'text-gray-600 text-base lg:text-lg leading-relaxed space-y-2'
               const descStyle = textIsHex ? { color: feature.textColor } : undefined
+              const Icon = feature.iconImage ? null : iconMap[String(feature.iconKey || feature.icon || '')]
 
               return (
                 <div key={idx} className="rounded-2xl p-6 lg:p-8 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 border-2 border-gray-200 group bg-white">
@@ -541,6 +553,13 @@ const HomePage = () => {
                           style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}
                         >
                           <img src={feature.iconImage} alt={feature.title} className="w-full h-full object-contain drop-shadow-sm" />
+                        </div>
+                      </div>
+                    )}
+                    {!feature.iconImage && Icon && (
+                      <div className="flex-shrink-0">
+                        <div className={`w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 p-4 rounded-2xl ${bgIsHex ? '' : (feature.iconBgColor || 'bg-gray-200')} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow ring-1 ring-black/5`} style={bgIsHex ? { backgroundColor: feature.iconBgColor } : undefined}>
+                          <Icon className="w-full h-full text-gray-700" />
                         </div>
                       </div>
                     )}

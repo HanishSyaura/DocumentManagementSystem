@@ -353,7 +353,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
 
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full" data-tour-id="bulk-import-modal">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden" data-tour-id="bulk-import-modal">
           <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Upload / Bulk Import</h2>
@@ -366,7 +366,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
             </button>
           </div>
 
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-6 py-4 space-y-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
             {formError && (
               <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                 {formError}
@@ -418,7 +418,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
             </div>
 
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-4 sm:p-6 lg:p-8 text-center transition-colors ${
                 isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
               }`}
               data-tour-id="bulk-import-dropzone"
@@ -492,7 +492,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                     <span>{t('client_document_declaration')}</span>
                   </label>
                 </div>
-                <div className="max-h-[420px] overflow-auto divide-y divide-gray-100">
+                <div className="max-h-[50vh] overflow-auto divide-y divide-gray-100">
                   {fileItems.map((it, idx) => {
                     const matchedType = documentTypes.find((dt) => String(dt.id) === String(it.documentTypeId))
                     const typeLabel = matchedType ? `${matchedType.name} (${matchedType.prefix})` : 'Not selected'
