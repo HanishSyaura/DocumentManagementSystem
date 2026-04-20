@@ -2,6 +2,60 @@ const prisma = require('../config/database');
 const { NotFoundError, ConflictError } = require('../utils/errors');
 
 class ConfigService {
+  getDefaultNotificationSettings() {
+    return {
+      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+      smtpPort: process.env.SMTP_PORT || '587',
+      smtpUsername: process.env.SMTP_USERNAME || '',
+      smtpPassword: process.env.SMTP_PASSWORD || '',
+      fromName: process.env.FROM_NAME || 'DMS System',
+      fromEmail: process.env.FROM_EMAIL || 'noreply@company.com',
+      notifications: {
+        documentCreated: { email: true, inApp: true },
+        documentSubmitted: { email: true, inApp: true },
+        reviewAssigned: { email: true, inApp: true },
+        approvalRequest: { email: true, inApp: true },
+        documentApproved: { email: true, inApp: true },
+        documentRejected: { email: true, inApp: true },
+        documentPublished: { email: true, inApp: false },
+        documentSuperseded: { email: true, inApp: true },
+        workflowReminder: { email: true, inApp: true },
+        systemMaintenance: { email: true, inApp: true }
+      },
+      reviewReminder: 3,
+      approvalReminder: 2,
+      dailyDigest: false,
+      digestTime: '09:00'
+    };
+  }
+
+  normalizeNotificationSettings(input) {
+    const defaults = this.getDefaultNotificationSettings();
+    const raw = (input && typeof input === 'object') ? input : {};
+    const nested = (raw.settings && typeof raw.settings === 'object') ? raw.settings : null;
+
+    // Support legacy/malformed stored payload like { settings: { ...actualValues } }
+    const source = (nested && (nested.smtpHost || nested.smtpPort || nested.smtpUsername || nested.fromEmail || nested.notifications))
+      ? nested
+      : raw;
+
+    return {
+      smtpHost: source.smtpHost ?? defaults.smtpHost,
+      smtpPort: String(source.smtpPort ?? defaults.smtpPort),
+      smtpUsername: source.smtpUsername ?? defaults.smtpUsername,
+      smtpPassword: source.smtpPassword ?? defaults.smtpPassword,
+      fromName: source.fromName ?? defaults.fromName,
+      fromEmail: source.fromEmail ?? defaults.fromEmail,
+      notifications: (source.notifications && typeof source.notifications === 'object')
+        ? source.notifications
+        : defaults.notifications,
+      reviewReminder: Number(source.reviewReminder ?? defaults.reviewReminder),
+      approvalReminder: Number(source.approvalReminder ?? defaults.approvalReminder),
+      dailyDigest: Boolean(source.dailyDigest ?? defaults.dailyDigest),
+      digestTime: source.digestTime ?? defaults.digestTime
+    };
+  }
+
   /**
    * Get all document types
    */
@@ -504,37 +558,14 @@ class ConfigService {
 
     if (config && config.value) {
       try {
-        return JSON.parse(config.value);
+        const parsed = JSON.parse(config.value);
+        return this.normalizeNotificationSettings(parsed);
       } catch (error) {
         console.error('Failed to parse notification settings:', error);
       }
     }
 
-    // Return default settings if not configured
-    return {
-      smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
-      smtpPort: process.env.SMTP_PORT || '587',
-      smtpUsername: process.env.SMTP_USERNAME || '',
-      smtpPassword: process.env.SMTP_PASSWORD || '',
-      fromName: process.env.FROM_NAME || 'DMS System',
-      fromEmail: process.env.FROM_EMAIL || 'noreply@company.com',
-      notifications: {
-        documentCreated: { email: true, inApp: true },
-        documentSubmitted: { email: true, inApp: true },
-        reviewAssigned: { email: true, inApp: true },
-        approvalRequest: { email: true, inApp: true },
-        documentApproved: { email: true, inApp: true },
-        documentRejected: { email: true, inApp: true },
-        documentPublished: { email: true, inApp: false },
-        documentSuperseded: { email: true, inApp: true },
-        workflowReminder: { email: true, inApp: true },
-        systemMaintenance: { email: true, inApp: true }
-      },
-      reviewReminder: 3,
-      approvalReminder: 2,
-      dailyDigest: false,
-      digestTime: '09:00'
-    };
+    return this.getDefaultNotificationSettings();
   }
 
   /**
@@ -542,7 +573,8 @@ class ConfigService {
    * Stores settings in Configuration table
    */
   async updateNotificationSettings(settings) {
-    const settingsJson = JSON.stringify(settings);
+    const normalized = this.normalizeNotificationSettings(settings);
+    const settingsJson = JSON.stringify(normalized);
 
     const config = await prisma.configuration.upsert({
       where: { key: 'notification_settings' },
@@ -557,7 +589,7 @@ class ConfigService {
       }
     });
 
-    return JSON.parse(config.value);
+    return this.normalizeNotificationSettings(JSON.parse(config.value));
   }
 
   /**

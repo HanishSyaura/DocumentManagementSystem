@@ -4178,7 +4178,7 @@ function DocumentSettings() {
 // Tab 5: Notification Settings
 function NotificationSettings() {
   const { t } = usePreferences()
-  const smtpUiRevision = 'smtp-ui-2026-04-20'
+  const smtpUiRevision = 'smtp-ui-2026-04-20-b'
   const [settings, setSettings] = useState({
     smtpHost: 'smtp.company.com',
     smtpPort: '587',
@@ -4274,6 +4274,14 @@ function NotificationSettings() {
   const [showPasswordField, setShowPasswordField] = useState(false)
   const [testEmail, setTestEmail] = useState('')
 
+  const extractNotificationSettings = (body) => {
+    const first = body?.data?.settings ?? body?.settings ?? body
+    if (!first || typeof first !== 'object') return null
+    // Backward compatibility for malformed payload: { settings: { ...actualValues } }
+    if (first.settings && typeof first.settings === 'object') return first.settings
+    return first
+  }
+
   useEffect(() => {
     loadSettings()
   }, [])
@@ -4288,7 +4296,7 @@ function NotificationSettings() {
       })
       if (response.ok) {
         const body = await response.json()
-        const data = body?.data?.settings ?? body?.settings ?? body
+        const data = extractNotificationSettings(body)
         if (data && typeof data === 'object') {
           setSettings(prev => ({
             ...prev,
@@ -4317,7 +4325,7 @@ function NotificationSettings() {
       })
       if (response.ok) {
         const body = await response.json()
-        const saved = body?.data?.settings ?? body?.settings ?? body?.data ?? body
+        const saved = extractNotificationSettings(body)
         if (saved && typeof saved === 'object') {
           setSettings(prev => ({
             ...prev,
