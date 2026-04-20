@@ -248,7 +248,7 @@ model FolderPermission {
 
 model Document {
   id                Int           @id @default(autoincrement())
-  fileCode          String        @unique // e.g., DOC-2025-001
+  fileCode          String        // e.g., DOC-2025-001
   isClientDocument  Boolean       @default(false)
   title             String
   description       String?       @db.Text
@@ -309,6 +309,7 @@ model Document {
   newVersionRequests     VersionRequest[]           @relation("VersionRequestNew")
   assignments            DocumentAssignment[]
 
+  @@unique([fileCode, projectCategoryId])
   @@index([fileCode])
   @@index([status])
   @@index([stage])
@@ -731,7 +732,7 @@ enum NotificationType {
 
 model CodeRegistry {
   id                 Int       @id @default(autoincrement())
-  fileCode           String    @unique
+  fileCode           String
   normalizedFileCode String
   documentTitle      String?
   documentDate       DateTime?
@@ -750,6 +751,7 @@ model CodeRegistry {
   projectCategory ProjectCategory @relation(fields: [projectCategoryId], references: [id], onDelete: Restrict)
   documentType    DocumentType?   @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
 
+  @@unique([fileCode, projectCategoryId])
   @@unique([projectCategoryId, codeKey, runningNumber])
   @@index([projectCategoryId, codeKey])
   @@index([fileCode])
@@ -757,7 +759,8 @@ model CodeRegistry {
 
 model DocumentRegister {
   id             Int      @id @default(autoincrement())
-  fileCode       String   @unique
+  fileCode       String
+  projectCategoryId Int?
   documentTitle  String
   documentType   String
   version        String
@@ -766,6 +769,7 @@ model DocumentRegister {
   department     String?
   status         String
 
+  @@unique([fileCode, projectCategoryId])
   @@index([fileCode])
   @@index([registeredDate])
 }

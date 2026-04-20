@@ -1306,12 +1306,14 @@ export default function PublishedDocuments() {
 
       {/* Create Folder Modal */}
       {showCreateFolderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">{t('create_new_folder')}</h3>
-            </div>
-            <div className="px-6 py-4 space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">{t('create_new_folder')}</h3>
+              </div>
+              <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
               {createAccessError && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                   {createAccessError}
@@ -1447,8 +1449,8 @@ export default function PublishedDocuments() {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => {
                   setShowCreateFolderModal(false)
@@ -1470,6 +1472,7 @@ export default function PublishedDocuments() {
             </div>
           </div>
         </div>
+        </div>
       )}
 
       {/* Upload File Modal */}
@@ -1485,12 +1488,14 @@ export default function PublishedDocuments() {
 
       {/* Create Sub Folder Modal */}
       {showCreateSubFolderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">{t('create_new_subfolder')}</h3>
-            </div>
-            <div className="px-6 py-4 space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">{t('create_new_subfolder')}</h3>
+              </div>
+              <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
               {createAccessError && (
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
                   {createAccessError}
@@ -1678,8 +1683,8 @@ export default function PublishedDocuments() {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+              </div>
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => {
                   setShowCreateSubFolderModal(false)
@@ -1701,6 +1706,7 @@ export default function PublishedDocuments() {
               </button>
             </div>
           </div>
+        </div>
         </div>
       )}
       

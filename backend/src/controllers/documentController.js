@@ -231,7 +231,8 @@ class DocumentController {
    */
   getDocumentByCode = asyncHandler(async (req, res) => {
     const { fileCode } = req.params;
-    const document = await documentService.getDocumentByFileCode(fileCode);
+    const { projectCategoryId } = req.query;
+    const document = await documentService.getDocumentByFileCode(fileCode, projectCategoryId || null);
 
     return ResponseFormatter.success(
       res,

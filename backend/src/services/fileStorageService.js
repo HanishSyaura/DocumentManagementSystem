@@ -25,12 +25,14 @@ class FileStorageService {
    * Get document storage path by year/month/fileCode
    * @param {string} fileCode - Document file code (e.g., "DOC-2025-001")
    */
-  getDocumentPath(fileCode) {
+  getDocumentPath(fileCode, projectCategoryId) {
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    
-    const relativePath = path.join('documents', String(year), month, fileCode);
+    const catSegment = projectCategoryId ? `pc_${projectCategoryId}` : null
+    const relativePath = catSegment
+      ? path.join('documents', String(year), month, catSegment, fileCode)
+      : path.join('documents', String(year), month, fileCode);
     return {
       relativePath,
       absolutePath: path.join(config.uploadDir, relativePath)
@@ -41,8 +43,8 @@ class FileStorageService {
    * Create directory for document storage
    * @param {string} fileCode - Document file code
    */
-  async createDocumentDirectory(fileCode) {
-    const { absolutePath } = this.getDocumentPath(fileCode);
+  async createDocumentDirectory(fileCode, projectCategoryId) {
+    const { absolutePath } = this.getDocumentPath(fileCode, projectCategoryId);
     await fs.mkdir(absolutePath, { recursive: true });
     return absolutePath;
   }
@@ -52,9 +54,9 @@ class FileStorageService {
    * @param {string} oldFileCode - Old file code (temporary)
    * @param {string} newFileCode - New file code (permanent)
    */
-  async renameDocumentDirectory(oldFileCode, newFileCode) {
-    const { absolutePath: oldPath } = this.getDocumentPath(oldFileCode);
-    const { absolutePath: newPath } = this.getDocumentPath(newFileCode);
+  async renameDocumentDirectory(oldFileCode, newFileCode, projectCategoryId) {
+    const { absolutePath: oldPath } = this.getDocumentPath(oldFileCode, projectCategoryId);
+    const { absolutePath: newPath } = this.getDocumentPath(newFileCode, projectCategoryId);
     
     // Check if old directory exists
     const oldExists = await this.fileExists(oldPath);
@@ -93,11 +95,27 @@ class FileStorageService {
       }
       for (const monthEnt of months) {
         if (!monthEnt.isDirectory()) continue;
-        const candidate = path.join(yearPath, monthEnt.name, fileCode);
-        const exists = await this.fileExists(candidate);
-        if (exists) {
-          const ok = await this.deleteDirectory(candidate);
+        const monthPath = path.join(yearPath, monthEnt.name)
+        const directCandidate = path.join(monthPath, fileCode);
+        if (await this.fileExists(directCandidate)) {
+          const ok = await this.deleteDirectory(directCandidate);
           if (ok) deleted = true;
+        }
+
+        let entries = []
+        try {
+          entries = await fs.readdir(monthPath, { withFileTypes: true })
+        } catch {
+          entries = []
+        }
+        for (const ent of entries) {
+          if (!ent.isDirectory()) continue
+          if (!String(ent.name).startsWith('pc_')) continue
+          const catCandidate = path.join(monthPath, ent.name, fileCode)
+          if (await this.fileExists(catCandidate)) {
+            const ok = await this.deleteDirectory(catCandidate)
+            if (ok) deleted = true
+          }
         }
       }
     }

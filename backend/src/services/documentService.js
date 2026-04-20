@@ -185,11 +185,12 @@ class DocumentService {
     const normalized = String(fileCode || '').trim()
     if (!normalized) return null
 
+    const pc = parseInt(projectCategoryId, 10)
     await prisma.codeRegistry.upsert({
-      where: { fileCode: normalized },
+      where: { fileCode_projectCategoryId: { fileCode: normalized, projectCategoryId: pc } },
       update: {
         normalizedFileCode: normalized,
-        projectCategoryId: parseInt(projectCategoryId, 10),
+        projectCategoryId: pc,
         documentTypeId: parseInt(documentTypeId, 10),
         codeKey,
         runningNumber: parseInt(runningNumber, 10),
@@ -199,7 +200,7 @@ class DocumentService {
       create: {
         fileCode: normalized,
         normalizedFileCode: normalized,
-        projectCategoryId: parseInt(projectCategoryId, 10),
+        projectCategoryId: pc,
         documentTypeId: parseInt(documentTypeId, 10),
         codeKey,
         runningNumber: parseInt(runningNumber, 10),
@@ -337,7 +338,9 @@ class DocumentService {
     // Guard against collisions in existing records
     let retries = 0
     while (retries < 30) {
-      const existing = await prisma.document.findUnique({ where: { fileCode } })
+      const existing = projectCategoryId
+        ? await prisma.document.findFirst({ where: { fileCode, projectCategoryId: parseInt(projectCategoryId, 10) } })
+        : await prisma.document.findFirst({ where: { fileCode } })
       if (!existing) break
       sequence += 1
       fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
@@ -358,7 +361,7 @@ class DocumentService {
     const { title, description, documentTypeId, projectCategoryId, folderId } = data;
 
     // Generate file code
-    const fileCode = await this.generateFileCode(documentTypeId);
+    const fileCode = await this.generateFileCode(documentTypeId, projectCategoryId || null);
 
     // Create document
     const document = await prisma.document.create({
@@ -397,29 +400,47 @@ class DocumentService {
     });
 
     // Create document directory
-    await fileStorageService.createDocumentDirectory(fileCode);
+    await fileStorageService.createDocumentDirectory(fileCode, projectCategoryId || null);
 
     // Create document register entry
-    await prisma.documentRegister.upsert({
-      where: { fileCode },
-      update: {
-        documentTitle: title,
-        documentType: document.documentType.name,
-        version: '1.0',
-        owner: `${document.owner.firstName} ${document.owner.lastName}`,
-        department: document.owner.department || '',
-        status: 'DRAFT'
-      },
-      create: {
-        fileCode,
-        documentTitle: title,
-        documentType: document.documentType.name,
-        version: '1.0',
-        owner: `${document.owner.firstName} ${document.owner.lastName}`,
-        department: document.owner.department || '',
-        status: 'DRAFT'
-      }
-    });
+    const pcId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+    if (pcId) {
+      await prisma.documentRegister.upsert({
+        where: { fileCode_projectCategoryId: { fileCode, projectCategoryId: pcId } },
+        update: {
+          documentTitle: title,
+          documentType: document.documentType.name,
+          version: '1.0',
+          owner: `${document.owner.firstName} ${document.owner.lastName}`,
+          department: document.owner.department || '',
+          status: 'DRAFT'
+        },
+        create: {
+          fileCode,
+          projectCategoryId: pcId,
+          documentTitle: title,
+          documentType: document.documentType.name,
+          version: '1.0',
+          owner: `${document.owner.firstName} ${document.owner.lastName}`,
+          department: document.owner.department || '',
+          status: 'DRAFT'
+        }
+      });
+    } else {
+      await prisma.documentRegister.create({
+        data: {
+          fileCode,
+          projectCategoryId: null,
+          documentTitle: title,
+          documentType: document.documentType.name,
+          version: '1.0',
+          owner: `${document.owner.firstName} ${document.owner.lastName}`,
+          department: document.owner.department || '',
+          status: 'DRAFT'
+        }
+      })
+    }
+    
 
     try {
       const settings = await DocumentNumbering.loadSettings()
@@ -475,22 +496,32 @@ class DocumentService {
       const maxRunning = await this.getCurrentMaxRunningNumber(categoryId, documentTypeId, settings)
       const hasExisting = maxRunning >= startingNumber
       nextRunning = hasExisting ? maxRunning + 1 : parsed.runningNumber
-      finalFileCode = this.buildNormalizedFileCode({
+
+      const buildWithRunning = (runningNumber) => this.buildNormalizedFileCode({
         prefix: parsed.prefix,
         versionSegment: parsed.versionSegment,
         dateSegment: parsed.dateSegment,
-        runningNumber: nextRunning
+        runningNumber
       }, settings)
-    }
 
-    const [existingDocument, existingRegistry] = await Promise.all([
-      prisma.document.findUnique({ where: { fileCode: finalFileCode } }),
-      prisma.codeRegistry.findUnique({ where: { fileCode: finalFileCode } })
-    ])
-    if (existingDocument || existingRegistry) {
-      const err = new BadRequestError(`File code "${finalFileCode}" already exists`)
-      err.code = 'DUPLICATE_FULL_CODE'
-      throw err
+      finalFileCode = buildWithRunning(nextRunning)
+
+      let attempts = 0
+      while (attempts < 2000) {
+        const [existingDocument, existingRegistry] = await Promise.all([
+          prisma.document.findFirst({ where: { fileCode: finalFileCode, projectCategoryId: categoryId } }),
+          prisma.codeRegistry.findFirst({ where: { fileCode: finalFileCode, projectCategoryId: categoryId } })
+        ])
+        if (!existingDocument && !existingRegistry) break
+        nextRunning += 1
+        finalFileCode = buildWithRunning(nextRunning)
+        attempts += 1
+      }
+      if (attempts >= 2000) {
+        const err = new BadRequestError('Unable to allocate a unique file code for this project category')
+        err.code = 'FILE_CODE_ALLOCATION_FAILED'
+        throw err
+      }
     }
 
     const document = await prisma.document.create({
@@ -529,11 +560,11 @@ class DocumentService {
       }
     })
 
-    await fileStorageService.createDocumentDirectory(finalFileCode)
+    await fileStorageService.createDocumentDirectory(finalFileCode, categoryId)
 
     if (!clientDoc) {
       await prisma.documentRegister.upsert({
-        where: { fileCode: finalFileCode },
+        where: { fileCode_projectCategoryId: { fileCode: finalFileCode, projectCategoryId: categoryId } },
         update: {
           documentTitle: title,
           documentType: document.documentType.name,
@@ -544,6 +575,7 @@ class DocumentService {
         },
         create: {
           fileCode: finalFileCode,
+          projectCategoryId: categoryId,
           documentTitle: title,
           documentType: document.documentType.name,
           version: '1.0',
@@ -609,7 +641,7 @@ class DocumentService {
     }
 
     // Move file from temp to document directory
-    const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode);
+    const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
     const fileName = fileStorageService.generateUniqueFileName(file.originalname);
     let finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
 
@@ -722,22 +754,35 @@ class DocumentService {
   /**
    * Get document by file code
    */
-  async getDocumentByFileCode(fileCode) {
-    const document = await prisma.document.findUnique({
-      where: { fileCode },
+  async getDocumentByFileCode(fileCode, projectCategoryId = null) {
+    const fc = String(fileCode || '').trim()
+    if (!fc) throw new BadRequestError('File code is required')
+
+    const pcId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+    const where = pcId ? { fileCode: fc, projectCategoryId: pcId } : { fileCode: fc }
+
+    const documents = await prisma.document.findMany({
+      where,
       include: {
         documentType: true,
         versions: {
           orderBy: { uploadedAt: 'desc' }
         }
-      }
-    });
+      },
+      take: 2
+    })
 
-    if (!document) {
-      throw new NotFoundError('Document');
+    if (!documents || documents.length === 0) {
+      throw new NotFoundError('Document')
     }
 
-    return document;
+    if (!pcId && documents.length > 1) {
+      const err = new BadRequestError('Multiple documents share this file code. Please specify projectCategoryId.')
+      err.code = 'FILE_CODE_AMBIGUOUS'
+      throw err
+    }
+
+    return documents[0]
   }
 
   /**
@@ -1250,7 +1295,7 @@ class DocumentService {
     });
 
     // Create document directory
-    await fileStorageService.createDocumentDirectory(tempFileCode);
+    await fileStorageService.createDocumentDirectory(tempFileCode, projectCategoryId || null);
 
     // TODO: Send notification to Document Controller
 
@@ -1375,14 +1420,14 @@ class DocumentService {
 
     // Rename document directory from temp to proper file code
     try {
-      await fileStorageService.renameDocumentDirectory(document.fileCode, fileCode);
+      await fileStorageService.renameDocumentDirectory(document.fileCode, fileCode, document.projectCategoryId || null);
     } catch (error) {
       console.error('Failed to rename document directory:', error);
     }
 
     // Update document register
     await prisma.documentRegister.upsert({
-      where: { fileCode },
+      where: { fileCode_projectCategoryId: { fileCode, projectCategoryId: updated.projectCategoryId } },
       update: {
         documentTitle: document.title,
         documentType: document.documentType.name,
@@ -1393,6 +1438,7 @@ class DocumentService {
       },
       create: {
         fileCode,
+        projectCategoryId: updated.projectCategoryId,
         documentTitle: document.title,
         documentType: document.documentType.name,
         version: '1.0',

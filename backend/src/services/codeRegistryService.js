@@ -293,7 +293,7 @@ class CodeRegistryService {
           throw err
         }
 
-        const existingDoc = await prisma.document.findUnique({ where: { fileCode: normalized } })
+        const existingDoc = await prisma.document.findFirst({ where: { fileCode: normalized, projectCategoryId } })
         if (existingDoc) {
           const err = new BadRequestError(`File code "${normalized}" already exists`)
           err.code = 'DUPLICATE_FULL_CODE'

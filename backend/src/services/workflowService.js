@@ -109,7 +109,7 @@ class WorkflowService {
       // Upload reviewed file if provided
       if (file) {
         const fileStorageService = require('./fileStorageService');
-        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode);
+        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
         const fileName = fileStorageService.generateUniqueFileName(file.originalname);
         const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
 
@@ -271,7 +271,7 @@ class WorkflowService {
       // Upload approved file if provided
       if (file) {
         const fileStorageService = require('./fileStorageService');
-        const { absolutePath} = fileStorageService.getDocumentPath(document.fileCode);
+        const { absolutePath} = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
         const fileName = fileStorageService.generateUniqueFileName(file.originalname);
         const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
 
@@ -417,7 +417,7 @@ class WorkflowService {
       // Upload approved file if provided
       if (file) {
         const fileStorageService = require('./fileStorageService');
-        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode);
+        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
         const fileName = fileStorageService.generateUniqueFileName(file.originalname);
         const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
 

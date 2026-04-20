@@ -294,8 +294,8 @@ class VersionRequestService {
     const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
-    const existingDoc = await prisma.document.findUnique({
-      where: { fileCode: newFileCode }
+    const existingDoc = await prisma.document.findFirst({
+      where: { fileCode: newFileCode, projectCategoryId: originalDocument.projectCategoryId }
     });
 
     if (existingDoc) {
@@ -506,8 +506,8 @@ class VersionRequestService {
     const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
-    const existingDoc = await prisma.document.findUnique({
-      where: { fileCode: newFileCode }
+    const existingDoc = await prisma.document.findFirst({
+      where: { fileCode: newFileCode, projectCategoryId: originalDocument.projectCategoryId }
     });
 
     if (existingDoc) {
