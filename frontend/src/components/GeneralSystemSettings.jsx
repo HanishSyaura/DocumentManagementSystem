@@ -4178,8 +4178,8 @@ function DocumentSettings() {
 // Tab 5: Notification Settings
 function NotificationSettings() {
   const { t } = usePreferences()
-  const smtpUiRevision = 'smtp-ui-2026-04-20-b'
-  const [settings, setSettings] = useState({
+  const smtpUiRevision = 'smtp-ui-2026-04-20-c'
+  const defaultNotificationSettings = {
     smtpHost: 'smtp.company.com',
     smtpPort: '587',
     smtpUsername: 'noreply@company.com',
@@ -4267,7 +4267,8 @@ function NotificationSettings() {
     approvalReminder: 2,
     dailyDigest: true,
     digestTime: '09:00'
-  })
+  }
+  const [settings, setSettings] = useState(defaultNotificationSettings)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [testingEmail, setTestingEmail] = useState(false)
@@ -4290,6 +4291,7 @@ function NotificationSettings() {
     try {
       setLoading(true)
       const response = await fetch('/api/system/config/notification-settings', {
+        cache: 'no-store',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -4298,11 +4300,13 @@ function NotificationSettings() {
         const body = await response.json()
         const data = extractNotificationSettings(body)
         if (data && typeof data === 'object') {
-          setSettings(prev => ({
-            ...prev,
+          setSettings({
+            ...defaultNotificationSettings,
             ...data,
-            notifications: data?.notifications || prev.notifications
-          }))
+            notifications: (data?.notifications && typeof data.notifications === 'object')
+              ? { ...defaultNotificationSettings.notifications, ...data.notifications }
+              : defaultNotificationSettings.notifications
+          })
         }
       }
     } catch (error) {
@@ -4317,6 +4321,7 @@ function NotificationSettings() {
       setSaving(true)
       const response = await fetch('/api/system/config/notification-settings', {
         method: 'PUT',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -4327,11 +4332,13 @@ function NotificationSettings() {
         const body = await response.json()
         const saved = extractNotificationSettings(body)
         if (saved && typeof saved === 'object') {
-          setSettings(prev => ({
-            ...prev,
+          setSettings({
+            ...defaultNotificationSettings,
             ...saved,
-            notifications: saved?.notifications || prev.notifications
-          }))
+            notifications: (saved?.notifications && typeof saved.notifications === 'object')
+              ? { ...defaultNotificationSettings.notifications, ...saved.notifications }
+              : defaultNotificationSettings.notifications
+          })
         }
         alert('Notification settings saved successfully!')
         setShowPasswordField(false)
