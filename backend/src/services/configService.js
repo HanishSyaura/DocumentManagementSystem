@@ -591,13 +591,11 @@ class ConfigService {
         ? { ...(current.notifications || {}), ...normalized.notifications }
         : (current.notifications || {})
     };
-    const settingsJson = JSON.stringify(normalized);
     const settingsJson = JSON.stringify(merged);
     const config = await prisma.configuration.upsert({
       where: { key: 'notification_settings' },
       update: { 
         value: settingsJson,
-        description: 'Email and notification configuration'
         description: 'Email and notification configuration'
       },
       create: {
