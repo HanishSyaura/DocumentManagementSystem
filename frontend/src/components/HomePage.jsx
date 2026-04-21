@@ -18,6 +18,7 @@ import {
 import api from '../api/axios';
 import MarkdownRenderer from './MarkdownRenderer';
 import PublicTopbar from './PublicTopbar';
+import PublicFooter from './PublicFooter';
 
 const iconMap = {
   'document-text': DocumentTextIcon,
@@ -272,9 +273,14 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16">
+    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16 pb-16">
       <a href="#main" className="skip-link">Skip to content</a>
       <PublicTopbar onSection={scrollToSection} />
+      <PublicFooter
+        copyrightText={landingContent?.copyrightText}
+        footerLinks={landingContent?.footerLinks}
+        onPdfLinkClick={handlePdfLinkClick}
+      />
 
       {/* Hero Section */}
       <main id="main" tabIndex={-1}>
@@ -787,30 +793,7 @@ const HomePage = () => {
         </div>
         </div>
 
-        <footer className="bg-white/80 backdrop-blur border-t border-gray-200 py-4 sm:py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <p className="text-gray-600 text-xs sm:text-sm mb-2">
-                <MarkdownRenderer inline value={landingContent?.copyrightText || '© 2025 CLB Groups. All rights reserved.'} />
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm">
-                {(landingContent?.footerLinks || []).map((link, idx) => (
-                  <React.Fragment key={idx}>
-                    {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
-                    <button
-                      type="button"
-                      onClick={() => handlePdfLinkClick(link)}
-                      className="text-gray-600 hover:text-blue-600 cursor-pointer transition-colors"
-                      disabled={!link.pdf}
-                    >
-                      <MarkdownRenderer inline value={link.label} />
-                    </button>
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-          </div>
-        </footer>
+        
       </section>
 
       </main>
