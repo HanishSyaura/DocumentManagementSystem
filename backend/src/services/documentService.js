@@ -1509,9 +1509,9 @@ class DocumentService {
       throw new BadRequestError('Document must be in draft stage to submit for review');
     }
     
-    // Accept documents with ACKNOWLEDGED (new drafts) or RETURNED (resubmission) status
-    if (!['ACKNOWLEDGED', 'RETURNED'].includes(document.status)) {
-      throw new BadRequestError('Can only submit documents with ACKNOWLEDGED or RETURNED status');
+    // Accept documents with DRAFT, DRAFTING, ACKNOWLEDGED (new drafts) or RETURNED (resubmission) status
+    if (!['DRAFT', 'DRAFTING', 'ACKNOWLEDGED', 'RETURNED'].includes(document.status)) {
+      throw new BadRequestError('Can only submit documents with DRAFT, DRAFTING, ACKNOWLEDGED or RETURNED status');
     }
 
     // Check if file is uploaded
@@ -1520,8 +1520,15 @@ class DocumentService {
     }
 
     // Check if reviewers are assigned
-    if (!reviewerIds || reviewerIds.length === 0) {
+    if (!reviewerIds || !Array.isArray(reviewerIds) || reviewerIds.length === 0) {
       throw new BadRequestError('Please assign at least one reviewer');
+    }
+
+    // Ensure all reviewer IDs are integers
+    const parsedReviewerIds = reviewerIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    
+    if (parsedReviewerIds.length === 0) {
+      throw new BadRequestError('Invalid reviewer IDs provided');
     }
 
     // Update document status to PENDING_REVIEW
@@ -1532,7 +1539,7 @@ class DocumentService {
         status: 'PENDING_REVIEW',
         stage: 'REVIEW',
         submittedAt: new Date(),
-        reviewerId: reviewerIds[0] // Assign the first/primary reviewer
+        reviewerId: parsedReviewerIds[0] // Assign the first/primary reviewer
       },
       include: {
         documentType: true,
@@ -1545,7 +1552,7 @@ class DocumentService {
     });
 
     // Create approval history records for reviewers
-    const approvalRecords = reviewerIds.map(reviewerId => ({
+    const approvalRecords = parsedReviewerIds.map(reviewerId => ({
       documentId,
       userId: reviewerId,
       action: 'SUBMITTED',
@@ -1558,7 +1565,7 @@ class DocumentService {
 
     // Create document assignments for reviewers (for access control)
     const documentAssignmentService = require('./documentAssignmentService');
-    for (const reviewerId of reviewerIds) {
+    for (const reviewerId of parsedReviewerIds) {
       await documentAssignmentService.assignDocument(
         documentId,
         reviewerId,
@@ -1566,7 +1573,7 @@ class DocumentService {
         userId // assigned by owner
       );
     }
-    console.log(`[DocumentService] Created assignments for ${reviewerIds.length} reviewers`);
+    console.log(`[DocumentService] Created assignments for ${parsedReviewerIds.length} reviewers`);
 
     // Update document register
     await prisma.documentRegister.updateMany({

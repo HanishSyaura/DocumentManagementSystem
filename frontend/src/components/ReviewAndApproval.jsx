@@ -86,7 +86,13 @@ export default function ReviewAndApproval() {
     if (!currentUserId) return false
     
     // Check if user is assigned as reviewer
-    return doc.reviewerId === currentUserId
+    if (doc.reviewerId === currentUserId) return true
+    
+    if (doc.assignments && Array.isArray(doc.assignments)) {
+      return doc.assignments.some(a => a.userId === currentUserId && a.assignmentType === 'REVIEW')
+    }
+    
+    return false
   }
 
   useEffect(() => {

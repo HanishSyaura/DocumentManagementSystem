@@ -507,7 +507,15 @@ class DocumentController {
           // User is assigned as first approver
           { firstApproverId: userId },
           // User is assigned as second approver
-          { secondApproverId: userId }
+          { secondApproverId: userId },
+          // User has an assignment record
+          {
+            assignments: {
+              some: {
+                userId: userId
+              }
+            }
+          }
         ]
       },
       include: {
@@ -543,6 +551,12 @@ class DocumentController {
             firstName: true,
             lastName: true,
             email: true
+          }
+        },
+        assignments: {
+          select: {
+            userId: true,
+            assignmentType: true
           }
         },
         versions: {
@@ -587,7 +601,8 @@ class DocumentController {
         stage: displayStage,
         currentStage: displayStage,
         status: doc.status,
-        type: 'document'
+        type: 'document',
+        assignments: doc.assignments || []
       };
     });
 
@@ -658,7 +673,8 @@ class DocumentController {
         status: req.status,
         type: 'supersede-request',
         actionType: req.actionType,
-        reason: req.reason
+        reason: req.reason,
+        assignments: []
       };
     });
 
@@ -1582,7 +1598,8 @@ class DocumentController {
     let reviewerIds = [];
     if (reviewers) {
       try {
-        reviewerIds = typeof reviewers === 'string' ? JSON.parse(reviewers) : reviewers;
+        const parsed = typeof reviewers === 'string' ? JSON.parse(reviewers) : reviewers;
+        reviewerIds = Array.isArray(parsed) ? parsed.map(id => parseInt(id, 10)).filter(id => !isNaN(id)) : [];
       } catch (e) {
         errors.push({ field: 'reviewers', message: 'Invalid reviewers format' });
       }

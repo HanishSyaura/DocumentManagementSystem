@@ -28,9 +28,9 @@ class WorkflowService {
       throw new BadRequestError('Can only submit documents in DRAFT stage');
     }
     
-    // Accept documents with ACKNOWLEDGED (new drafts) or RETURNED (resubmission) status
-    if (!['ACKNOWLEDGED', 'RETURNED'].includes(document.status)) {
-      throw new BadRequestError('Can only submit documents with ACKNOWLEDGED or RETURNED status');
+    // Accept documents with DRAFT, DRAFTING, ACKNOWLEDGED (new drafts) or RETURNED (resubmission) status
+    if (!['DRAFT', 'DRAFTING', 'ACKNOWLEDGED', 'RETURNED'].includes(document.status)) {
+      throw new BadRequestError('Can only submit documents with DRAFT, DRAFTING, ACKNOWLEDGED or RETURNED status');
     }
 
     // Check if document has a file uploaded
