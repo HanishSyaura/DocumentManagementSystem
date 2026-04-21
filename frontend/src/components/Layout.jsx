@@ -8,6 +8,7 @@ import { applyTheme } from '../utils/branding'
 import GettingStartedModal from './GettingStartedModal'
 import { isAdmin } from '../utils/permissions'
 import GuidedTour from './GuidedTour'
+import UploadProgressBar from './UploadProgressBar'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -165,6 +166,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="h-screen flex flex-col">
+      <UploadProgressBar />
       <Topbar
         onMenu={() => setSidebarOpen(true)}
         onGettingStarted={() => {
