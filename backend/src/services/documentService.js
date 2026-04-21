@@ -706,7 +706,7 @@ class DocumentService {
           }
         },
         versions: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }],
           take: 1
         },
         approvalHistory: {
@@ -867,7 +867,7 @@ class DocumentService {
           }
         },
         versions: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }],
           take: 1
         }
       },
@@ -927,7 +927,7 @@ class DocumentService {
           }
         },
         versions: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }],
           take: 1
         }
       },
@@ -1104,7 +1104,7 @@ class DocumentService {
           }
         }
       },
-      orderBy: { uploadedAt: 'desc' }
+      orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }]
     });
 
     return versions;
@@ -1489,7 +1489,7 @@ class DocumentService {
       where: { id: documentId },
       include: {
         versions: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }],
           take: 1
         }
       }
@@ -1545,7 +1545,7 @@ class DocumentService {
         documentType: true,
         owner: true,
         versions: {
-          orderBy: { uploadedAt: 'desc' },
+          orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }],
           take: 1
         }
       }

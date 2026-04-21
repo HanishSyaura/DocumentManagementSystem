@@ -562,7 +562,7 @@ class WorkflowService {
     // Mark latest version as published and rename if needed
     const latestVersion = await prisma.documentVersion.findFirst({
       where: { documentId },
-      orderBy: { uploadedAt: 'desc' }
+      orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }]
     });
 
     if (latestVersion) {
@@ -656,7 +656,7 @@ class WorkflowService {
     // Mark latest version as published
     const latestVersion = await prisma.documentVersion.findFirst({
       where: { documentId },
-      orderBy: { uploadedAt: 'desc' }
+      orderBy: [{ uploadedAt: 'desc' }, { id: 'desc' }]
     });
 
     if (latestVersion) {
