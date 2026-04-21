@@ -23,6 +23,7 @@ router.put('/2fa', authenticate, authController.toggleTwoFactor);
 router.get('/2fa/status', authenticate, authController.getTwoFactorStatus);
 router.post('/2fa/setup-authenticator', authenticate, authController.setupAuthenticator);
 router.post('/2fa/verify-authenticator', authenticate, authController.verifyAuthenticatorSetup);
+router.post('/2fa/revoke-trusted-device', authenticate, authController.revokeTrustedDevice);
 router.post('/deactivate', authenticate, authController.deactivateAccount);
 
 module.exports = router;

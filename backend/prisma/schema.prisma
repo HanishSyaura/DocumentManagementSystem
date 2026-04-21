@@ -43,6 +43,7 @@ model User {
   // Relations
   roles                     UserRole[]
   sessions                  UserSession[]
+  trustedDevices            TrustedDevice[]
   preferences               UserPreference?
   createdDocuments          Document[]                 @relation("DocumentCreator")
   ownedDocuments            Document[]                 @relation("DocumentOwner")
@@ -139,6 +140,24 @@ model UserSession {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model TrustedDevice {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  tokenHash  String    @unique @db.VarChar(128)
+  userAgent  String?   @db.Text
+  ipAddress  String?
+  expiresAt  DateTime
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
 }
 
 model UserPreference {

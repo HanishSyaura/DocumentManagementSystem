@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bars3Icon, DocumentTextIcon, UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { DocumentTextIcon, UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import api from '../api/axios'
 import { getDefaultRoute } from '../utils/defaultRoute'
 import { updateUserData } from '../utils/userDataEvents'
 import { usePreferences } from '../contexts/PreferencesContext'
+import PublicTopbar from './PublicTopbar'
 
 export default function Login() {
   const { t } = usePreferences()
@@ -22,6 +23,7 @@ export default function Login() {
   const [twoFAMethod, setTwoFAMethod] = useState('email')
   const [twoFAMessage, setTwoFAMessage] = useState('')
   const [twoFAAvailableMethods, setTwoFAAvailableMethods] = useState([])
+  const [trustDevice, setTrustDevice] = useState(true)
 
   const [logo, setLogo] = useState(() => {
     try {
@@ -64,7 +66,6 @@ export default function Login() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [changePasswordMessage, setChangePasswordMessage] = useState('')
   const [changePasswordLoading, setChangePasswordLoading] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState({
@@ -143,6 +144,7 @@ export default function Login() {
         setTwoFAMethod(defaultMethod)
         setTwoFAMessage(res.data.data.message || '')
         setShow2FA(true)
+        setTrustDevice(true)
         setLoading(false)
         setError(null)
         setResendTimer((defaultMethod === 'email' && res.data.data.codeSent) ? 60 : 0)
@@ -191,7 +193,8 @@ export default function Login() {
       const res = await api.post('/auth/verify-2fa', { 
         userId: tempUserId,
         code: verificationCode,
-        method: twoFAMethod
+        method: twoFAMethod,
+        rememberDevice: trustDevice
       })
 
       const token =
@@ -354,85 +357,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen pt-16" style={{ background: `linear-gradient(to bottom right, var(--dms-login-bg-start, #F9FAFB), var(--dms-login-bg-end, #EFF6FF))` }}>
-      {/* Navigation Bar */}
-      <nav className="app-topbar fixed top-0 inset-x-0 z-50 text-white shadow-md" style={{ backdropFilter: 'blur(10px)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              {logo ? (
-                <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
-                  <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
-                </div>
-              ) : (
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <DocumentTextIcon className="h-6 w-6" style={{color: 'var(--dms-primary, #0f6fcf)'}} />
-                </div>
-              )}
-              <div className="hidden md:flex flex-col">
-                <span className="text-sm font-semibold">{companyName}</span>
-                <span className="text-xs opacity-90">{t('dms_label')}</span>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center space-x-1">
-              <button
-                onClick={() => navigate('/')}
-                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t('hp_home')}
-              </button>
-              <button
-                onClick={() => navigate('/#about')}
-                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t('hp_about')}
-              </button>
-              <button
-                onClick={() => navigate('/#features')}
-                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t('hp_features')}
-              </button>
-              <button
-                onClick={() => navigate('/#workflow')}
-                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => navigate('/#contact')}
-                className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-              >
-                {t('hp_contact')}
-              </button>
-              <button
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold ml-2 hover:bg-blue-50 transition-colors"
-              >
-                {t('hp_login')}
-              </button>
-            </div>
-            <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-white/20 transition-colors"
-              aria-label="Toggle navigation menu"
-              aria-expanded={mobileMenuOpen}
-              aria-controls="login-mobile-nav"
-              onClick={() => setMobileMenuOpen(v => !v)}
-            >
-              {mobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
-            </button>
-          </div>
-          {mobileMenuOpen && (
-            <div id="login-mobile-nav" className="md:hidden pb-3 flex flex-col gap-1">
-              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_home')}</button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#about') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_about')}</button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#features') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_features')}</button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#workflow') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Overview</button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); navigate('/#contact') }} className="text-left text-white/95 hover:bg-white/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">{t('hp_contact')}</button>
-              <button type="button" className="mt-1 bg-white text-blue-600 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors">{t('hp_login')}</button>
-            </div>
-          )}
-        </div>
-      </nav>
+      <PublicTopbar />
 
       {/* Login Section */}
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)] py-12 px-4">
@@ -541,6 +466,15 @@ export default function Login() {
                     />
                   </div>
 
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={trustDevice}
+                      onChange={(e) => setTrustDevice(e.target.checked)}
+                    />
+                    Trust this device for 7 days
+                  </label>
+
                   <button
                     type="submit"
                     disabled={loading || verificationCode.length !== 6}
@@ -570,6 +504,7 @@ export default function Login() {
                         setTwoFAMethod('email')
                         setTwoFAMessage('')
                         setTwoFAAvailableMethods([])
+                        setTrustDevice(true)
                         setError(null)
                       }}
                       className="text-sm text-gray-500 hover:text-gray-700"

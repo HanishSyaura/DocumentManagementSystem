@@ -6,6 +6,57 @@ const { generateEmployeeId } = require('../utils/employeeIdGenerator');
 const securityService = require('./securityService');
 
 class AuthService {
+  stripSensitiveUser(user) {
+    const hasAuthenticator = Boolean(user.twoFactorSecret)
+    const {
+      password: _,
+      twoFactorCode: __,
+      twoFactorCodeExpiry: ___,
+      twoFactorSecret: ____,
+      twoFactorTempSecret: _____,
+      ...userWithoutPassword
+    } = user
+    return { ...userWithoutPassword, hasAuthenticator }
+  }
+
+  async createSessionForUser(user, ipAddress, userAgent) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    })
+
+    await prisma.userSession.deleteMany({
+      where: {
+        userId: user.id,
+        expiresAt: { lt: new Date() }
+      }
+    })
+
+    const securitySettings = await securityService.getSecuritySettings()
+    const sessionTimeoutMs = (securitySettings.sessionTimeout || 480) * 60 * 1000
+
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      roles: user.roles.map(r => r.role.name)
+    }
+
+    const accessToken = signAccessToken(payload)
+    const refreshToken = signRefreshToken({ userId: user.id })
+
+    await prisma.userSession.create({
+      data: {
+        userId: user.id,
+        token: accessToken,
+        refreshToken,
+        ipAddress,
+        userAgent,
+        expiresAt: new Date(Date.now() + sessionTimeoutMs)
+      }
+    })
+
+    return { accessToken, refreshToken }
+  }
   /**
    * Login user with email and password
    * @param {string} email
@@ -74,15 +125,7 @@ class AuthService {
       }
     });
 
-    // Remove sensitive auth/2FA fields from response
-    const {
-      password: _,
-      twoFactorCode: __,
-      twoFactorCodeExpiry: ___,
-      twoFactorSecret: ____,
-      twoFactorTempSecret: _____,
-      ...userWithoutPassword
-    } = user;
+    const userWithoutPassword = this.stripSensitiveUser(user)
 
     // If skipSession is true (2FA required), return user only without creating session
     if (skipSession) {
@@ -92,52 +135,36 @@ class AuthService {
         refreshToken: null
       };
     }
+    const { accessToken, refreshToken } = await this.createSessionForUser(user, ipAddress, userAgent)
 
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() }
-    });
+    return { user: userWithoutPassword, accessToken, refreshToken }
+  }
 
-    // Delete expired sessions for this user to prevent unique constraint violations
-    await prisma.userSession.deleteMany({
-      where: {
-        userId: user.id,
-        expiresAt: { lt: new Date() }
+  async issueTokensForUserId(userId, ipAddress, userAgent) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: {
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                displayName: true,
+                description: true,
+                permissions: true,
+                isSystem: true
+              }
+            }
+          }
+        }
       }
-    });
-
-    // Get session timeout from security settings
-    const securitySettings = await securityService.getSecuritySettings();
-    const sessionTimeoutMs = (securitySettings.sessionTimeout || 480) * 60 * 1000;
-
-    // Generate tokens
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      roles: user.roles.map(r => r.role.name)
-    };
-
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken({ userId: user.id });
-
-    // Create session with configurable timeout
-    await prisma.userSession.create({
-      data: {
-        userId: user.id,
-        token: accessToken,
-        refreshToken,
-        ipAddress,
-        userAgent,
-        expiresAt: new Date(Date.now() + sessionTimeoutMs)
-      }
-    });
-
-    return {
-      user: userWithoutPassword,
-      accessToken,
-      refreshToken
-    };
+    })
+    if (!user) {
+      throw new NotFoundError('User not found')
+    }
+    const tokens = await this.createSessionForUser(user, ipAddress, userAgent)
+    return { user: this.stripSensitiveUser(user), ...tokens }
   }
 
   /**

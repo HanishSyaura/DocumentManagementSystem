@@ -2,10 +2,10 @@ const authService = require('../services/authService');
 const auditLogService = require('../services/auditLogService');
 const securityService = require('../services/securityService');
 const twoFactorService = require('../services/twoFactorService');
+const trustedDeviceService = require('../services/trustedDeviceService');
 const auditSettingsService = require('../services/auditSettingsService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
-const { signAccessToken, signRefreshToken } = require('../utils/jwt');
 const prisma = require('../config/database');
 
 class AuthController {
@@ -76,10 +76,23 @@ class AuthController {
     const requires2FA = is2FASystemEnabled || isUser2FAEnabled;
 
     if (requires2FA) {
+      const trustedToken = trustedDeviceService.getTrustedToken(req);
+      if (trustedToken) {
+        const ok = await trustedDeviceService.verifyTrustedDevice(result.user.id, trustedToken);
+        if (ok) {
+          const fullResult = await authService.issueTokensForUserId(result.user.id, ipAddress, userAgent);
+          await auditLogService.logAuth(fullResult.user.id, 'LOGIN', req, {
+            email: fullResult.user.email,
+            twoFactorBypassed: true
+          });
+          return ResponseFormatter.success(res, fullResult, 'Login successful', 200);
+        }
+      }
+
       const enabledMethods = await twoFactorService.getEnabledMethods();
       const availableMethods = [];
 
-      if (enabledMethods.app && Boolean(result.user.twoFactorSecret)) {
+      if (enabledMethods.app && Boolean(result.user.hasAuthenticator)) {
         availableMethods.push('app');
       }
       if (enabledMethods.email) {
@@ -348,7 +361,7 @@ class AuthController {
    * POST /api/auth/verify-2fa
    */
   verify2FA = asyncHandler(async (req, res) => {
-    const { userId, code, method } = req.body;
+    const { userId, code, method, rememberDevice } = req.body;
 
     if (!userId || !code) {
       return ResponseFormatter.validationError(res, [
@@ -382,82 +395,22 @@ class AuthController {
       );
     }
 
-    // 2FA verified - create full session
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-      include: {
-        roles: {
-          include: {
-            role: {
-              select: {
-                id: true,
-                name: true,
-                displayName: true,
-                description: true,
-                permissions: true,
-                isSystem: true
-              }
-            }
-          }
-        }
-      }
-    });
+    const fullResult = await authService.issueTokensForUserId(parseInt(userId), this.getClientIp(req), req.headers['user-agent']);
 
-    // Get session timeout from security settings
-    const securitySettings = await securityService.getSecuritySettings();
-    const sessionTimeoutMs = (securitySettings.sessionTimeout || 480) * 60 * 1000;
-
-    // Generate tokens
-    const payload = {
-      userId: user.id,
-      email: user.email,
-      roles: user.roles.map(r => r.role.name)
-    };
-
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken({ userId: user.id });
-
-    // Create session
-    await prisma.userSession.create({
-      data: {
-        userId: user.id,
-        token: accessToken,
-        refreshToken,
-        ipAddress: this.getClientIp(req),
-        userAgent: req.headers['user-agent'],
-        expiresAt: new Date(Date.now() + sessionTimeoutMs)
-      }
-    });
-
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() }
-    });
+    if (rememberDevice) {
+      const { rawToken, expiresAt } = await trustedDeviceService.issueTrustedDevice(parseInt(userId), req, 7);
+      trustedDeviceService.setTrustedCookie(res, rawToken, expiresAt);
+    }
 
     // Log successful login after 2FA
-    await auditLogService.logAuth(user.id, 'LOGIN', req, {
-      email: user.email,
+    await auditLogService.logAuth(fullResult.user.id, 'LOGIN', req, {
+      email: fullResult.user.email,
       twoFactorVerified: true
     });
 
-    // Remove sensitive auth/2FA fields from response
-    const {
-      password: _,
-      twoFactorCode: __,
-      twoFactorCodeExpiry: ___,
-      twoFactorSecret: ____,
-      twoFactorTempSecret: _____,
-      ...userWithoutPassword
-    } = user;
-
     return ResponseFormatter.success(
       res,
-      {
-        user: userWithoutPassword,
-        accessToken,
-        refreshToken
-      },
+      fullResult,
       'Login successful',
       200
     );
@@ -495,6 +448,25 @@ class AuthController {
       res,
       { message: 'Verification code resent to your email' },
       'Code resent successfully',
+      200
+    );
+  });
+
+  /**
+   * Revoke trusted device cookie for current user
+   * POST /api/auth/2fa/revoke-trusted-device
+   */
+  revokeTrustedDevice = asyncHandler(async (req, res) => {
+    const token = trustedDeviceService.getTrustedToken(req);
+    if (token) {
+      await trustedDeviceService.revokeTrustedDevice(req.user.id, token);
+    }
+    trustedDeviceService.clearTrustedCookie(res);
+
+    return ResponseFormatter.success(
+      res,
+      { message: 'Trusted device revoked' },
+      'Trusted device revoked successfully',
       200
     );
   });

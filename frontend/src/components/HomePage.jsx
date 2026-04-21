@@ -14,11 +14,10 @@ import {
   CheckCircleIcon,
   EnvelopeIcon,
   PhoneIcon,
-  Bars3Icon,
-  XMarkIcon
 } from '@heroicons/react/24/outline';
 import api from '../api/axios';
 import MarkdownRenderer from './MarkdownRenderer';
+import PublicTopbar from './PublicTopbar';
 
 const iconMap = {
   'document-text': DocumentTextIcon,
@@ -66,7 +65,6 @@ const HomePage = () => {
       return 'FileNix';
     }
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHexColor = (v) => typeof v === 'string' && /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)
   const rolesList = Array.isArray(landingContent?.roles) ? landingContent.roles : []
@@ -243,12 +241,11 @@ const HomePage = () => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (pdfModal.isOpen) closePdfModal();
-        if (mobileMenuOpen) setMobileMenuOpen(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [pdfModal.isOpen, mobileMenuOpen]);
+  }, [pdfModal.isOpen]);
 
   useEffect(() => {
     if (!pdfModal.isOpen) return;
@@ -277,90 +274,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16">
       <a href="#main" className="skip-link">Skip to content</a>
-      {/* Navigation Bar */}
-      <nav className="app-topbar fixed top-0 inset-x-0 z-50 text-white shadow-md" style={{ backdropFilter: 'blur(10px)' }}>
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button type="button" className="flex items-center gap-3 text-left focus-visible:outline-none" onClick={() => navigate('/')} aria-label="Go to home">
-              {logo ? (
-                <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
-                  <img src={logo} alt="Company Logo" className="max-h-8 max-w-[180px] object-contain" />
-                </div>
-              ) : (
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                  <DocumentTextIcon className="h-6 w-6" style={{color: 'var(--dms-primary, #0f6fcf)'}} />
-                </div>
-              )}
-              <div className="hidden md:flex flex-col items-start text-left">
-                <span className="text-sm font-semibold">{companyName}</span>
-                <span className="text-xs opacity-90">{t('dms_label')}</span>
-              </div>
-            </button>
-            <div className="hidden md:flex items-center space-x-1">
-              <button type="button" onClick={() => scrollToSection('home')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_home')}
-              </button>
-              <button type="button" onClick={() => scrollToSection('about')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_about')}
-              </button>
-              <button type="button" onClick={() => scrollToSection('features')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_features')}
-              </button>
-              <button type="button" onClick={() => scrollToSection('workflow')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                Overview
-              </button>
-              <button type="button" onClick={() => scrollToSection('contact')} className="text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_contact')}
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold ml-2 hover:bg-blue-50 transition-colors"
-              >
-                {t('hp_login')}
-              </button>
-            </div>
-            <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg hover:bg-white/20 transition-colors"
-              aria-label="Toggle navigation menu"
-              aria-expanded={mobileMenuOpen}
-              aria-controls="landing-mobile-nav"
-              onClick={() => setMobileMenuOpen(v => !v)}
-            >
-              {mobileMenuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
-            </button>
-          </div>
-        </div>
-        {mobileMenuOpen && (
-          <div id="landing-mobile-nav" className="md:hidden border-t border-white/15 bg-[color:var(--dms-primary)]">
-            <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-2">
-              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('home') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_home')}
-              </button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('about') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_about')}
-              </button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('features') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_features')}
-              </button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('workflow') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                Overview
-              </button>
-              <button type="button" onClick={() => { setMobileMenuOpen(false); scrollToSection('contact') }} className="text-left text-white/95 hover:bg-white/15 px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                {t('hp_contact')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}
-                className="mt-1 bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors"
-              >
-                {t('hp_login')}
-              </button>
-            </div>
-          </div>
-        )}
-      </nav>
+      <PublicTopbar onSection={scrollToSection} />
 
       {/* Hero Section */}
       <main id="main" tabIndex={-1}>
