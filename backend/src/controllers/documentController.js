@@ -1614,8 +1614,11 @@ class DocumentController {
     }
 
     // Check if document with this file code already exists
-    const existingDocument = await prisma.document.findUnique({
-      where: { fileCode }
+    const existingDocument = await prisma.document.findFirst({
+      where: {
+        fileCode,
+        ownerId: req.user.id
+      }
     });
 
     let documentId;
