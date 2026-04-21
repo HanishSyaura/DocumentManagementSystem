@@ -21,6 +21,7 @@ export default function Login() {
   const [resendTimer, setResendTimer] = useState(0)
   const [twoFAMethod, setTwoFAMethod] = useState('email')
   const [twoFAMessage, setTwoFAMessage] = useState('')
+  const [twoFAAvailableMethods, setTwoFAAvailableMethods] = useState([])
 
   const [logo, setLogo] = useState(() => {
     try {
@@ -136,12 +137,15 @@ export default function Login() {
       // Check for 2FA Requirement
       if (res.data?.data?.requires2FA) {
         setTempUserId(res.data.data.userId)
-        setTwoFAMethod(res.data.data.method || 'email')
+        const available = res.data.data.availableMethods || (res.data.data.method ? [res.data.data.method] : ['email'])
+        const defaultMethod = res.data.data.method || (available.includes('app') ? 'app' : 'email')
+        setTwoFAAvailableMethods(available)
+        setTwoFAMethod(defaultMethod)
         setTwoFAMessage(res.data.data.message || '')
         setShow2FA(true)
         setLoading(false)
         setError(null)
-        setResendTimer((res.data.data.method || 'email') === 'email' ? 60 : 0)
+        setResendTimer((defaultMethod === 'email' && res.data.data.codeSent) ? 60 : 0)
         return
       }
 
@@ -229,6 +233,26 @@ export default function Login() {
       // Optional: show success message
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to resend code')
+    }
+  }
+
+  async function selectTwoFAMethod(nextMethod) {
+    setTwoFAMethod(nextMethod)
+    setVerificationCode('')
+    setError(null)
+
+    if (nextMethod === 'email') {
+      setResendTimer(0)
+      try {
+        await api.post('/auth/resend-2fa', { userId: tempUserId, method: 'email' })
+        setResendTimer(60)
+        setTwoFAMessage('Verification code sent to your email')
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to send verification code')
+      }
+    } else {
+      setResendTimer(0)
+      setTwoFAMessage('Open your authenticator app and enter the 6-digit code.')
     }
   }
 
@@ -474,6 +498,33 @@ export default function Login() {
                     </p>
                   </div>
 
+                  {twoFAAvailableMethods.length > 1 && (
+                    <div className="flex items-center justify-center gap-6 -mt-2">
+                      {twoFAAvailableMethods.includes('app') && (
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="radio"
+                            name="twofa-method"
+                            checked={twoFAMethod === 'app'}
+                            onChange={() => selectTwoFAMethod('app')}
+                          />
+                          Authenticator App
+                        </label>
+                      )}
+                      {twoFAAvailableMethods.includes('email') && (
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                          <input
+                            type="radio"
+                            name="twofa-method"
+                            checked={twoFAMethod === 'email'}
+                            onChange={() => selectTwoFAMethod('email')}
+                          />
+                          Email Code
+                        </label>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
                       {t('verification_code')}
@@ -518,6 +569,7 @@ export default function Login() {
                         setVerificationCode('')
                         setTwoFAMethod('email')
                         setTwoFAMessage('')
+                        setTwoFAAvailableMethods([])
                         setError(null)
                       }}
                       className="text-sm text-gray-500 hover:text-gray-700"

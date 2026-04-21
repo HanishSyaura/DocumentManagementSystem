@@ -76,8 +76,17 @@ class AuthController {
     const requires2FA = is2FASystemEnabled || isUser2FAEnabled;
 
     if (requires2FA) {
-      const twoFactorMethod = await twoFactorService.getPreferredMethod(result.user);
-      if (!twoFactorMethod) {
+      const enabledMethods = await twoFactorService.getEnabledMethods();
+      const availableMethods = [];
+
+      if (enabledMethods.app && Boolean(result.user.twoFactorSecret)) {
+        availableMethods.push('app');
+      }
+      if (enabledMethods.email) {
+        availableMethods.push('email');
+      }
+
+      if (availableMethods.length === 0) {
         return ResponseFormatter.error(
           res,
           '2FA is enabled but no supported verification method is configured.',
@@ -85,15 +94,18 @@ class AuthController {
         );
       }
 
-      // Send OTP only for email method
-      if (twoFactorMethod === 'email') {
+      const defaultMethod = availableMethods.includes('app') ? 'app' : 'email';
+      const autoSendEmailCode = availableMethods.length === 1 && defaultMethod === 'email';
+
+      if (autoSendEmailCode) {
         await twoFactorService.sendTwoFactorCode(result.user.id);
       }
       
       // Log 2FA initiated
       await auditLogService.logAuth(result.user.id, 'TWO_FACTOR_INITIATED', req, {
         email: result.user.email,
-        method: twoFactorMethod
+        method: defaultMethod,
+        availableMethods
       });
 
       // Return partial response - user needs to verify 2FA
@@ -103,10 +115,14 @@ class AuthController {
           requires2FA: true,
           userId: result.user.id,
           email: result.user.email,
-          method: twoFactorMethod,
-          message: twoFactorMethod === 'app'
-            ? 'Enter code from your authenticator app'
-            : 'Verification code sent to your email'
+          availableMethods,
+          method: defaultMethod,
+          codeSent: autoSendEmailCode,
+          message: availableMethods.length > 1
+            ? 'Choose a verification method'
+            : (defaultMethod === 'app'
+              ? 'Enter code from your authenticator app'
+              : 'Verification code sent to your email')
         },
         'Two-factor authentication required',
         200
@@ -341,8 +357,17 @@ class AuthController {
       ]);
     }
 
+    const enabledMethods = await twoFactorService.getEnabledMethods();
+    const resolvedMethod = method || 'email';
+    if (resolvedMethod === 'email' && !enabledMethods.email) {
+      return ResponseFormatter.error(res, 'Email verification is disabled', 400);
+    }
+    if (resolvedMethod === 'app' && !enabledMethods.app) {
+      return ResponseFormatter.error(res, 'Authenticator app verification is disabled', 400);
+    }
+
     // Verify the 2FA code
-    const verification = await twoFactorService.verifyCode(parseInt(userId), code, method || 'email');
+    const verification = await twoFactorService.verifyCode(parseInt(userId), code, resolvedMethod);
 
     if (!verification.valid) {
       // Log failed 2FA attempt
@@ -457,6 +482,11 @@ class AuthController {
         'Resend is only available for email verification',
         400
       );
+    }
+
+    const enabledMethods = await twoFactorService.getEnabledMethods();
+    if (!enabledMethods.email) {
+      return ResponseFormatter.error(res, 'Email verification is disabled', 400);
     }
 
     await twoFactorService.sendTwoFactorCode(parseInt(userId));
