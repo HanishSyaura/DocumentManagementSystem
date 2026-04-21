@@ -100,14 +100,14 @@ async function main() {
     where: { key: 'security_settings' }
   })
 
-  let mergedSecurity = { enable2FA: true, twoFAMethods: { email: false, app: true } }
+  let mergedSecurity = { enable2FA: true, twoFAMethods: { email: true, app: true } }
   if (securityConfig?.value) {
     try {
       const parsed = JSON.parse(securityConfig.value)
       mergedSecurity = {
         ...(parsed && typeof parsed === 'object' ? parsed : {}),
         enable2FA: true,
-        twoFAMethods: { email: false, app: true }
+        twoFAMethods: { email: true, app: true }
       }
     } catch {}
   }
@@ -131,7 +131,7 @@ async function main() {
   process.stdout.write(`issuer=${issuer}\\n`)
   process.stdout.write(`manualKey=${secret.base32}\\n`)
   process.stdout.write(`otpauthUrl=${secret.otpauth_url}\\n`)
-  process.stdout.write('2FA(system)=enabled, methods=app-only\\n')
+  process.stdout.write('2FA(system)=enabled, methods=app+email\\n')
 }
 
 main()
@@ -143,4 +143,3 @@ main()
     try { await prisma.$disconnect() } catch {}
     process.exit(1)
   })
-
