@@ -1024,14 +1024,73 @@ class DocumentService {
   async purgeDocument(documentId) {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
-      select: { fileCode: true }
+      select: { id: true, fileCode: true, projectCategoryId: true }
     })
 
     if (!document) {
       throw new NotFoundError('Document not found')
     }
 
-    return this.purgeByFileCode(document.fileCode)
+    const versions = await prisma.documentVersion.findMany({
+      where: { documentId: document.id },
+      select: { filePath: true }
+    })
+
+    const filePaths = (versions || []).map(v => v.filePath).filter(Boolean)
+
+    const deletedRegisters = await prisma.$transaction(async (tx) => {
+      const archive = await tx.archiveRegister.deleteMany({ where: { fileCode: document.fileCode } })
+      const obsolete = await tx.obsoleteRegister.deleteMany({ where: { fileCode: document.fileCode } })
+      const version = await tx.versionRegister.deleteMany({ where: { fileCode: document.fileCode } })
+      const docReg = await tx.documentRegister.deleteMany({
+        where: { fileCode: document.fileCode, projectCategoryId: document.projectCategoryId ?? null }
+      })
+      const codeReg = document.projectCategoryId
+        ? await tx.codeRegistry.deleteMany({
+          where: { fileCode: document.fileCode, projectCategoryId: document.projectCategoryId }
+        })
+        : { count: 0 }
+
+      const assignments = await tx.documentAssignment.deleteMany({ where: { documentId: document.id } })
+      const comments = await tx.documentComment.deleteMany({ where: { documentId: document.id } })
+      const metadata = await tx.documentMetadata.deleteMany({ where: { documentId: document.id } })
+      const history = await tx.approvalHistory.deleteMany({ where: { documentId: document.id } })
+      const docVersions = await tx.documentVersion.deleteMany({ where: { documentId: document.id } })
+      const supersedeReq = await tx.supersedeObsoleteRequest.deleteMany({ where: { documentId: document.id } })
+      const versionReq = await tx.versionRequest.deleteMany({ where: { documentId: document.id } })
+      const audit = await tx.auditLog.deleteMany({ where: { entityId: document.id } })
+
+      await tx.document.delete({ where: { id: document.id } })
+
+      return {
+        archive: archive.count,
+        obsolete: obsolete.count,
+        version: version.count,
+        documentRegister: docReg.count,
+        codeRegistry: codeReg.count,
+        documentAssignment: assignments.count,
+        documentComment: comments.count,
+        documentMetadata: metadata.count,
+        approvalHistory: history.count,
+        documentVersion: docVersions.count,
+        supersedeObsoleteRequest: supersedeReq.count,
+        versionRequest: versionReq.count,
+        auditLog: audit.count,
+        document: 1
+      }
+    })
+
+    let deletedFiles = 0
+    for (const fp of filePaths) {
+      const ok = await fileStorageService.deleteFile(fp)
+      if (ok) deletedFiles += 1
+    }
+
+    return {
+      deletedRegisters,
+      deletedFiles,
+      deletedDirectory: false
+    }
   }
 
   async purgeByFileCode(fileCode) {
@@ -1040,37 +1099,69 @@ class DocumentService {
       throw new BadRequestError('File code is required')
     }
 
-    const existing = await prisma.document.findUnique({
+    const docs = await prisma.document.findMany({
       where: { fileCode: normalized },
-      include: {
-        versions: {
-          select: { filePath: true }
-        }
+      select: {
+        id: true,
+        fileCode: true,
+        projectCategoryId: true,
+        versions: { select: { filePath: true } }
       }
     })
 
-    const filePaths = (existing?.versions || [])
-      .map(v => v.filePath)
-      .filter(Boolean)
+    const documentIds = docs.map(d => d.id)
+    const filePaths = docs.flatMap(d => (d.versions || []).map(v => v.filePath).filter(Boolean))
 
     const deletedRegisters = await prisma.$transaction(async (tx) => {
       const archive = await tx.archiveRegister.deleteMany({ where: { fileCode: normalized } })
       const obsolete = await tx.obsoleteRegister.deleteMany({ where: { fileCode: normalized } })
       const version = await tx.versionRegister.deleteMany({ where: { fileCode: normalized } })
       const docReg = await tx.documentRegister.deleteMany({ where: { fileCode: normalized } })
+      const codeReg = await tx.codeRegistry.deleteMany({ where: { fileCode: normalized } })
 
-      let deletedDocument = false
-      if (existing) {
-        await tx.document.delete({ where: { id: existing.id } })
-        deletedDocument = true
-      }
+      const assignments = documentIds.length
+        ? await tx.documentAssignment.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const comments = documentIds.length
+        ? await tx.documentComment.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const metadata = documentIds.length
+        ? await tx.documentMetadata.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const history = documentIds.length
+        ? await tx.approvalHistory.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const docVersions = documentIds.length
+        ? await tx.documentVersion.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const supersedeReq = documentIds.length
+        ? await tx.supersedeObsoleteRequest.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const versionReq = documentIds.length
+        ? await tx.versionRequest.deleteMany({ where: { documentId: { in: documentIds } } })
+        : { count: 0 }
+      const audit = documentIds.length
+        ? await tx.auditLog.deleteMany({ where: { entityId: { in: documentIds } } })
+        : { count: 0 }
+      const docsDeleted = documentIds.length
+        ? await tx.document.deleteMany({ where: { id: { in: documentIds } } })
+        : { count: 0 }
 
       return {
         archive: archive.count,
         obsolete: obsolete.count,
         version: version.count,
         documentRegister: docReg.count,
-        document: deletedDocument ? 1 : 0
+        codeRegistry: codeReg.count,
+        documentAssignment: assignments.count,
+        documentComment: comments.count,
+        documentMetadata: metadata.count,
+        approvalHistory: history.count,
+        documentVersion: docVersions.count,
+        supersedeObsoleteRequest: supersedeReq.count,
+        versionRequest: versionReq.count,
+        auditLog: audit.count,
+        document: docsDeleted.count
       }
     })
 
