@@ -51,18 +51,18 @@ async function main() {
     process.exit(1)
   }
 
-  const existingTarget = await prisma.user.findUnique({
-    where: { email: toEmail },
-    select: { id: true }
-  })
-  if (existingTarget) {
-    process.stderr.write(`Target email already exists: ${toEmail}\\n`)
-    process.exit(1)
-  }
-
   const adminUser = await resolveAdminUser(fromEmail || null)
   if (!adminUser) {
     process.stderr.write('Admin user not found (by --from-email or admin role).\\n')
+    process.exit(1)
+  }
+
+  const existingTarget = await prisma.user.findUnique({
+    where: { email: toEmail },
+    select: { id: true, email: true }
+  })
+  if (existingTarget && existingTarget.id !== adminUser.id) {
+    process.stderr.write(`Target email already exists: ${toEmail}\\n`)
     process.exit(1)
   }
 

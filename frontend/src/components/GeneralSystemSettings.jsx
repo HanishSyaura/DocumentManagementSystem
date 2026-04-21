@@ -4640,6 +4640,14 @@ function SecuritySettings() {
   }, [])
 
   const handleSave = async () => {
+    if (settings.enable2FA && !settings.twoFAMethods.email && !settings.twoFAMethods.app) {
+      alert('Please enable at least one 2FA method (Email or Authenticator App).')
+      return
+    }
+    if (settings.enable2FA && settings.twoFAMethods.app && !settings.twoFAMethods.email) {
+      const ok = window.confirm('Warning: Email verification is disabled. Users without authenticator setup may be locked out. Continue?')
+      if (!ok) return
+    }
     setSaving(true)
     try {
       const token = localStorage.getItem('token')
