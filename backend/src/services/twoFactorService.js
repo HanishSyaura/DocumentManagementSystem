@@ -13,7 +13,6 @@ const encryptionService = require('./encryptionService');
 class TwoFactorService {
   defaultMethods = {
     email: true,
-    sms: false,
     app: false
   };
 

@@ -18,7 +18,6 @@ class SecurityService {
     enable2FA: false,
     twoFAMethods: {
       email: true,
-      sms: false,
       app: false
     },
     encryptDocuments: false,
@@ -35,7 +34,18 @@ class SecurityService {
       });
 
       if (config && config.value) {
-        return { ...this.defaultSettings, ...JSON.parse(config.value) };
+        const parsed = JSON.parse(config.value);
+        const parsedTwoFAMethods = parsed?.twoFAMethods && typeof parsed.twoFAMethods === 'object'
+          ? parsed.twoFAMethods
+          : {};
+        const sanitized = {
+          ...parsed,
+          twoFAMethods: {
+            email: parsedTwoFAMethods.email ?? this.defaultSettings.twoFAMethods.email,
+            app: parsedTwoFAMethods.app ?? this.defaultSettings.twoFAMethods.app
+          }
+        };
+        return { ...this.defaultSettings, ...sanitized };
       }
 
       return this.defaultSettings;
@@ -49,7 +59,17 @@ class SecurityService {
    * Save security settings to database
    */
   async saveSecuritySettings(settings) {
-    const mergedSettings = { ...this.defaultSettings, ...settings };
+    const incomingTwoFAMethods = settings?.twoFAMethods && typeof settings.twoFAMethods === 'object'
+      ? settings.twoFAMethods
+      : {};
+    const mergedSettings = {
+      ...this.defaultSettings,
+      ...settings,
+      twoFAMethods: {
+        email: incomingTwoFAMethods.email ?? this.defaultSettings.twoFAMethods.email,
+        app: incomingTwoFAMethods.app ?? this.defaultSettings.twoFAMethods.app
+      }
+    };
 
     await prisma.configuration.upsert({
       where: { key: 'security_settings' },

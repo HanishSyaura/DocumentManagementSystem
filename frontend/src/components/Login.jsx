@@ -128,6 +128,8 @@ export default function Login() {
     setLoading(true)
     
     try {
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
       const res = await api.post('/auth/login', { email, password })
       // Backend returns: { success: true, message: "...", data: { user, accessToken, refreshToken } }
       
@@ -143,13 +145,18 @@ export default function Login() {
         return
       }
 
-      const token = res.data?.data?.accessToken
+      const token =
+        res.data?.data?.accessToken ||
+        res.data?.data?.token ||
+        res.data?.accessToken ||
+        res.data?.token
       if (token) {
         localStorage.setItem('token', token)
         // Also store refresh token if needed
-        if (res.data.data?.refreshToken) {
-          localStorage.setItem('refreshToken', res.data.data.refreshToken)
-        }
+        const nextRefresh =
+          res.data?.data?.refreshToken ||
+          res.data?.refreshToken
+        if (nextRefresh) localStorage.setItem('refreshToken', nextRefresh)
         // Store user info and notify listeners
         if (res.data.data?.user) {
           updateUserData(res.data.data.user)
@@ -183,12 +190,17 @@ export default function Login() {
         method: twoFAMethod
       })
 
-      const token = res.data?.data?.accessToken
+      const token =
+        res.data?.data?.accessToken ||
+        res.data?.data?.token ||
+        res.data?.accessToken ||
+        res.data?.token
       if (token) {
         localStorage.setItem('token', token)
-        if (res.data.data?.refreshToken) {
-          localStorage.setItem('refreshToken', res.data.data.refreshToken)
-        }
+        const nextRefresh =
+          res.data?.data?.refreshToken ||
+          res.data?.refreshToken
+        if (nextRefresh) localStorage.setItem('refreshToken', nextRefresh)
         if (res.data.data?.user) {
           updateUserData(res.data.data.user)
         }

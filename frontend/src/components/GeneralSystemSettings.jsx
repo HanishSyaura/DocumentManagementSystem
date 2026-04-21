@@ -4590,7 +4590,7 @@ function SecuritySettings() {
     maxLoginAttempts: 5,
     lockoutDuration: 15,
     enable2FA: true,
-    twoFAMethods: { email: true, sms: true, app: true },
+    twoFAMethods: { email: true, app: true },
     enableIPWhitelist: false,
     ipRanges: ['192.168.1.0/24'],
     enableAuditLog: true,
@@ -4624,7 +4624,6 @@ function SecuritySettings() {
             enable2FA: data.enable2FA ?? false,
             twoFAMethods: {
               email: data?.twoFAMethods?.email ?? true,
-              sms: data?.twoFAMethods?.sms ?? false,
               app: data?.twoFAMethods?.app ?? false
             },
             encryptDocuments: data.encryptDocuments ?? false,
@@ -4749,10 +4748,6 @@ function SecuritySettings() {
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={settings.twoFAMethods.email} onChange={(e) => setSettings(prev => ({ ...prev, twoFAMethods: { ...prev.twoFAMethods, email: e.target.checked } }))} className="w-4 h-4 text-blue-600 rounded" />
               <span className="text-sm text-gray-700">Email verification</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={settings.twoFAMethods.sms} onChange={(e) => setSettings(prev => ({ ...prev, twoFAMethods: { ...prev.twoFAMethods, sms: e.target.checked } }))} className="w-4 h-4 text-blue-600 rounded" />
-              <span className="text-sm text-gray-700">SMS verification</span>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={settings.twoFAMethods.app} onChange={(e) => setSettings(prev => ({ ...prev, twoFAMethods: { ...prev.twoFAMethods, app: e.target.checked } }))} className="w-4 h-4 text-blue-600 rounded" />
