@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import MarkdownRenderer from './MarkdownRenderer'
 
 export default function PublicFooter({ copyrightText, footerLinks, onPdfLinkClick }) {
-  const navigate = useNavigate()
-
   const [stored, setStored] = useState(() => {
     try {
       const saved = localStorage.getItem('dms_landing_page_settings')
@@ -31,7 +28,12 @@ export default function PublicFooter({ copyrightText, footerLinks, onPdfLinkClic
   const resolvedCopyright = copyrightText ?? stored?.copyrightText ?? '© 2025 CLB Groups. All rights reserved.'
   const resolvedLinks = useMemo(() => {
     const list = footerLinks ?? stored?.footerLinks ?? []
-    return Array.isArray(list) ? list : []
+    const arr = Array.isArray(list) ? list : []
+    return arr.filter((l) => {
+      const label = String(l?.label || '').toLowerCase()
+      const href = String(l?.href || '').toLowerCase()
+      return !(label.includes('contact') || href.includes('#contact') || href.endsWith('/contact'))
+    })
   }, [footerLinks, stored])
 
   const onLinkClick = (link) => {
@@ -50,37 +52,28 @@ export default function PublicFooter({ copyrightText, footerLinks, onPdfLinkClic
   }
 
   return (
-    <footer className="fixed bottom-0 inset-x-0 z-40 bg-white/80 backdrop-blur border-t border-gray-200">
+    <footer className="fixed bottom-0 inset-x-0 z-40 bg-[color:var(--dms-primary)]/85 text-white backdrop-blur border-t border-white/15">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3 h-12">
-          <p className="text-gray-600 text-xs leading-tight truncate">
+        <div className="flex items-center justify-between gap-3 h-11">
+          <p className="text-white/85 text-xs leading-tight truncate max-w-[55%] sm:max-w-none">
             <MarkdownRenderer inline value={resolvedCopyright} />
           </p>
 
-          <div className="flex items-center gap-3">
-            {resolvedLinks.slice(0, 2).map((link, idx) => (
+          <div className="flex items-center gap-2 shrink-0">
+            {resolvedLinks.slice(0, 3).map((link, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => onLinkClick(link)}
-                className="hidden sm:inline text-xs text-gray-600 hover:text-blue-600 transition-colors"
+                className={`${idx >= 2 ? 'hidden md:inline' : 'inline'} text-xs text-white/90 hover:text-white transition-colors max-w-[6.5rem] sm:max-w-none truncate`}
                 disabled={!link?.pdf && !link?.href}
               >
                 <MarkdownRenderer inline value={link?.label || ''} />
               </button>
             ))}
-
-            <button
-              type="button"
-              onClick={() => navigate('/#contact')}
-              className="text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors"
-            >
-              Contact
-            </button>
           </div>
         </div>
       </div>
     </footer>
   )
 }
-

@@ -273,7 +273,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16 pb-16">
+    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16 pb-14">
       <a href="#main" className="skip-link">Skip to content</a>
       <PublicTopbar onSection={scrollToSection} />
       <PublicFooter
@@ -501,15 +501,15 @@ const HomePage = () => {
       {/* Who Uses This System Section */}
       <section className="snap-start min-h-[100svh] pt-16 flex items-center pb-10 sm:pb-12" style={{background: 'var(--dms-landing-roles-bg, linear-gradient(to bottom right, #ECFEFF, #EFF6FF, #FAF5FF))'}}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-[clamp(1.9rem,3.2vw,3.5rem)] font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
               <MarkdownRenderer inline value={landingContent?.rolesTitle || t('hp_who_uses')} />
             </h2>
-            <p className="text-gray-600 text-xl sm:text-2xl">{t('hp_who_uses_desc')}</p>
-            <div className="w-24 h-1.5 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full mt-6"></div>
+            <p className="text-gray-600 text-[clamp(1rem,1.7vw,1.35rem)]">{t('hp_who_uses_desc')}</p>
+            <div className="w-20 h-1 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto rounded-full mt-4"></div>
           </div>
 
-          <div className="lg:hidden grid gap-4 sm:grid-cols-2">
+          <div className="xl:hidden grid gap-4 sm:grid-cols-2">
             {[
               { title: roleCenter.name, desc: roleCenter.description, accent: 'from-cyan-500 to-blue-600' },
               { title: roleTop.name, desc: roleTop.description, accent: 'from-blue-500 to-blue-700' },
@@ -517,44 +517,44 @@ const HomePage = () => {
               { title: roleLeft.name, desc: roleLeft.description, accent: 'from-teal-500 to-teal-700' },
               { title: roleRight.name, desc: roleRight.description, accent: 'from-emerald-500 to-green-700' }
             ].map((r, idx) => (
-              <div key={idx} className="bg-white rounded-2xl p-5 shadow-md border border-white/60">
-                <div className={`h-1.5 w-16 rounded-full bg-gradient-to-r ${r.accent} mb-3`} />
-                <h3 className="text-lg font-bold text-gray-900">
+              <div key={idx} className="bg-white rounded-2xl p-4 shadow-md border border-white/60">
+                <div className={`h-1 w-14 rounded-full bg-gradient-to-r ${r.accent} mb-2`} />
+                <h3 className="text-base font-bold text-gray-900">
                   <MarkdownRenderer inline value={r.title} />
                 </h3>
-                <MarkdownRenderer value={r.desc} className="mt-2 text-sm text-gray-600 leading-relaxed space-y-2" />
+                <MarkdownRenderer value={r.desc} className="mt-1.5 text-sm text-gray-600 leading-relaxed space-y-2" />
               </div>
             ))}
           </div>
 
           {/* Circular Diagram Layout */}
-          <div className="relative max-w-6xl mx-auto hidden lg:block h-[clamp(440px,55vw,620px)]">
+          <div className="relative max-w-6xl mx-auto hidden xl:block h-[clamp(420px,50vw,600px)]">
             {/* Admin - Center */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-              <div className="bg-gradient-to-br from-cyan-400 via-cyan-500 to-blue-500 rounded-3xl p-8 lg:p-10 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 w-[clamp(16rem,20vw,18rem)] text-center border-4 border-white">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-5 shadow-lg">
-                  <svg className="w-12 h-12 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-gradient-to-br from-cyan-400 via-cyan-500 to-blue-500 rounded-3xl p-7 shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-center border-4 border-white">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4 shadow-lg">
+                  <svg className="w-10 h-10 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3 drop-shadow">
+                <h3 className="text-xl font-bold text-white mb-2 drop-shadow">
                   <MarkdownRenderer inline value={roleCenter.name} />
                 </h3>
-                <MarkdownRenderer value={roleCenter.description} className="text-base text-white opacity-95 leading-relaxed space-y-2" />
+                <MarkdownRenderer value={roleCenter.description} className="text-sm text-white opacity-95 leading-relaxed space-y-2" />
               </div>
             </div>
 
             {/* Document Controller - Top Left */}
             <div className="absolute left-0 top-0">
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-blue-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
-                  <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 shadow-xl transition-all duration-300 hover:scale-[1.03] w-[clamp(12rem,15vw,14rem)] text-white border-2 border-blue-300">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-white bg-opacity-20 rounded-full mb-3 backdrop-blur">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                     <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-3">
+                <h3 className="text-lg font-bold mb-2">
                   <MarkdownRenderer inline value={roleTop.name} />
                 </h3>
                 <MarkdownRenderer value={roleTop.description} className="text-sm leading-relaxed opacity-95 space-y-2" />
@@ -563,13 +563,13 @@ const HomePage = () => {
 
             {/* Document Owner - Top Right */}
             <div className="absolute right-0 top-0">
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-purple-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
-                  <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-5 shadow-xl transition-all duration-300 hover:scale-[1.03] w-[clamp(12rem,15vw,14rem)] text-white border-2 border-purple-300">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-white bg-opacity-20 rounded-full mb-3 backdrop-blur">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-3">
+                <h3 className="text-lg font-bold mb-2">
                   <MarkdownRenderer inline value={roleBottom.name} />
                 </h3>
                 <MarkdownRenderer value={roleBottom.description} className="text-sm leading-relaxed opacity-95 space-y-2" />
@@ -578,14 +578,14 @@ const HomePage = () => {
 
             {/* Reviewer - Bottom Left */}
             <div className="absolute left-0 bottom-0">
-              <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-teal-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
-                  <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-5 shadow-xl transition-all duration-300 hover:scale-[1.03] w-[clamp(12rem,15vw,14rem)] text-white border-2 border-teal-300">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-white bg-opacity-20 rounded-full mb-3 backdrop-blur">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-3">
+                <h3 className="text-lg font-bold mb-2">
                   <MarkdownRenderer inline value={roleLeft.name} />
                 </h3>
                 <MarkdownRenderer value={roleLeft.description} className="text-sm leading-relaxed opacity-95 space-y-2" />
@@ -594,13 +594,13 @@ const HomePage = () => {
 
             {/* Approver - Bottom Right */}
             <div className="absolute right-0 bottom-0">
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 lg:p-7 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 w-[clamp(14rem,18vw,16rem)] text-white border-2 border-green-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur">
-                  <svg className="w-9 h-9" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-5 shadow-xl transition-all duration-300 hover:scale-[1.03] w-[clamp(12rem,15vw,14rem)] text-white border-2 border-green-300">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-white bg-opacity-20 rounded-full mb-3 backdrop-blur">
+                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold mb-3">
+                <h3 className="text-lg font-bold mb-2">
                   <MarkdownRenderer inline value={roleRight.name} />
                 </h3>
                 <MarkdownRenderer value={roleRight.description} className="text-sm leading-relaxed opacity-95 space-y-2" />
