@@ -3654,6 +3654,14 @@ function DocumentSettings() {
   const [documentTypes, setDocumentTypes] = useState([])
   const [loadingTypes, setLoadingTypes] = useState(false)
 
+  const allowedTypeKeys = Object.keys(settings.allowedTypes)
+  const allowedTypeColumns = allowedTypeKeys.reduce((cols, key, idx) => {
+    const colIndex = Math.floor(idx / 10)
+    if (!cols[colIndex]) cols[colIndex] = []
+    cols[colIndex].push(key)
+    return cols
+  }, [])
+
   useEffect(() => {
     loadSettings()
     loadDocumentTypes()
@@ -3881,13 +3889,19 @@ function DocumentSettings() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">Allowed File Types</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {Object.keys(settings.allowedTypes).map((type) => (
-                <label key={type} className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={settings.allowedTypes[type]} onChange={(e) => setSettings(prev => ({ ...prev, allowedTypes: { ...prev.allowedTypes, [type]: e.target.checked } }))} className="w-4 h-4 text-blue-600 rounded" />
-                  <span className="text-sm text-gray-700 uppercase">{type}</span>
-                </label>
-              ))}
+            <div className="overflow-x-auto">
+              <div className="flex flex-nowrap gap-x-10 gap-y-3 min-w-max">
+                {allowedTypeColumns.map((col, colIdx) => (
+                  <div key={colIdx} className="flex flex-col gap-3 min-w-[120px]">
+                    {col.map((type) => (
+                      <label key={type} className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={settings.allowedTypes[type]} onChange={(e) => setSettings(prev => ({ ...prev, allowedTypes: { ...prev.allowedTypes, [type]: e.target.checked } }))} className="w-4 h-4 text-blue-600 rounded" />
+                        <span className="text-sm text-gray-700 uppercase">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <div>

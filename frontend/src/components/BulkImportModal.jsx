@@ -24,7 +24,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [documentTypes, setDocumentTypes] = useState([])
   const [numberingSettings, setNumberingSettings] = useState(null)
   const [projectCategories, setProjectCategories] = useState([])
-  const [folderPickerConfirm, setFolderPickerConfirm] = useState({ show: false, title: '', message: '', onConfirm: null })
+  const [folderPickerConfirm, setFolderPickerConfirm] = useState({ show: false, onConfirm: null })
   const fileInputRef = useRef(null)
   const folderInputRef = useRef(null)
 
@@ -309,10 +309,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const handleBrowseFolderClick = () => {
     setFolderPickerConfirm({
       show: true,
-      title: 'Upload Folder',
-      message: 'Sistem akan buka folder picker untuk pilih satu folder dan upload semua fail di dalam folder tersebut. Lepas tekan "Teruskan", browser akan papar dialog keselamatan (standard Chrome) untuk sahkan folder. Teruskan?',
       onConfirm: () => {
-        setFolderPickerConfirm({ show: false, title: '', message: '', onConfirm: null })
+        setFolderPickerConfirm({ show: false, onConfirm: null })
         setTimeout(() => folderInputRef.current?.click(), 0)
       }
     })
@@ -375,13 +373,13 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <ConfirmModal
         show={folderPickerConfirm.show}
-        title={folderPickerConfirm.title}
-        message={folderPickerConfirm.message}
+        title={t('bulk_import_folder_picker_title')}
+        message={t('bulk_import_folder_picker_message')}
         type="info"
-        confirmText="Teruskan"
-        cancelText="Batal"
+        confirmText={t('continue')}
+        cancelText={t('cancel')}
         onConfirm={() => folderPickerConfirm.onConfirm?.()}
-        onCancel={() => setFolderPickerConfirm({ show: false, title: '', message: '', onConfirm: null })}
+        onCancel={() => setFolderPickerConfirm({ show: false, onConfirm: null })}
       />
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
 

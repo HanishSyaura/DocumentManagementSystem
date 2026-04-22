@@ -47,6 +47,9 @@ const translations = {
     'search_placeholder': 'Search...',
     'no_documents': 'No documents found',
     'view_details': 'View Details',
+    'continue': 'Continue',
+    'bulk_import_folder_picker_title': 'Upload Folder',
+    'bulk_import_folder_picker_message': 'The system will open a folder picker to select one folder and upload all files inside it. After you click "Continue", the browser will show a security confirmation dialog (standard Chrome) to approve folder access. Continue?',
     
     // Table Headers
     'file_code': 'File Code',
@@ -1092,6 +1095,9 @@ const translations = {
     'search_placeholder': 'Cari...',
     'no_documents': 'Tiada dokumen dijumpai',
     'view_details': 'Lihat Butiran',
+    'continue': 'Teruskan',
+    'bulk_import_folder_picker_title': 'Muat Naik Folder',
+    'bulk_import_folder_picker_message': 'Sistem akan buka folder picker untuk pilih satu folder dan muat naik semua fail di dalam folder tersebut. Lepas tekan "Teruskan", browser akan papar dialog keselamatan (standard Chrome) untuk sahkan akses folder. Teruskan?',
     
     // Table Headers
     'file_code': 'Kod Fail',
@@ -2137,6 +2143,9 @@ const translations = {
     'search_placeholder': '搜索...',
     'no_documents': '未找到文件',
     'view_details': '查看详情',
+    'continue': '继续',
+    'bulk_import_folder_picker_title': '上传文件夹',
+    'bulk_import_folder_picker_message': '系统将打开文件夹选择器以选择一个文件夹，并上传该文件夹内的所有文件。点击“继续”后，浏览器会显示安全确认对话框（Chrome 标准提示）以批准文件夹访问。是否继续？',
     
     // Table Headers
     'file_code': '文件代码',
