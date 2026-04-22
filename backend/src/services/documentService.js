@@ -18,12 +18,11 @@ class DocumentService {
     }
   }
 
-  buildCodeKey(projectCategoryId, documentTypeId, versionSegment = '', dateSegment = '') {
+  buildCodeKey(projectCategoryId, documentTypeId, versionSegment = '') {
     const pc = parseInt(projectCategoryId, 10)
     const dt = parseInt(documentTypeId, 10)
     const v = String(versionSegment || '').toUpperCase()
-    const d = String(dateSegment || '')
-    return `${pc}:${dt}:${v}:${d}`
+    return `${pc}:${dt}:${v}`
   }
 
   buildNormalizedFileCode(parts, settings) {
@@ -140,8 +139,7 @@ class DocumentService {
 
   async getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings, scope = {}) {
     const versionSegment = scope?.versionSegment ? String(scope.versionSegment).toUpperCase() : ''
-    const dateSegment = scope?.dateSegment ? String(scope.dateSegment) : ''
-    const codeKey = this.buildCodeKey(projectCategoryId, documentTypeId, versionSegment, dateSegment)
+    const codeKey = this.buildCodeKey(projectCategoryId, documentTypeId, versionSegment)
     const registryAgg = await prisma.codeRegistry.aggregate({
       where: {
         projectCategoryId: parseInt(projectCategoryId, 10),
@@ -168,7 +166,6 @@ class DocumentService {
       try {
         const parsed = this.parseAndNormalizeFileCodeStrict(doc.fileCode, settings)
         if (versionSegment && parsed.versionSegment !== versionSegment) continue
-        if (dateSegment && parsed.dateSegment !== dateSegment) continue
         if (parsed.runningNumber > maxFromDocuments) {
           maxFromDocuments = parsed.runningNumber
         }
@@ -195,7 +192,7 @@ class DocumentService {
     try {
       const settings = await DocumentNumbering.loadSettings()
       const parsed = this.parseAndNormalizeFileCodeStrict(normalized, settings)
-      codeKey = this.buildCodeKey(projectCategoryId, documentTypeId, parsed.versionSegment, parsed.dateSegment)
+      codeKey = this.buildCodeKey(projectCategoryId, documentTypeId, parsed.versionSegment)
     } catch (_) {
     }
 
@@ -356,8 +353,7 @@ class DocumentService {
       const template = await DocumentNumbering.generateFileCode(prefix, 1, { date: dateToUse, version, settings })
       const parsedTemplate = this.parseAndNormalizeFileCodeStrict(template, settings)
       const maxRunning = await this.getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings, {
-        versionSegment: parsedTemplate.versionSegment,
-        dateSegment: parsedTemplate.dateSegment
+        versionSegment: parsedTemplate.versionSegment
       })
       const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
       sequence = Math.max(maxRunning + 1, startingNumber)
@@ -610,7 +606,7 @@ class DocumentService {
     const categoryId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
     const settings = await DocumentNumbering.loadSettings()
     const parsed = this.parseAndNormalizeFileCodeStrict(String(fileCode).trim(), settings)
-    const codeKey = this.buildCodeKey(categoryId, documentTypeId, parsed.versionSegment, parsed.dateSegment)
+    const codeKey = this.buildCodeKey(categoryId, documentTypeId, parsed.versionSegment)
     const normalizedRequested = parsed.normalizedFileCode
     const requestedRunningNumber = parsed.runningNumber
 
@@ -657,8 +653,7 @@ class DocumentService {
 
     const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
     const maxRunning = await this.getCurrentMaxRunningNumber(categoryId, documentTypeId, settings, {
-      versionSegment: parsed.versionSegment,
-      dateSegment: parsed.dateSegment
+      versionSegment: parsed.versionSegment
     })
     let nextRunning = Math.max(maxRunning + 1, startingNumber)
     let attempts = 0

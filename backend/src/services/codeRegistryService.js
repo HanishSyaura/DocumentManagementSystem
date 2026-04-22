@@ -296,13 +296,12 @@ class CodeRegistryService {
 
         const parsed = documentService.parseAndNormalizeFileCodeStrict(fileCode, settings)
         const normalized = parsed.normalizedFileCode
-        const codeKey = documentService.buildCodeKey(projectCategoryId, documentTypeId, parsed.versionSegment, parsed.dateSegment)
+        const codeKey = documentService.buildCodeKey(projectCategoryId, documentTypeId, parsed.versionSegment)
         const key = codeKey
 
         if (!maxCache.has(key)) {
           const maxRunning = await documentService.getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings, {
-            versionSegment: parsed.versionSegment,
-            dateSegment: parsed.dateSegment
+            versionSegment: parsed.versionSegment
           })
           maxCache.set(key, maxRunning)
         }
