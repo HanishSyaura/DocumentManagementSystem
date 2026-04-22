@@ -13,7 +13,7 @@ const errorHandler = (err, req, res, next) => {
     if (err instanceof ValidationError) {
       return ResponseFormatter.validationError(res, err.errors);
     }
-    return ResponseFormatter.error(res, err.message, err.statusCode);
+    return ResponseFormatter.error(res, err.message, err.statusCode, err.errors || null);
   }
 
   // Handle Prisma errors

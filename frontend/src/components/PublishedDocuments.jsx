@@ -545,6 +545,7 @@ export default function PublishedDocuments() {
       formData.append('folderId', uploadData.folderId)
       if (uploadData.description) formData.append('description', uploadData.description)
       if (uploadData.filesMeta) formData.append('filesMeta', JSON.stringify(uploadData.filesMeta))
+      if (uploadData.allowReassign) formData.append('allowReassign', 'true')
       uploadData.files.forEach((file) => formData.append('files', file))
 
       const importResponse = await api.post('/documents/bulk-import', formData, {
@@ -599,6 +600,10 @@ export default function PublishedDocuments() {
       const apiMsg = error?.response?.data?.message
       const apiErrors = error?.response?.data?.errors
       const errMsg = String(error?.message || '')
+
+      if (status === 409 && Array.isArray(apiErrors) && apiErrors.some((e) => e?.requestedFileCode && e?.suggestedFileCode)) {
+        throw error
+      }
 
       let message = apiMsg || t('bulk_import_upload_failed_generic')
 

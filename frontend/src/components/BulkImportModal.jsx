@@ -25,6 +25,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [numberingSettings, setNumberingSettings] = useState(null)
   const [projectCategories, setProjectCategories] = useState([])
   const [folderPickerConfirm, setFolderPickerConfirm] = useState({ show: false, onConfirm: null })
+  const [reassignConfirm, setReassignConfirm] = useState({ show: false, conflicts: [], payload: null })
   const fileInputRef = useRef(null)
   const folderInputRef = useRef(null)
 
@@ -128,6 +129,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     setNumberingSettings(null)
     setProjectCategories([])
     setFolderId(selectedFolderId || '')
+    setReassignConfirm({ show: false, conflicts: [], payload: null })
     onClose()
   }
 
@@ -377,7 +379,19 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           relativePath: String(it.relativePath || '').trim()
         }))
       }
-      await onSubmit(payload)
+      try {
+        await onSubmit(payload)
+      } catch (e) {
+        const status = e?.response?.status
+        const apiMsg = e?.response?.data?.message
+        const apiErrors = e?.response?.data?.errors
+        if (status === 409 && Array.isArray(apiErrors) && apiErrors.some((x) => x?.requestedFileCode && x?.suggestedFileCode)) {
+          setReassignConfirm({ show: true, conflicts: apiErrors, payload })
+          return
+        }
+        setFormError(apiMsg || 'Bulk import failed')
+        return
+      }
     } finally {
       setSubmitting(false)
     }
@@ -396,6 +410,29 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
         cancelText={t('cancel')}
         onConfirm={() => folderPickerConfirm.onConfirm?.()}
         onCancel={() => setFolderPickerConfirm({ show: false, onConfirm: null })}
+      />
+      <ConfirmModal
+        show={reassignConfirm.show}
+        title="File code redundant"
+        message={(Array.isArray(reassignConfirm.conflicts) ? reassignConfirm.conflicts : [])
+          .slice(0, 6)
+          .map((c) => `Line ${c.lineNumber || '-'}: ${c.requestedFileCode} -> ${c.suggestedFileCode}`)
+          .join('\n')}
+        type="warning"
+        confirmText="Reassign & Continue"
+        cancelText={t('cancel')}
+        onConfirm={async () => {
+          const payload = reassignConfirm.payload
+          if (!payload) return
+          setReassignConfirm({ show: false, conflicts: [], payload: null })
+          setSubmitting(true)
+          try {
+            await onSubmit({ ...payload, allowReassign: true })
+          } finally {
+            setSubmitting(false)
+          }
+        }}
+        onCancel={() => setReassignConfirm({ show: false, conflicts: [], payload: null })}
       />
       <div
         className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"

@@ -3,6 +3,7 @@ const folderPermissionService = require('../services/folderPermissionService');
 const auditLogService = require('../services/auditLogService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
+const { ConflictError } = require('../utils/errors');
 const path = require('path');
 const fs = require('fs');
 const config = require('../config/app');
@@ -75,7 +76,7 @@ class DocumentController {
   });
 
   bulkImportPublished = asyncHandler(async (req, res) => {
-    const { folderId, description, title, filesMeta } = req.body;
+    const { folderId, description, title, filesMeta, allowReassign } = req.body;
 
     const errors = [];
     if (!folderId) errors.push({ field: 'folderId', message: 'Folder is required' });
@@ -93,6 +94,7 @@ class DocumentController {
     }
     const desc = description || '';
     const singleTitle = typeof title === 'string' ? title.trim() : '';
+    const allowReassignFlag = String(allowReassign || '').toLowerCase() === 'true'
     let parsedMeta = null
     if (typeof filesMeta === 'string' && filesMeta.trim()) {
       try {
@@ -198,6 +200,91 @@ class DocumentController {
     const typeByPrefixLower = new Map(documentTypes.map((dt) => [String(dt.prefix || '').toLowerCase(), dt]))
     const typeById = new Map(documentTypes.map((dt) => [dt.id, dt]))
 
+    const reserved = { fileCodes: new Set(), runningByCodeKey: new Map() }
+    const reserveAllocation = (allocation) => {
+      const codeKey = allocation?.codeKey
+      const rn = allocation?.suggestedRunningNumber
+      const fc = allocation?.suggestedFileCode
+      if (codeKey && Number.isFinite(Number(rn))) {
+        const set = reserved.runningByCodeKey.get(codeKey) || new Set()
+        set.add(parseInt(rn, 10))
+        reserved.runningByCodeKey.set(codeKey, set)
+      }
+      if (fc) reserved.fileCodes.add(fc)
+    }
+
+    const allocationsByIndex = new Map()
+    const conflicts = []
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i]
+      const meta = parsedMeta?.[i] && typeof parsedMeta[i] === 'object' ? parsedMeta[i] : null
+      const relPath = meta && typeof meta.relativePath === 'string' ? meta.relativePath : ''
+      const baseName = getBaseName(relPath, file.originalname)
+      const derivedTitle = path.basename(baseName, path.extname(baseName)).trim() || baseName
+      const metaTitle = meta && typeof meta.title === 'string' ? meta.title.trim() : ''
+      const docTitle = req.files.length === 1 && singleTitle ? singleTitle : (metaTitle || derivedTitle)
+      const isClientDocument = Boolean(meta?.isClientDocument)
+
+      const derivedFileCode = (() => {
+        const base = derivedTitle
+        const sepIdx = base.indexOf('_')
+        if (sepIdx > 0) return base.slice(0, sepIdx).trim()
+        return base.trim()
+      })()
+      const metaFileCode = meta && typeof meta.fileCode === 'string' ? meta.fileCode.trim() : ''
+      const fileCodeToUse = isClientDocument ? '' : (metaFileCode || derivedFileCode)
+      if (!isClientDocument && !fileCodeToUse) continue
+
+      const metaDocTypeIdRaw = meta?.documentTypeId
+      const metaDocTypeId = Number.isFinite(Number(metaDocTypeIdRaw)) ? parseInt(metaDocTypeIdRaw) : null
+      const metaProjectCategoryIdRaw = meta?.projectCategoryId
+      const metaProjectCategoryId = Number.isFinite(Number(metaProjectCategoryIdRaw)) ? parseInt(metaProjectCategoryIdRaw) : null
+
+      let documentTypeIdToUse = null
+      if (metaDocTypeId) {
+        const dt = typeById.get(metaDocTypeId)
+        if (!dt || !dt.isActive) continue
+        documentTypeIdToUse = dt.id
+      } else {
+        if (isClientDocument) continue
+        const prefixMatch = String(fileCodeToUse).match(/^[A-Za-z]+/)
+        const prefix = prefixMatch?.[0] || ''
+        if (!prefix) continue
+        const dt = typeByPrefix.get(prefix) || typeByPrefixLower.get(prefix.toLowerCase())
+        if (!dt || !dt.isActive) continue
+        documentTypeIdToUse = dt.id
+      }
+
+      if (isClientDocument) continue
+      if (!metaProjectCategoryId) continue
+
+      const allocation = await documentService.resolveImportedPublishedFileCode({
+        fileCode: fileCodeToUse,
+        documentTypeId: documentTypeIdToUse,
+        projectCategoryId: metaProjectCategoryId
+      }, reserved)
+
+      reserveAllocation(allocation)
+      allocationsByIndex.set(i, allocation)
+      if (allocation.suggestedFileCode !== allocation.normalizedRequested) {
+        conflicts.push({
+          lineNumber: i + 1,
+          fileName: baseName,
+          requestedFileCode: allocation.normalizedRequested,
+          suggestedFileCode: allocation.suggestedFileCode,
+          documentTitle: docTitle,
+          reasonCode: 'RUNNING_NUMBER_TAKEN'
+        })
+      }
+    }
+
+    if (conflicts.length > 0 && !allowReassignFlag) {
+      const err = new ConflictError('File code redundant. Confirmation required.')
+      err.code = 'FILE_CODE_REASSIGN_REQUIRED'
+      err.errors = conflicts
+      throw err
+    }
+
     const imported = [];
     const failed = [];
 
@@ -252,8 +339,14 @@ class DocumentController {
           documentTypeIdToUse = dt.id
         }
 
-        const document = await documentService.createImportedPublishedDocument({
-          fileCode: fileCodeToUse,
+        const planned = allocationsByIndex.get(i)
+        const finalFileCodeToUse = (!isClientDocument && planned)
+          ? (allowReassignFlag ? planned.suggestedFileCode : planned.normalizedRequested)
+          : fileCodeToUse
+        const wasReassigned = Boolean(!isClientDocument && planned && planned.suggestedFileCode !== planned.normalizedRequested && allowReassignFlag)
+
+        const created = await documentService.createImportedPublishedDocument({
+          fileCode: finalFileCodeToUse,
           isClientDocument,
           title: docTitle,
           description: desc,
@@ -265,6 +358,18 @@ class DocumentController {
             return ensureFolderPath(folderIdInt, segments)
           })()
         }, req.user.id);
+
+        const document = created?.document || created
+        if (wasReassigned) {
+          const ext = path.extname(baseName) || path.extname(file.originalname) || ''
+          const codeNoSep = String(finalFileCodeToUse || document.fileCode || '')
+            .replace(/[^A-Za-z0-9]/g, '')
+          const safeTitle = String(docTitle || '')
+            .replace(/[\\/:*?"<>|]+/g, ' ')
+            .trim()
+          const name = `${codeNoSep}_${safeTitle || codeNoSep}${ext}`
+          file.displayName = name.length > 255 ? name.slice(0, 255) : name
+        }
 
         await documentService.uploadDocumentVersion(document.id, file, req.user.id);
 
@@ -280,7 +385,7 @@ class DocumentController {
           id: document.id,
           fileCode: document.isClientDocument ? '-' : document.fileCode,
           title: document.title,
-          fileName: baseName
+          fileName: file.displayName || baseName
         });
       } catch (error) {
         const reasonCode = String(error?.code || error?.name || 'IMPORT_FAILED')

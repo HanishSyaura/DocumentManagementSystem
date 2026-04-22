@@ -564,8 +564,82 @@ class DocumentService {
     return document
   }
 
+  async resolveImportedPublishedFileCode(data, reserved = null) {
+    const { fileCode, documentTypeId, projectCategoryId } = data
+    const categoryId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+    const settings = await DocumentNumbering.loadSettings()
+    const parsed = this.parseAndNormalizeFileCodeStrict(String(fileCode).trim(), settings)
+    const codeKey = this.buildCodeKey(categoryId, documentTypeId)
+    const normalizedRequested = parsed.normalizedFileCode
+    const requestedRunningNumber = parsed.runningNumber
+
+    const buildWithRunning = (runningNumber) => this.buildNormalizedFileCode({
+      prefix: parsed.prefix,
+      versionSegment: parsed.versionSegment,
+      dateSegment: parsed.dateSegment,
+      runningNumber
+    }, settings)
+
+    const reservedFileCodes = reserved?.fileCodes instanceof Set ? reserved.fileCodes : null
+    const reservedRunningByKey = reserved?.runningByCodeKey instanceof Map ? reserved.runningByCodeKey : null
+
+    const isReserved = (fileCodeCandidate, runningCandidate) => {
+      if (reservedFileCodes && reservedFileCodes.has(fileCodeCandidate)) return true
+      if (reservedRunningByKey) {
+        const set = reservedRunningByKey.get(codeKey)
+        if (set && set.has(runningCandidate)) return true
+      }
+      return false
+    }
+
+    const hasConflictForRunning = async (runningCandidate) => {
+      const fc = buildWithRunning(runningCandidate)
+      if (isReserved(fc, runningCandidate)) return true
+      const [existingDocument, existingRegistryByFile, existingRegistryByRunning] = await Promise.all([
+        prisma.document.findFirst({ where: { fileCode: fc, projectCategoryId: categoryId } }),
+        prisma.codeRegistry.findFirst({ where: { fileCode: fc, projectCategoryId: categoryId } }),
+        prisma.codeRegistry.findFirst({ where: { projectCategoryId: categoryId, codeKey, runningNumber: runningCandidate } })
+      ])
+      return Boolean(existingDocument || existingRegistryByFile || existingRegistryByRunning)
+    }
+
+    const requestedTaken = await hasConflictForRunning(requestedRunningNumber)
+    if (!requestedTaken) {
+      return {
+        codeKey,
+        normalizedRequested,
+        requestedRunningNumber,
+        suggestedFileCode: normalizedRequested,
+        suggestedRunningNumber: requestedRunningNumber
+      }
+    }
+
+    const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
+    const maxRunning = await this.getCurrentMaxRunningNumber(categoryId, documentTypeId, settings)
+    let nextRunning = Math.max(maxRunning + 1, startingNumber)
+    let attempts = 0
+    while (attempts < 2000) {
+      const taken = await hasConflictForRunning(nextRunning)
+      if (!taken) {
+        return {
+          codeKey,
+          normalizedRequested,
+          requestedRunningNumber,
+          suggestedFileCode: buildWithRunning(nextRunning),
+          suggestedRunningNumber: nextRunning
+        }
+      }
+      nextRunning += 1
+      attempts += 1
+    }
+
+    const err = new BadRequestError('Unable to allocate a unique file code for this project category')
+    err.code = 'FILE_CODE_ALLOCATION_FAILED'
+    throw err
+  }
+
   async createImportedPublishedDocument(data, creatorId) {
-    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId, isClientDocument } = data
+    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId, isClientDocument, allowReassign } = data
     const clientDoc = Boolean(isClientDocument)
 
     const categoryId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
@@ -586,6 +660,8 @@ class DocumentService {
 
     let finalFileCode = ''
     let nextRunning = null
+    let normalizedRequested = ''
+    let wasReassigned = false
 
     if (clientDoc) {
       const base = `CLT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
@@ -594,38 +670,30 @@ class DocumentService {
       if (!fileCode || !String(fileCode).trim()) {
         throw new BadRequestError('File code is required')
       }
-      const settings = await DocumentNumbering.loadSettings()
-      const parsed = this.parseAndNormalizeFileCodeStrict(String(fileCode).trim(), settings)
-      const startingNumber = Math.max(1, parseInt(settings?.startingNumber, 10) || 1)
-      const maxRunning = await this.getCurrentMaxRunningNumber(categoryId, documentTypeId, settings)
-      const hasExisting = maxRunning >= startingNumber
-      nextRunning = hasExisting ? maxRunning + 1 : parsed.runningNumber
+      const allocation = await this.resolveImportedPublishedFileCode({
+        fileCode,
+        documentTypeId,
+        projectCategoryId: categoryId
+      })
 
-      const buildWithRunning = (runningNumber) => this.buildNormalizedFileCode({
-        prefix: parsed.prefix,
-        versionSegment: parsed.versionSegment,
-        dateSegment: parsed.dateSegment,
-        runningNumber
-      }, settings)
-
-      finalFileCode = buildWithRunning(nextRunning)
-
-      let attempts = 0
-      while (attempts < 2000) {
-        const [existingDocument, existingRegistry] = await Promise.all([
-          prisma.document.findFirst({ where: { fileCode: finalFileCode, projectCategoryId: categoryId } }),
-          prisma.codeRegistry.findFirst({ where: { fileCode: finalFileCode, projectCategoryId: categoryId } })
-        ])
-        if (!existingDocument && !existingRegistry) break
-        nextRunning += 1
-        finalFileCode = buildWithRunning(nextRunning)
-        attempts += 1
+      normalizedRequested = allocation.normalizedRequested
+      if (allocation.suggestedFileCode !== normalizedRequested) {
+        if (!allowReassign) {
+          const { ConflictError } = require('../utils/errors')
+          const err = new ConflictError('File code is redundant. Confirmation required to reassign.')
+          err.code = 'FILE_CODE_REASSIGN_REQUIRED'
+          err.errors = [{
+            requestedFileCode: normalizedRequested,
+            suggestedFileCode: allocation.suggestedFileCode,
+            reasonCode: 'RUNNING_NUMBER_TAKEN'
+          }]
+          throw err
+        }
+        wasReassigned = true
       }
-      if (attempts >= 2000) {
-        const err = new BadRequestError('Unable to allocate a unique file code for this project category')
-        err.code = 'FILE_CODE_ALLOCATION_FAILED'
-        throw err
-      }
+
+      finalFileCode = allowReassign ? allocation.suggestedFileCode : normalizedRequested
+      nextRunning = allowReassign ? allocation.suggestedRunningNumber : allocation.requestedRunningNumber
     }
 
     const document = await prisma.document.create({
@@ -772,7 +840,7 @@ class DocumentService {
         documentId,
         version: document.version,
         filePath: finalPath,
-        fileName: file.originalname,
+        fileName: file.displayName || file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
         uploadedById: uploaderId,
