@@ -50,6 +50,7 @@ const translations = {
     'continue': 'Continue',
     'bulk_import_folder_picker_title': 'Upload Folder',
     'bulk_import_folder_picker_message': 'The system will open a folder picker to select one folder and upload all files inside it. After you click "Continue", the browser will show a security confirmation dialog (standard Chrome) to approve folder access. Continue?',
+    'bulk_import_too_many_files': 'Too many files. Maximum allowed is {max}.',
     
     // Table Headers
     'file_code': 'File Code',
@@ -1098,6 +1099,7 @@ const translations = {
     'continue': 'Teruskan',
     'bulk_import_folder_picker_title': 'Muat Naik Folder',
     'bulk_import_folder_picker_message': 'Sistem akan buka folder picker untuk pilih satu folder dan muat naik semua fail di dalam folder tersebut. Lepas tekan "Teruskan", browser akan papar dialog keselamatan (standard Chrome) untuk sahkan akses folder. Teruskan?',
+    'bulk_import_too_many_files': 'Terlalu banyak fail. Maksimum dibenarkan ialah {max}.',
     
     // Table Headers
     'file_code': 'Kod Fail',
@@ -2146,6 +2148,7 @@ const translations = {
     'continue': '继续',
     'bulk_import_folder_picker_title': '上传文件夹',
     'bulk_import_folder_picker_message': '系统将打开文件夹选择器以选择一个文件夹，并上传该文件夹内的所有文件。点击“继续”后，浏览器会显示安全确认对话框（Chrome 标准提示）以批准文件夹访问。是否继续？',
+    'bulk_import_too_many_files': '文件数量过多。最多允许 {max} 个文件。',
     
     // Table Headers
     'file_code': '文件代码',

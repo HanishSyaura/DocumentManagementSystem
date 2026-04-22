@@ -108,15 +108,30 @@ const createUploadMiddleware = (fieldName = 'file') => {
   };
 };
 
-const createUploadArrayMiddleware = (fieldName = 'files', maxCount = 20) => {
+const createUploadArrayMiddleware = (fieldName = 'files', maxCount) => {
   return async (req, res, next) => {
     try {
+      const clamp = (n, min, max) => Math.min(max, Math.max(min, n))
+      const parsedMaxCount = Number.isFinite(maxCount) ? maxCount : parseInt(maxCount, 10)
+      let resolvedMaxCount = parsedMaxCount
+
+      if (!Number.isFinite(resolvedMaxCount) || resolvedMaxCount <= 0) {
+        try {
+          const settings = await getFileUploadSettings()
+          resolvedMaxCount = clamp(parseInt(settings?.bulkUploadLimit, 10) || 10, 1, 100)
+        } catch (_) {
+          resolvedMaxCount = 10
+        }
+      } else {
+        resolvedMaxCount = clamp(parseInt(resolvedMaxCount, 10) || 10, 1, 100)
+      }
+
       const limits = await getDynamicLimits();
       const upload = multer({
         storage: documentStorage,
-        limits: { ...limits, files: maxCount },
+        limits: { ...limits, files: resolvedMaxCount },
         fileFilter: documentFileFilter
-      }).array(fieldName, maxCount);
+      }).array(fieldName, resolvedMaxCount);
       upload(req, res, next);
     } catch (error) {
       next(error);
@@ -130,7 +145,7 @@ const createUploadArrayMiddleware = (fieldName = 'files', maxCount = 20) => {
  */
 const uploadDocument = {
   single: (fieldName = 'file') => createUploadMiddleware(fieldName),
-  array: (fieldName = 'files', maxCount = 20) => createUploadArrayMiddleware(fieldName, maxCount),
+  array: (fieldName = 'files', maxCount) => createUploadArrayMiddleware(fieldName, maxCount),
   // Direct use as middleware with default 'file' fieldname
   middleware: createUploadMiddleware('file')
 };

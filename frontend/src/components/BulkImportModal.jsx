@@ -30,7 +30,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   const { t } = usePreferences()
 
-  const { validateFile, getAcceptString, getAllowedTypesDisplay, refreshSettings } = useFileUploadSettings()
+  const { validateFile, getAcceptString, getAllowedTypesDisplay, refreshSettings, bulkUploadLimit } = useFileUploadSettings()
 
   const clientTypeId = useMemo(() => getClientDocumentTypeId(documentTypes), [documentTypes])
   const allClientChecked = useMemo(() => fileItems.length > 0 && fileItems.every((it) => Boolean(it.isClientDocument)), [fileItems])
@@ -273,7 +273,13 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
         }
         byKey.set(key, allClientChecked ? applyClientDeclaration(base, true) : base)
       })
-      return Array.from(byKey.values())
+      const maxFiles = Math.min(100, Math.max(1, parseInt(bulkUploadLimit, 10) || 10))
+      const nextItems = Array.from(byKey.values())
+      if (nextItems.length > maxFiles) {
+        setFormError(String(t('bulk_import_too_many_files')).replace('{max}', String(maxFiles)))
+        return prev
+      }
+      return nextItems
     })
   }
 
