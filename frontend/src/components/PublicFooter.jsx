@@ -52,10 +52,10 @@ export default function PublicFooter({ copyrightText, footerLinks, onPdfLinkClic
   }
 
   return (
-    <footer className="fixed bottom-0 inset-x-0 z-40 bg-[color:var(--dms-primary)]/85 text-white backdrop-blur border-t border-white/15">
+    <footer className="fixed bottom-0 inset-x-0 z-40 bg-[color:var(--dms-primary)] text-white border-t border-white/15">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-3 h-11">
-          <p className="text-white/85 text-xs leading-tight truncate max-w-[55%] sm:max-w-none">
+          <p className="text-white/95 text-xs leading-tight truncate max-w-[55%] sm:max-w-none">
             <MarkdownRenderer inline value={resolvedCopyright} />
           </p>
 
@@ -65,7 +65,7 @@ export default function PublicFooter({ copyrightText, footerLinks, onPdfLinkClic
                 key={idx}
                 type="button"
                 onClick={() => onLinkClick(link)}
-                className={`${idx >= 2 ? 'hidden md:inline' : 'inline'} text-xs text-white/90 hover:text-white transition-colors max-w-[6.5rem] sm:max-w-none truncate`}
+                className={`${idx >= 2 ? 'hidden md:inline' : 'inline'} text-xs text-white/95 hover:text-white transition-colors max-w-[6.5rem] sm:max-w-none truncate`}
                 disabled={!link?.pdf && !link?.href}
               >
                 <MarkdownRenderer inline value={link?.label || ''} />
