@@ -567,7 +567,31 @@ export default function PublishedDocuments() {
         : `Imported ${importedCount} file(s) successfully.`
       setAlertModal({ show: true, title: 'Success', message: msg, type: failedCount > 0 ? 'warning' : 'success' })
 
-      if (selectedFolder === parseInt(uploadData.folderId)) loadDocuments()
+      const targetFolderId = toFolderId(uploadData.folderId)
+      const list = await loadFolders()
+      const findPathIds = (foldersList, targetId, path = []) => {
+        for (const folder of foldersList) {
+          const id = toFolderId(folder.id)
+          const currentPath = [...path, id]
+          if (id === targetId) return currentPath
+          if (folder.children && folder.children.length > 0) {
+            const found = findPathIds(folder.children, targetId, currentPath)
+            if (found) return found
+          }
+        }
+        return null
+      }
+
+      const fullPath = targetFolderId ? findPathIds(list || [], targetFolderId) : null
+      if (fullPath && fullPath.length > 0) {
+        setExpandedFolders((prev) => Array.from(new Set([...prev, ...fullPath])))
+      } else if (targetFolderId) {
+        setExpandedFolders((prev) => (prev.includes(targetFolderId) ? prev : prev.concat([targetFolderId])))
+      }
+
+      if (selectedFolder) {
+        setBreadcrumbs(buildBreadcrumbsFrom(list || [], selectedFolder))
+      }
     } catch (error) {
       console.error('Error:', error)
       console.error('Response:', error.response?.data)
@@ -1047,7 +1071,23 @@ export default function PublishedDocuments() {
       {/* Left Sidebar - Folder Tree */}
       <div className="w-72 lg:w-80 xl:w-96 xl:shrink-0 bg-white border-r border-gray-200 overflow-y-auto" data-tour-id="pub-folder-tree">
         <div className="p-3 sm:p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('pub_folders')}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">{t('pub_folders')}</h3>
+            <button
+              type="button"
+              onClick={async () => {
+                const list = await loadFolders()
+                if (selectedFolder) setBreadcrumbs(buildBreadcrumbsFrom(list || [], selectedFolder))
+              }}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+              aria-label={t('refresh')}
+              title={t('refresh')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v6h6M20 20v-6h-6M20 9A8 8 0 006.34 5.34L4 10m16 4l-2.34 4.66A8 8 0 0017.66 18.66L20 14" />
+              </svg>
+            </button>
+          </div>
           <div className="space-y-1">
             {folders.map((folder) => (
               <FolderTreeItem key={folder.id} folder={folder} level={0} />
