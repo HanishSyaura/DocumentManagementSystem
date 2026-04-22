@@ -251,8 +251,19 @@ class FileStorageService {
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'text/plain',
+      'text/markdown',
+      'text/css',
+      'text/html',
+      'text/javascript',
+      'application/javascript',
+      'application/json',
+      'text/xml',
+      'application/xml',
+      'text/yaml',
+      'application/x-yaml',
       'image/png',
-      'image/jpeg'
+      'image/jpeg',
+      'image/gif'
     ];
 
     return allowed.includes(mimetype);

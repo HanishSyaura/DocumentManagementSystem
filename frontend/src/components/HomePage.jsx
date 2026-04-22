@@ -273,7 +273,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16 pb-14">
+    <div className="min-h-screen bg-[color:var(--dms-landing-contact-bg,#F3F4F6)] overflow-x-hidden overflow-y-auto 2xl:snap-y 2xl:snap-mandatory scroll-smooth scroll-pt-16 pb-14">
       <a href="#main" className="skip-link">Skip to content</a>
       <PublicTopbar onSection={scrollToSection} />
       <PublicFooter

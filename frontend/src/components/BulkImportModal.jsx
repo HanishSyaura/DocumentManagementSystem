@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import { usePreferences } from '../contexts/PreferencesContext'
+import ConfirmModal from './ConfirmModal'
 
 function getClientDocumentTypeId(documentTypes) {
   const types = Array.isArray(documentTypes) ? documentTypes : []
@@ -23,6 +24,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [documentTypes, setDocumentTypes] = useState([])
   const [numberingSettings, setNumberingSettings] = useState(null)
   const [projectCategories, setProjectCategories] = useState([])
+  const [folderPickerConfirm, setFolderPickerConfirm] = useState({ show: false, title: '', message: '', onConfirm: null })
   const fileInputRef = useRef(null)
   const folderInputRef = useRef(null)
 
@@ -304,7 +306,17 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   }
 
   const handleBrowseClick = () => fileInputRef.current?.click()
-  const handleBrowseFolderClick = () => folderInputRef.current?.click()
+  const handleBrowseFolderClick = () => {
+    setFolderPickerConfirm({
+      show: true,
+      title: 'Upload Folder',
+      message: 'Sistem akan buka folder picker untuk pilih satu folder dan upload semua fail di dalam folder tersebut. Lepas tekan "Teruskan", browser akan papar dialog keselamatan (standard Chrome) untuk sahkan folder. Teruskan?',
+      onConfirm: () => {
+        setFolderPickerConfirm({ show: false, title: '', message: '', onConfirm: null })
+        setTimeout(() => folderInputRef.current?.click(), 0)
+      }
+    })
+  }
 
   const removeFile = (idx) => setFileItems((prev) => prev.filter((_, i) => i !== idx))
 
@@ -361,6 +373,16 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
+      <ConfirmModal
+        show={folderPickerConfirm.show}
+        title={folderPickerConfirm.title}
+        message={folderPickerConfirm.message}
+        type="info"
+        confirmText="Teruskan"
+        cancelText="Batal"
+        onConfirm={() => folderPickerConfirm.onConfirm?.()}
+        onCancel={() => setFolderPickerConfirm({ show: false, title: '', message: '', onConfirm: null })}
+      />
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
 
       <div className="flex min-h-full items-center justify-center p-4">

@@ -17,7 +17,34 @@ const MIME_TYPE_MAP = {
   JPG: ['image/jpeg', 'image/jpg'],
   JPEG: ['image/jpeg'],
   GIF: ['image/gif'],
-  CSV: ['text/csv', 'application/csv']
+  CSV: ['text/csv', 'application/csv'],
+  JS: ['text/javascript', 'application/javascript'],
+  JSX: ['text/javascript', 'application/javascript'],
+  TS: ['application/typescript', 'text/plain'],
+  TSX: ['application/typescript', 'text/plain'],
+  JSON: ['application/json', 'text/json', 'text/plain'],
+  HTML: ['text/html'],
+  CSS: ['text/css'],
+  SCSS: ['text/x-scss', 'text/plain'],
+  LESS: ['text/plain'],
+  MD: ['text/markdown', 'text/plain'],
+  YML: ['text/yaml', 'application/x-yaml', 'text/plain'],
+  YAML: ['text/yaml', 'application/x-yaml', 'text/plain'],
+  XML: ['application/xml', 'text/xml', 'text/plain'],
+  SQL: ['application/sql', 'text/plain'],
+  PY: ['text/x-python', 'text/plain'],
+  JAVA: ['text/x-java-source', 'text/plain'],
+  C: ['text/x-c', 'text/plain'],
+  CPP: ['text/x-c++', 'text/plain'],
+  H: ['text/x-c', 'text/plain'],
+  HPP: ['text/x-c++', 'text/plain'],
+  CS: ['text/plain'],
+  GO: ['text/plain'],
+  RB: ['text/plain'],
+  RS: ['text/plain'],
+  KT: ['text/plain'],
+  SWIFT: ['text/plain'],
+  VUE: ['text/plain']
 }
 
 // Extension mappings (lowercase)
@@ -36,13 +63,44 @@ const EXTENSION_MAP = {
   JPG: '.jpg',
   JPEG: '.jpeg',
   GIF: '.gif',
-  CSV: '.csv'
+  CSV: '.csv',
+  JS: '.js',
+  JSX: '.jsx',
+  TS: '.ts',
+  TSX: '.tsx',
+  JSON: '.json',
+  HTML: '.html',
+  CSS: '.css',
+  SCSS: '.scss',
+  LESS: '.less',
+  MD: '.md',
+  YML: '.yml',
+  YAML: '.yaml',
+  XML: '.xml',
+  SQL: '.sql',
+  PY: '.py',
+  JAVA: '.java',
+  C: '.c',
+  CPP: '.cpp',
+  H: '.h',
+  HPP: '.hpp',
+  CS: '.cs',
+  GO: '.go',
+  RB: '.rb',
+  RS: '.rs',
+  KT: '.kt',
+  SWIFT: '.swift',
+  VUE: '.vue'
 }
 
 // Default settings (fallback)
 const DEFAULT_SETTINGS = {
   maxFileSize: 10, // MB
-  allowedTypes: ['PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'TXT', 'PNG', 'JPG', 'JPEG'],
+  allowedTypes: [
+    'PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'PPT', 'PPTX', 'TXT', 'PNG', 'JPG', 'JPEG', 'GIF', 'CSV',
+    'JS', 'JSX', 'TS', 'TSX', 'JSON', 'HTML', 'CSS', 'SCSS', 'LESS', 'MD', 'YML', 'YAML', 'XML', 'SQL',
+    'PY', 'JAVA', 'C', 'CPP', 'H', 'HPP', 'CS', 'GO', 'RB', 'RS', 'KT', 'SWIFT', 'VUE'
+  ],
   bulkUploadLimit: 10
 }
 

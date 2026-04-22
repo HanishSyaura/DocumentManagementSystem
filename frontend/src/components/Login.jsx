@@ -6,6 +6,7 @@ import { getDefaultRoute } from '../utils/defaultRoute'
 import { updateUserData } from '../utils/userDataEvents'
 import { usePreferences } from '../contexts/PreferencesContext'
 import PublicTopbar from './PublicTopbar'
+import PublicFooter from './PublicFooter'
 
 export default function Login() {
   const { t } = usePreferences()
@@ -356,8 +357,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen pt-16" style={{ background: `linear-gradient(to bottom right, var(--dms-login-bg-start, #F9FAFB), var(--dms-login-bg-end, #EFF6FF))` }}>
+    <div className="min-h-screen pt-16 pb-14" style={{ background: `linear-gradient(to bottom right, var(--dms-login-bg-start, #F9FAFB), var(--dms-login-bg-end, #EFF6FF))` }}>
       <PublicTopbar />
+      <PublicFooter />
 
       {/* Login Section */}
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)] py-12 px-4">
