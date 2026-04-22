@@ -595,7 +595,27 @@ export default function PublishedDocuments() {
     } catch (error) {
       console.error('Error:', error)
       console.error('Response:', error.response?.data)
-      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to upload file. Please try again.', type: 'error' })
+      const status = error?.response?.status
+      const apiMsg = error?.response?.data?.message
+      const apiErrors = error?.response?.data?.errors
+      const errMsg = String(error?.message || '')
+
+      let message = apiMsg || t('bulk_import_upload_failed_generic')
+
+      if (status === 413) {
+        message = t('bulk_import_upload_failed_413')
+      } else if (status === 400 && Array.isArray(apiErrors) && apiErrors.length > 0) {
+        const preview = apiErrors
+          .slice(0, 3)
+          .map((e) => e?.message)
+          .filter(Boolean)
+          .join('\n')
+        message = preview ? `${apiMsg || t('bulk_import_upload_failed_validation')}\n${preview}` : (apiMsg || t('bulk_import_upload_failed_validation'))
+      } else if (!status && (errMsg.includes('ERR_HTTP2_PROTOCOL_ERROR') || errMsg.toLowerCase().includes('protocol error') || errMsg.toLowerCase().includes('network error'))) {
+        message = t('bulk_import_upload_failed_http2')
+      }
+
+      setAlertModal({ show: true, title: 'Error', message, type: 'error' })
     }
   }
 

@@ -86,6 +86,10 @@ const translations = {
     'bulk_import_error_select_files': 'Please select at least one file',
     'bulk_import_error_file_code_required': 'File code is required for "{name}"',
     'bulk_import_error_doc_type_required': 'Please select document type for "{name}"',
+    'bulk_import_upload_failed_generic': 'Failed to upload. Please try again.',
+    'bulk_import_upload_failed_413': 'Upload failed: file size is too large or total upload exceeds the limit. Please upload in smaller batches.',
+    'bulk_import_upload_failed_validation': 'Upload failed due to invalid input.',
+    'bulk_import_upload_failed_http2': 'Upload failed due to a network/proxy issue (HTTP/2). If you use Cloudflare (proxied), total upload per batch is typically limited to 100 MB. Please reduce the batch size and try again.',
     
     // Table Headers
     'file_code': 'File Code',
@@ -1170,6 +1174,10 @@ const translations = {
     'bulk_import_error_select_files': 'Sila pilih sekurang-kurangnya satu fail',
     'bulk_import_error_file_code_required': 'Kod fail diperlukan untuk "{name}"',
     'bulk_import_error_doc_type_required': 'Sila pilih jenis dokumen untuk "{name}"',
+    'bulk_import_upload_failed_generic': 'Muat naik gagal. Sila cuba lagi.',
+    'bulk_import_upload_failed_413': 'Muat naik gagal: saiz fail terlalu besar atau jumlah muat naik melebihi had. Sila muat naik dalam batch lebih kecil.',
+    'bulk_import_upload_failed_validation': 'Muat naik gagal kerana input tidak sah.',
+    'bulk_import_upload_failed_http2': 'Muat naik gagal kerana isu rangkaian/proksi (HTTP/2). Jika guna Cloudflare (proxied), jumlah muat naik setiap batch biasanya dihadkan kepada 100 MB. Sila kecilkan batch dan cuba lagi.',
     
     // Table Headers
     'file_code': 'Kod Fail',
@@ -2254,6 +2262,10 @@ const translations = {
     'bulk_import_error_select_files': '请至少选择一个文件',
     'bulk_import_error_file_code_required': '“{name}”需要文件代码',
     'bulk_import_error_doc_type_required': '请为“{name}”选择文件类型',
+    'bulk_import_upload_failed_generic': '上传失败。请重试。',
+    'bulk_import_upload_failed_413': '上传失败：文件过大或上传总大小超过限制。请分批上传更小的文件。',
+    'bulk_import_upload_failed_validation': '上传失败：输入无效。',
+    'bulk_import_upload_failed_http2': '上传失败：网络/代理问题（HTTP/2）。如果使用 Cloudflare（代理），每批次上传总大小通常限制为 100 MB。请缩小批次后重试。',
     
     // Table Headers
     'file_code': '文件代码',
