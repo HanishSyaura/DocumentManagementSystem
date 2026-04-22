@@ -245,6 +245,7 @@ class FolderService {
       select: {
         id: true,
         fileCode: true,
+        projectCategoryId: true,
         versions: { select: { filePath: true } }
       }
     });
@@ -257,10 +258,86 @@ class FolderService {
     }
 
     await prisma.$transaction(async (tx) => {
-      if (documents.length > 0) {
-        await tx.document.deleteMany({
-          where: { id: { in: documents.map(d => d.id) } }
-        });
+      const documentIds = documents.map(d => d.id)
+      const uniquePairsMap = new Map()
+      for (const d of documents) {
+        const fc = String(d.fileCode || '').trim()
+        if (!fc) continue
+        const pc = d.projectCategoryId ?? null
+        const key = `${fc}||${pc === null ? 'null' : String(pc)}`
+        if (!uniquePairsMap.has(key)) {
+          uniquePairsMap.set(key, { fileCode: fc, projectCategoryId: pc })
+        }
+      }
+
+      const uniquePairs = Array.from(uniquePairsMap.values())
+
+      if (documentIds.length > 0) {
+        const pairOr = uniquePairs.map(p => ({
+          fileCode: p.fileCode,
+          projectCategoryId: p.projectCategoryId
+        }))
+
+        const remaining = pairOr.length
+          ? await tx.document.findMany({
+            where: {
+              id: { notIn: documentIds },
+              OR: pairOr
+            },
+            select: { fileCode: true, projectCategoryId: true }
+          })
+          : []
+
+        const remainingPairs = new Set(
+          (remaining || []).map(r => `${String(r.fileCode || '').trim()}||${(r.projectCategoryId ?? null) === null ? 'null' : String(r.projectCategoryId)}`)
+        )
+
+        const pairsToDelete = uniquePairs.filter(p => {
+          const key = `${p.fileCode}||${p.projectCategoryId === null ? 'null' : String(p.projectCategoryId)}`
+          return !remainingPairs.has(key)
+        })
+
+        const fileCodesToDelete = Array.from(new Set(pairsToDelete.map(p => p.fileCode).filter(Boolean)))
+
+        if (fileCodesToDelete.length > 0) {
+          await tx.archiveRegister.deleteMany({ where: { fileCode: { in: fileCodesToDelete } } })
+          await tx.obsoleteRegister.deleteMany({ where: { fileCode: { in: fileCodesToDelete } } })
+          await tx.versionRegister.deleteMany({ where: { fileCode: { in: fileCodesToDelete } } })
+        }
+
+        if (pairsToDelete.length > 0) {
+          await tx.documentRegister.deleteMany({
+            where: {
+              OR: pairsToDelete.map(p => ({
+                fileCode: p.fileCode,
+                projectCategoryId: p.projectCategoryId
+              }))
+            }
+          })
+        }
+
+        const codeRegistryPairs = pairsToDelete.filter(p => p.projectCategoryId !== null)
+        if (codeRegistryPairs.length > 0) {
+          await tx.codeRegistry.deleteMany({
+            where: {
+              OR: codeRegistryPairs.map(p => ({
+                fileCode: p.fileCode,
+                projectCategoryId: p.projectCategoryId
+              }))
+            }
+          })
+        }
+
+        await tx.documentAssignment.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.documentComment.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.documentMetadata.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.approvalHistory.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.documentVersion.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.supersedeObsoleteRequest.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.versionRequest.deleteMany({ where: { documentId: { in: documentIds } } })
+        await tx.auditLog.deleteMany({ where: { entityId: { in: documentIds } } })
+
+        await tx.document.deleteMany({ where: { id: { in: documentIds } } })
       }
 
       const folderIdsByDepthDesc = folders

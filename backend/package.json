@@ -9,7 +9,9 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "cleanup:orphans:dry": "node scripts/cleanupOrphans.js",
+    "cleanup:orphans": "node scripts/cleanupOrphans.js --apply"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
