@@ -4,12 +4,12 @@ import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import { usePreferences } from '../contexts/PreferencesContext'
 import ConfirmModal from './ConfirmModal'
 
-function getClientDocumentTypeId(documentTypes) {
+function getOtherDocumentationTypeId(documentTypes) {
   const types = Array.isArray(documentTypes) ? documentTypes : []
-  const byPrefix = types.find((dt) => String(dt?.prefix || '').toLowerCase() === 'cd')
-  if (byPrefix) return String(byPrefix.id)
-  const byName = types.find((dt) => String(dt?.name || '').toLowerCase() === 'client documentation')
+  const byName = types.find((dt) => String(dt?.name || '').toLowerCase() === 'others')
   if (byName) return String(byName.id)
+  const byPrefix = types.find((dt) => String(dt?.prefix || '').toLowerCase() === 'oth')
+  if (byPrefix) return String(byPrefix.id)
   return ''
 }
 
@@ -39,7 +39,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const totalSelectedMB = useMemo(() => (totalSelectedBytes / 1024 / 1024).toFixed(2), [totalSelectedBytes])
   const totalSelectedExceeded = totalSelectedBytes > totalUploadLimitBytes
 
-  const clientTypeId = useMemo(() => getClientDocumentTypeId(documentTypes), [documentTypes])
+  const otherTypeId = useMemo(() => getOtherDocumentationTypeId(documentTypes), [documentTypes])
   const allClientChecked = useMemo(() => fileItems.length > 0 && fileItems.every((it) => Boolean(it.isClientDocument)), [fileItems])
   const someClientChecked = useMemo(() => fileItems.some((it) => Boolean(it.isClientDocument)), [fileItems])
   const clientDeclarationRef = useRef(null)
@@ -234,11 +234,11 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   }
 
   const autoMatchClientDocumentTypeId = () => {
-    return getClientDocumentTypeId(documentTypes)
+    return getOtherDocumentationTypeId(documentTypes)
   }
 
   const applyClientDeclaration = (item, checked) => {
-    const nextClientTypeId = checked ? clientTypeId : ''
+    const nextClientTypeId = checked ? otherTypeId : ''
     return {
       ...item,
       isClientDocument: checked,
@@ -611,6 +611,10 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                       checked={allClientChecked}
                       onChange={(e) => {
                         const checked = e.target.checked
+                        if (checked && !otherTypeId) {
+                          setFormError('Document type "Others" not found. Please create it in Configuration > Document Types.')
+                          return
+                        }
                         setFileItems((prev) => prev.map((x) => applyClientDeclaration(x, checked)))
                       }}
                     />
@@ -666,6 +670,10 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                 checked={Boolean(it.isClientDocument)}
                                 onChange={(e) => {
                                   const checked = e.target.checked
+                                  if (checked && !otherTypeId) {
+                                    setFormError('Document type "Others" not found. Please create it in Configuration > Document Types.')
+                                    return
+                                  }
                                   setFileItems((prev) => prev.map((x, i) => i === idx ? applyClientDeclaration(x, checked) : x))
                                 }}
                               />
@@ -712,6 +720,7 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                               <select
                                 value={it.documentTypeId || ''}
                                 onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, documentTypeId: e.target.value } : x))}
+                                disabled={Boolean(it.isClientDocument) && Boolean(otherTypeId)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
                               >
                                 <option value="">{t('bulk_import_select_document_type')}</option>
@@ -731,6 +740,10 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                   checked={Boolean(it.isClientDocument)}
                                   onChange={(e) => {
                                     const checked = e.target.checked
+                                    if (checked && !otherTypeId) {
+                                      setFormError('Document type "Others" not found. Please create it in Configuration > Document Types.')
+                                      return
+                                    }
                                     setFileItems((prev) => prev.map((x, i) => {
                                       if (i !== idx) return x
                                       return applyClientDeclaration(x, checked)

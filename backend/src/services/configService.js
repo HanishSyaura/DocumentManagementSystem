@@ -19,6 +19,8 @@ class ConfigService {
         documentRejected: { email: true, inApp: true },
         documentPublished: { email: true, inApp: false },
         documentSuperseded: { email: true, inApp: true },
+        acknowledgeRequired: { email: true, inApp: true },
+        acknowledgeCompleted: { email: true, inApp: true },
         workflowReminder: { email: true, inApp: true },
         systemMaintenance: { email: true, inApp: true }
       },

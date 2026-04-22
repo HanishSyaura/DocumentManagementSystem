@@ -194,11 +194,18 @@ class DocumentController {
     }
 
     const documentTypes = await prisma.documentType.findMany({
-      select: { id: true, prefix: true, isActive: true }
+      select: { id: true, name: true, prefix: true, isActive: true }
     })
     const typeByPrefix = new Map(documentTypes.map((dt) => [dt.prefix, dt]))
     const typeByPrefixLower = new Map(documentTypes.map((dt) => [String(dt.prefix || '').toLowerCase(), dt]))
     const typeById = new Map(documentTypes.map((dt) => [dt.id, dt]))
+    const othersTypeId = (() => {
+      const byName = documentTypes.find((dt) => dt?.isActive && String(dt?.name || '').toLowerCase() === 'others')
+      if (byName) return byName.id
+      const byPrefix = documentTypes.find((dt) => dt?.isActive && String(dt?.prefix || '').toLowerCase() === 'oth')
+      if (byPrefix) return byPrefix.id
+      return null
+    })()
 
     const reserved = { fileCodes: new Set(), runningByCodeKey: new Map() }
     const reserveAllocation = (allocation) => {
@@ -317,16 +324,18 @@ class DocumentController {
         const metaProjectCategoryId = Number.isFinite(Number(metaProjectCategoryIdRaw)) ? parseInt(metaProjectCategoryIdRaw) : null
 
         let documentTypeIdToUse = null
-        if (metaDocTypeId) {
+        if (isClientDocument) {
+          if (!othersTypeId) {
+            throw new Error('Document type "Others" not found. Please create it in System Configuration.')
+          }
+          documentTypeIdToUse = othersTypeId
+        } else if (metaDocTypeId) {
           const dt = typeById.get(metaDocTypeId)
           if (!dt || !dt.isActive) {
             throw new Error('Document type not found')
           }
           documentTypeIdToUse = dt.id
         } else {
-          if (isClientDocument) {
-            throw new Error('Document type is required for client document')
-          }
           const prefixMatch = String(fileCodeToUse).match(/^[A-Za-z]+/)
           const prefix = prefixMatch?.[0] || ''
           if (!prefix) {

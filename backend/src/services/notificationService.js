@@ -152,13 +152,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) has been submitted for review`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      submittedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       reviewers.map(r => r.id),
-      'REVIEW_REQUIRED',
+      'documentSubmitted',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     return reviewers.length;
   }
@@ -185,13 +193,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) requires your approval`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      reviewedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       approvers.map(a => a.id),
-      'APPROVAL_REQUIRED',
+      'approvalRequest',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     return approvers.length;
   }
@@ -218,13 +234,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) requires your acknowledgment`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode && !String(document.fileCode).startsWith('PENDING-') ? document.fileCode : '',
+      requestedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       acknowledgers.map(a => a.id),
-      'ACKNOWLEDGMENT_REQUIRED',
+      'acknowledgeRequired',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     return acknowledgers.length;
   }
@@ -399,13 +423,37 @@ class NotificationService {
     const link = `/documents/${documentId}`;
 
     // Notify only the document owner (the user who created the NDR)
-    await this.createNotification(
+    const acknowledgedByUser = (() => {
+      if (acknowledgedBy && typeof acknowledgedBy === 'object') return acknowledgedBy
+      if (Number.isFinite(Number(acknowledgedBy))) return null
+      return null
+    })()
+    const acknowledgedByName = acknowledgedByUser
+      ? `${acknowledgedByUser.firstName} ${acknowledgedByUser.lastName}`
+      : (Number.isFinite(Number(acknowledgedBy))
+          ? await (async () => {
+              const u = await prisma.user.findUnique({
+                where: { id: parseInt(acknowledgedBy, 10) },
+                select: { firstName: true, lastName: true }
+              })
+              return u ? `${u.firstName} ${u.lastName}` : ''
+            })()
+          : '')
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      acknowledgedBy: acknowledgedByName,
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       document.ownerId,
-      'STATUS_CHANGED',
+      'acknowledgeCompleted',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] NDR acknowledged notification sent to user ${document.ownerId}`);
   }
@@ -441,13 +489,37 @@ class NotificationService {
     const link = `/documents/${documentId}`;
 
     // Notify only the document owner
-    await this.createNotification(
+    const approvedByUser = (() => {
+      if (approvedBy && typeof approvedBy === 'object') return approvedBy
+      if (Number.isFinite(Number(approvedBy))) return null
+      return null
+    })()
+    const approvedByName = approvedByUser
+      ? `${approvedByUser.firstName} ${approvedByUser.lastName}`
+      : (Number.isFinite(Number(approvedBy))
+          ? await (async () => {
+              const u = await prisma.user.findUnique({
+                where: { id: parseInt(approvedBy, 10) },
+                select: { firstName: true, lastName: true }
+              })
+              return u ? `${u.firstName} ${u.lastName}` : 'Unknown'
+            })()
+          : 'Unknown')
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      approvedBy: approvedByName,
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       document.ownerId,
-      'DOCUMENT_APPROVED',
+      'documentApproved',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Document approved notification sent to owner ${document.ownerId}`);
   }
@@ -462,13 +534,38 @@ class NotificationService {
     const link = `/documents/${documentId}`;
 
     // Notify only the document owner
-    await this.createNotification(
+    const rejectedByUser = (() => {
+      if (rejectedBy && typeof rejectedBy === 'object') return rejectedBy
+      if (Number.isFinite(Number(rejectedBy))) return null
+      return null
+    })()
+    const rejectedByName = rejectedByUser
+      ? `${rejectedByUser.firstName} ${rejectedByUser.lastName}`
+      : (Number.isFinite(Number(rejectedBy))
+          ? await (async () => {
+              const u = await prisma.user.findUnique({
+                where: { id: parseInt(rejectedBy, 10) },
+                select: { firstName: true, lastName: true }
+              })
+              return u ? `${u.firstName} ${u.lastName}` : 'Unknown'
+            })()
+          : 'Unknown')
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      rejectedBy: rejectedByName,
+      comments: reason || '',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       document.ownerId,
-      'DOCUMENT_REJECTED',
+      'documentRejected',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Document rejected notification sent to owner ${document.ownerId}`);
   }
@@ -476,18 +573,29 @@ class NotificationService {
   /**
    * Notify specific assigned approver (not all approvers)
    */
-  async notifySpecificUserApprovalRequired(approverId, documentId, document) {
+  async notifySpecificUserApprovalRequired(approverId, documentId, document, requestedById = null) {
     const title = 'Document Needs Your Approval';
     const message = `Document "${document.title}" (${document.fileCode}) has been assigned to you for approval`;
     const link = `/documents/${documentId}`;
 
-    await this.createNotification(
+    const requestedBy = requestedById
+      ? await prisma.user.findUnique({ where: { id: requestedById }, select: { firstName: true, lastName: true } })
+      : null
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      reviewedBy: requestedBy ? `${requestedBy.firstName} ${requestedBy.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       approverId,
-      'APPROVAL_REQUIRED',
+      'approvalRequest',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Approval request sent to specific approver ${approverId}`);
   }
@@ -495,18 +603,29 @@ class NotificationService {
   /**
    * Notify specific assigned reviewer (not all reviewers)
    */
-  async notifySpecificUserReviewRequired(reviewerId, documentId, document) {
+  async notifySpecificUserReviewRequired(reviewerId, documentId, document, assignedById = null) {
     const title = 'Document Assigned for Review';
     const message = `Document "${document.title}" (${document.fileCode}) has been assigned to you for review`;
     const link = `/documents/${documentId}`;
 
-    await this.createNotification(
+    const assignedBy = assignedById
+      ? await prisma.user.findUnique({ where: { id: assignedById }, select: { firstName: true, lastName: true } })
+      : null
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      assignedBy: assignedBy ? `${assignedBy.firstName} ${assignedBy.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       reviewerId,
-      'REVIEW_REQUIRED',
+      'reviewAssigned',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Review request sent to specific reviewer ${reviewerId}`);
   }
@@ -538,13 +657,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) has been reviewed and is ready for your approval`;
     const link = `/documents/${documentId}`;
 
-    await this.createNotification(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      reviewedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendNotification(
       approverId,
-      'APPROVAL_REQUIRED',
+      'approvalRequest',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Document ready notification sent to approver ${approverId}`);
   }
@@ -701,7 +828,7 @@ class NotificationService {
       message,
       link,
       emailData
-    );
+    )
 
     return reviewers.length;
   }

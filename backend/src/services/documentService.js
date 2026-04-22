@@ -1652,8 +1652,12 @@ class DocumentService {
 
     // Create document directory
     await fileStorageService.createDocumentDirectory(tempFileCode, projectCategoryId || null);
-
-    // TODO: Send notification to Document Controller
+    try {
+      const notificationService = require('./notificationService')
+      await notificationService.notifyAcknowledgmentRequired(document.id, document)
+    } catch (error) {
+      console.error('Failed to send acknowledgment required notification:', error)
+    }
 
     return document;
   }
@@ -1938,8 +1942,21 @@ class DocumentService {
         status: 'PENDING_REVIEW'
       }
     });
-
-    // TODO: Send notifications to reviewers
+    try {
+      const notificationService = require('./notificationService')
+      const title = 'Document Assigned for Review'
+      const message = `Document "${updated.title}" (${updated.fileCode}) has been assigned to you for review`
+      const link = `/documents/${documentId}`
+      const emailData = {
+        title: updated.title,
+        fileCode: updated.fileCode,
+        assignedBy: updated.owner ? `${updated.owner.firstName} ${updated.owner.lastName}` : 'Unknown',
+        link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      }
+      await notificationService.sendBulkNotifications(parsedReviewerIds, 'reviewAssigned', title, message, link, emailData)
+    } catch (error) {
+      console.error('Failed to send reviewer assignment notifications:', error)
+    }
 
     return updated;
   }

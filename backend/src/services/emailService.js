@@ -149,6 +149,23 @@ class EmailService {
    * Send notification email for document events
    */
   async sendNotificationEmail(to, type, data) {
+    const normalizeType = (t) => {
+      const raw = String(t || '').trim()
+      if (!raw) return raw
+      const map = {
+        documentCreated: 'DOCUMENT_CREATED',
+        documentSubmitted: 'DOCUMENT_SUBMITTED',
+        reviewAssigned: 'REVIEW_ASSIGNED',
+        approvalRequest: 'APPROVAL_REQUEST',
+        documentApproved: 'DOCUMENT_APPROVED',
+        documentRejected: 'DOCUMENT_REJECTED',
+        documentPublished: 'DOCUMENT_PUBLISHED',
+        acknowledgeRequired: 'ACKNOWLEDGE_REQUIRED',
+        acknowledgeCompleted: 'ACKNOWLEDGE_COMPLETED'
+      }
+      return map[raw] || raw
+    }
+
     const templates = {
       DOCUMENT_CREATED: {
         subject: '📄 New Document Created',
@@ -163,6 +180,36 @@ class EmailService {
               <p><strong>Created By:</strong> ${d.createdBy}</p>
             </div>
             <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">View Document</a>
+          </div>
+        `
+      },
+      ACKNOWLEDGE_REQUIRED: {
+        subject: '📌 Document Acknowledgment Required',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0f6fcf;">Acknowledgment Required</h2>
+            <p>A document request requires your acknowledgment:</p>
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              ${d.fileCode ? `<p><strong>File Code:</strong> ${d.fileCode}</p>` : ''}
+              <p><strong>Requested By:</strong> ${d.requestedBy || d.createdBy || d.submittedBy || 'Unknown'}</p>
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">Open Request</a>
+          </div>
+        `
+      },
+      ACKNOWLEDGE_COMPLETED: {
+        subject: '✅ Document Request Acknowledged',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #10B981;">Request Acknowledged</h2>
+            <p>Your document request has been acknowledged:</p>
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              ${d.fileCode ? `<p><strong>File Code:</strong> ${d.fileCode}</p>` : ''}
+              ${d.acknowledgedBy ? `<p><strong>Acknowledged By:</strong> ${d.acknowledgedBy}</p>` : ''}
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #10B981; color: white; text-decoration: none; border-radius: 5px;">View</a>
           </div>
         `
       },
@@ -259,9 +306,10 @@ class EmailService {
       }
     };
 
-    const template = templates[type];
+    const templateKey = normalizeType(type)
+    const template = templates[templateKey];
     if (!template) {
-      console.warn(`No email template found for type: ${type}`);
+      console.warn(`No email template found for type: ${String(type)}`);
       return;
     }
 
@@ -272,7 +320,7 @@ class EmailService {
         html: template.html(data)
       });
     } catch (error) {
-      console.error(`Failed to send ${type} email:`, error);
+      console.error(`Failed to send ${String(type)} email:`, error);
       throw error;
     }
   }

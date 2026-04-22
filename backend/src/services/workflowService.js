@@ -186,7 +186,8 @@ class WorkflowService {
           await notificationService.notifySpecificUserApprovalRequired(
             approverDoc.firstApproverId,
             documentId,
-            approverDoc
+            approverDoc,
+            userId
           );
           console.log(`[Notification] Notified approver ${approverDoc.firstApproverId} about approval request`);
         }
@@ -347,7 +348,8 @@ class WorkflowService {
           await notificationService.notifySpecificUserApprovalRequired(
             secondApproverId,
             documentId,
-            approvedDoc
+            approvedDoc,
+            userId
           );
           console.log(`[Notification] Notified second approver ${secondApproverId}`);
         } else {
