@@ -410,7 +410,7 @@ class ConfigService {
 
     // Return default settings if not configured
     return {
-      maxFileSize: 10, // MB
+      maxFileSize: 100, // MB
       allowedTypes: [
         'PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'PPT', 'PPTX', 'TXT', 'PNG', 'JPG', 'JPEG', 'GIF', 'CSV',
         'JS', 'JSX', 'TS', 'TSX', 'JSON', 'HTML', 'CSS', 'SCSS', 'LESS', 'MD', 'YML', 'YAML', 'XML', 'SQL',
