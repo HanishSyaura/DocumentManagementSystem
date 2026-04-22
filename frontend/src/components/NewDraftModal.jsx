@@ -314,11 +314,13 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                 required
                 value={searchFileCode}
                 onChange={(e) => {
-                  setSearchFileCode(e.target.value)
+                  const value = e.target.value
+                  setSearchFileCode(value)
                   setShowFileCodeDropdown(true)
-                  if (!e.target.value) {
-                    setFormData({ ...formData, fileCode: '', title: '', versionNo: '' })
-                  }
+                  setFormData(prev => {
+                    if (!value) return { ...prev, fileCode: '', title: '', versionNo: '' }
+                    return { ...prev, fileCode: value }
+                  })
                 }}
                 onFocus={() => setShowFileCodeDropdown(true)}
                 placeholder={t('search_file_codes')}

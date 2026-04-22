@@ -1613,19 +1613,25 @@ class DocumentController {
       return ResponseFormatter.validationError(res, errors);
     }
 
+    const trimmedFileCode = String(fileCode || '').trim();
+    const normalizedFileCode = await documentService.normalizeFileCodeFromSystemSettings(trimmedFileCode);
+    const candidateFileCodes = Array.from(new Set([trimmedFileCode, normalizedFileCode].filter(Boolean)));
+
     // Check if document with this file code already exists
     const existingDocument = await prisma.document.findFirst({
       where: {
-        fileCode,
+        fileCode: { in: candidateFileCodes },
         ownerId: req.user.id
       }
     });
 
     let documentId;
+    let savedFileCode = trimmedFileCode;
 
     if (existingDocument) {
       // Update existing document
       documentId = existingDocument.id;
+      savedFileCode = existingDocument.fileCode;
       
       // Update document details
       await prisma.document.update({
@@ -1646,26 +1652,21 @@ class DocumentController {
         ]);
       }
 
-      const newDocument = await documentService.createDocument({
+      const newDocument = await documentService.createDocumentWithFileCode({
+        fileCode: normalizedFileCode || trimmedFileCode,
         title,
         description: comments,
         documentTypeId: docType.id,
         projectCategoryId: null,
         folderId: null
-      }, req.user.id);
+      }, req.user.id, {
+        version: versionNo || '1.0',
+        status: 'ACKNOWLEDGED',
+        stage: 'DRAFT'
+      });
 
       documentId = newDocument.id;
-
-      // Update with provided file code
-      await prisma.document.update({
-        where: { id: documentId },
-        data: {
-          fileCode,
-          version: versionNo || '1.0',
-          status: 'ACKNOWLEDGED',
-          stage: 'DRAFT'
-        }
-      });
+      savedFileCode = newDocument.fileCode;
     }
 
     // Upload file
@@ -1676,7 +1677,7 @@ class DocumentController {
     );
 
     // Log draft upload
-    await auditLogService.logDocument(req.user.id, 'DRAFT_UPLOAD', { id: documentId, fileCode }, req, {
+    await auditLogService.logDocument(req.user.id, 'DRAFT_UPLOAD', { id: documentId, fileCode: savedFileCode }, req, {
       fileName: req.file.originalname,
       title,
       versionNo

@@ -460,6 +460,110 @@ class DocumentService {
     return document;
   }
 
+  async createDocumentWithFileCode(data, creatorId, options = {}) {
+    const { fileCode, title, description, documentTypeId, projectCategoryId, folderId } = data
+    const normalizedFileCode = await this.normalizeFileCodeFromSystemSettings(fileCode)
+    if (!normalizedFileCode) {
+      throw new BadRequestError('File code is required')
+    }
+
+    const pcId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+
+    const existing = pcId
+      ? await prisma.document.findFirst({ where: { fileCode: normalizedFileCode, projectCategoryId: pcId } })
+      : await prisma.document.findFirst({ where: { fileCode: normalizedFileCode } })
+    if (existing) {
+      const err = new BadRequestError('File code already exists')
+      err.code = 'FILE_CODE_EXISTS'
+      throw err
+    }
+
+    const status = options.status || 'DRAFT'
+    const stage = options.stage || 'DRAFT'
+    const version = options.version || '1.0'
+
+    const document = await prisma.document.create({
+      data: {
+        fileCode: normalizedFileCode,
+        title,
+        description,
+        documentTypeId,
+        projectCategoryId: pcId,
+        folderId: folderId ? parseInt(folderId, 10) : null,
+        createdById: creatorId,
+        ownerId: creatorId,
+        status,
+        stage,
+        version
+      },
+      include: {
+        documentType: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        owner: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    })
+
+    await fileStorageService.createDocumentDirectory(normalizedFileCode, pcId)
+
+    const existingRegister = await prisma.documentRegister.findFirst({
+      where: { fileCode: normalizedFileCode, projectCategoryId: pcId }
+    })
+
+    const registerData = {
+      documentTitle: title,
+      documentType: document.documentType.name,
+      version,
+      owner: `${document.owner.firstName} ${document.owner.lastName}`,
+      department: document.owner.department || '',
+      status
+    }
+
+    if (existingRegister) {
+      await prisma.documentRegister.update({
+        where: { id: existingRegister.id },
+        data: registerData
+      })
+    } else {
+      await prisma.documentRegister.create({
+        data: {
+          fileCode: normalizedFileCode,
+          projectCategoryId: pcId,
+          ...registerData
+        }
+      })
+    }
+
+    try {
+      const settings = await DocumentNumbering.loadSettings()
+      const parsed = this.parseAndNormalizeFileCodeStrict(normalizedFileCode, settings)
+      await this.registerFileCodeLedger({
+        fileCode: normalizedFileCode,
+        projectCategoryId: pcId,
+        documentTypeId,
+        runningNumber: parsed.runningNumber,
+        source: 'CREATE_DOCUMENT_WITH_FILE_CODE',
+        sourceRefId: document.id
+      })
+    } catch (_) {
+    }
+
+    return document
+  }
+
   async createImportedPublishedDocument(data, creatorId) {
     const { fileCode, title, description, documentTypeId, projectCategoryId, folderId, isClientDocument } = data
     const clientDoc = Boolean(isClientDocument)

@@ -269,7 +269,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-56 lg:w-64 xl:w-72 p-4'} h-full overflow-y-auto transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+      <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-56 lg:w-64 xl:w-72 p-4'} h-full overflow-y-auto overflow-x-hidden transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
         <nav className="space-y-1">
           {visibleMenuItems.map((item) => (
             <NavItem
@@ -286,7 +286,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
       {/* Mobile overlay sidebar */}
       <div className={`fixed inset-0 z-40 md:hidden ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
         <div className={`absolute inset-0 bg-black/40 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
-        <div className={`absolute left-0 top-0 h-full w-[min(18rem,85vw)] p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+        <div className={`absolute left-0 top-0 h-full w-[min(18rem,85vw)] p-4 overflow-y-auto overflow-x-hidden transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
           <div className="flex justify-between items-center mb-4">
             {logo ? (
               <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
