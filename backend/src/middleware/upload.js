@@ -11,6 +11,11 @@ let cachedFileUploadSettings = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60000; // 1 minute
 
+function updateFileUploadSettingsCache(nextSettings) {
+  cachedFileUploadSettings = nextSettings || null;
+  cacheTimestamp = nextSettings ? Date.now() : 0;
+}
+
 /**
  * Get file upload settings from cache or database
  */
@@ -304,5 +309,6 @@ module.exports = {
   uploadDocument,
   uploadTemplate,
   uploadProfileImage,
-  uploadLandingPdf
+  uploadLandingPdf,
+  updateFileUploadSettingsCache
 };

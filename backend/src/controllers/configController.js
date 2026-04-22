@@ -3,6 +3,7 @@ const ResponseFormatter = require('../utils/responseFormatter');
 const configService = require('../services/configService');
 const { ValidationError } = require('../utils/errors');
 const prisma = require('../config/database');
+const { updateFileUploadSettingsCache } = require('../middleware/upload');
 
 /**
  * @desc    Get all document types
@@ -383,6 +384,7 @@ exports.updateFileUploadSettings = asyncHandler(async (req, res) => {
   }
 
   const updatedSettings = await configService.updateFileUploadSettings(settings);
+  updateFileUploadSettingsCache(updatedSettings);
 
   return ResponseFormatter.success(
     res,
