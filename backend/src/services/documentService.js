@@ -148,6 +148,25 @@ class DocumentService {
       _max: { runningNumber: true }
     })
 
+    let maxFromRegistryParsed = 0
+    const registryRows = await prisma.codeRegistry.findMany({
+      where: {
+        projectCategoryId: parseInt(projectCategoryId, 10),
+        documentTypeId: parseInt(documentTypeId, 10)
+      },
+      select: { fileCode: true, runningNumber: true }
+    })
+    for (const row of registryRows) {
+      try {
+        const parsed = this.parseAndNormalizeFileCodeStrict(row.fileCode, settings)
+        if (versionSegment && parsed.versionSegment !== versionSegment) continue
+        if (parsed.runningNumber > maxFromRegistryParsed) {
+          maxFromRegistryParsed = parsed.runningNumber
+        }
+      } catch (_) {
+      }
+    }
+
     const documents = await prisma.document.findMany({
       where: {
         projectCategoryId: parseInt(projectCategoryId, 10),
@@ -174,7 +193,7 @@ class DocumentService {
       }
     }
 
-    return Math.max(registryAgg?._max?.runningNumber || 0, maxFromDocuments)
+    return Math.max(registryAgg?._max?.runningNumber || 0, maxFromRegistryParsed, maxFromDocuments)
   }
 
   async registerFileCodeLedger({
@@ -505,6 +524,23 @@ class DocumentService {
     }
 
     const pcId = projectCategoryId ? parseInt(projectCategoryId, 10) : null
+    if (pcId) {
+      const allocation = await this.resolveImportedPublishedFileCode({
+        fileCode: normalizedFileCode,
+        documentTypeId,
+        projectCategoryId: pcId
+      })
+      if (allocation.suggestedFileCode !== allocation.normalizedRequested) {
+        const err = new BadRequestError('Running number conflicts with existing registry')
+        err.code = 'RUNNING_NUMBER_CONFLICT'
+        err.errors = [{
+          requestedFileCode: allocation.normalizedRequested,
+          suggestedFileCode: allocation.suggestedFileCode,
+          reasonCode: 'RUNNING_NUMBER_TAKEN'
+        }]
+        throw err
+      }
+    }
 
     const existing = pcId
       ? await prisma.document.findFirst({ where: { fileCode: normalizedFileCode, projectCategoryId: pcId } })
@@ -632,12 +668,30 @@ class DocumentService {
     const hasConflictForRunning = async (runningCandidate) => {
       const fc = buildWithRunning(runningCandidate)
       if (isReserved(fc, runningCandidate)) return true
-      const [existingDocument, existingRegistryByFile, existingRegistryByRunning] = await Promise.all([
+      const [existingDocument, existingRegistryByFile, existingRegistryByRunning, legacyRegistryByRunning] = await Promise.all([
         prisma.document.findFirst({ where: { fileCode: fc, projectCategoryId: categoryId } }),
         prisma.codeRegistry.findFirst({ where: { fileCode: fc, projectCategoryId: categoryId } }),
-        prisma.codeRegistry.findFirst({ where: { projectCategoryId: categoryId, codeKey, runningNumber: runningCandidate } })
+        prisma.codeRegistry.findFirst({ where: { projectCategoryId: categoryId, codeKey, runningNumber: runningCandidate } }),
+        prisma.codeRegistry.findMany({
+          where: {
+            projectCategoryId: categoryId,
+            documentTypeId: documentTypeId,
+            runningNumber: runningCandidate
+          },
+          select: { fileCode: true }
+        })
       ])
-      return Boolean(existingDocument || existingRegistryByFile || existingRegistryByRunning)
+      if (existingDocument || existingRegistryByFile || existingRegistryByRunning) return true
+      if (legacyRegistryByRunning && legacyRegistryByRunning.length > 0) {
+        for (const row of legacyRegistryByRunning) {
+          try {
+            const parsedRow = this.parseAndNormalizeFileCodeStrict(row.fileCode, settings)
+            if (parsedRow.versionSegment === parsed.versionSegment) return true
+          } catch (_) {
+          }
+        }
+      }
+      return false
     }
 
     const requestedTaken = await hasConflictForRunning(requestedRunningNumber)
