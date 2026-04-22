@@ -13,10 +13,8 @@ class AuthController {
    * Helper to get client IP
    */
   getClientIp(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0] || 
-           req.socket.remoteAddress || 
-           req.ip || 
-           'Unknown';
+    const { getClientIp } = require('../utils/clientIp')
+    return getClientIp(req) || 'Unknown'
   }
 
   /**

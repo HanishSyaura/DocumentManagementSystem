@@ -4234,81 +4234,16 @@ function NotificationSettings() {
     fromName: 'DMS System',
     fromEmail: 'noreply@company.com',
     notifications: {
-      // Document Lifecycle Events
-      documentCreated: { email: true, inApp: true },
-      documentDrafted: { email: false, inApp: true },
-      documentUpdated: { email: false, inApp: true },
+      acknowledgeRequired: { email: true, inApp: true },
+      acknowledgeCompleted: { email: true, inApp: true },
       documentSubmitted: { email: true, inApp: true },
-      documentWithdrawn: { email: true, inApp: true },
-      documentDeleted: { email: true, inApp: true },
-      documentRestored: { email: true, inApp: true },
-      
-      // Review Workflow Events
       reviewAssigned: { email: true, inApp: true },
-      reviewStarted: { email: false, inApp: true },
-      reviewCompleted: { email: true, inApp: true },
-      reviewReturned: { email: true, inApp: true },
-      reviewReminder: { email: true, inApp: true },
-      reviewOverdue: { email: true, inApp: true },
-      
-      // Approval Workflow Events
       approvalRequest: { email: true, inApp: true },
-      approvalPending: { email: true, inApp: true },
       documentApproved: { email: true, inApp: true },
       documentRejected: { email: true, inApp: true },
-      approvalWithdrawn: { email: true, inApp: true },
-      approvalReminder: { email: true, inApp: true },
-      approvalOverdue: { email: true, inApp: true },
-      
-      // Publication & Archive Events
       documentPublished: { email: true, inApp: true },
       documentSuperseded: { email: true, inApp: true },
-      documentArchived: { email: true, inApp: true },
-      documentObsoleted: { email: true, inApp: true },
-      
-      // Acknowledgement Events
-      acknowledgeRequired: { email: true, inApp: true },
-      acknowledgeCompleted: { email: false, inApp: true },
-      acknowledgeReminder: { email: true, inApp: true },
-      acknowledgeOverdue: { email: true, inApp: true },
-      
-      // Comment & Collaboration Events
-      commentAdded: { email: true, inApp: true },
-      commentReplied: { email: true, inApp: true },
-      commentMentioned: { email: true, inApp: true },
-      documentShared: { email: true, inApp: true },
-      
-      // Version Control Events
-      newVersionCreated: { email: true, inApp: true },
-      versionCompared: { email: false, inApp: false },
-      versionRestored: { email: true, inApp: true },
-      
-      // User & Access Events
-      accessGranted: { email: true, inApp: true },
-      accessRevoked: { email: true, inApp: true },
-      roleAssigned: { email: true, inApp: true },
-      roleChanged: { email: true, inApp: true },
-      userDeactivated: { email: true, inApp: false },
-      
-      // System Events
-      systemMaintenance: { email: true, inApp: true },
-      systemUpdate: { email: true, inApp: true },
-      backupCompleted: { email: false, inApp: false },
-      backupFailed: { email: true, inApp: true },
-      storageQuota: { email: true, inApp: true },
-      
-      // Workflow & Reminder Events
-      workflowReminder: { email: true, inApp: true },
-      taskAssigned: { email: true, inApp: true },
-      taskCompleted: { email: false, inApp: true },
-      deadlineApproaching: { email: true, inApp: true },
-      deadlinePassed: { email: true, inApp: true },
-      
-      // Template & Configuration Events
-      templateCreated: { email: false, inApp: false },
-      templateUpdated: { email: false, inApp: false },
-      templateDeleted: { email: false, inApp: false },
-      configurationChanged: { email: false, inApp: false }
+      documentObsoleted: { email: true, inApp: true }
     },
     reviewReminder: 3,
     approvalReminder: 2,

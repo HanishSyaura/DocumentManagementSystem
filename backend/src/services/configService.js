@@ -3,6 +3,19 @@ const { NotFoundError, ConflictError } = require('../utils/errors');
 
 class ConfigService {
   getDefaultNotificationSettings() {
+    const notifications = {
+      acknowledgeRequired: { email: true, inApp: true },
+      acknowledgeCompleted: { email: true, inApp: true },
+      documentSubmitted: { email: true, inApp: true },
+      reviewAssigned: { email: true, inApp: true },
+      approvalRequest: { email: true, inApp: true },
+      documentApproved: { email: true, inApp: true },
+      documentRejected: { email: true, inApp: true },
+      documentPublished: { email: true, inApp: true },
+      documentSuperseded: { email: true, inApp: true },
+      documentObsoleted: { email: true, inApp: true }
+    }
+
     return {
       smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
       smtpPort: process.env.SMTP_PORT || '587',
@@ -10,20 +23,7 @@ class ConfigService {
       smtpPassword: process.env.SMTP_PASSWORD || '',
       fromName: process.env.FROM_NAME || 'DMS System',
       fromEmail: process.env.FROM_EMAIL || 'noreply@company.com',
-      notifications: {
-        documentCreated: { email: true, inApp: true },
-        documentSubmitted: { email: true, inApp: true },
-        reviewAssigned: { email: true, inApp: true },
-        approvalRequest: { email: true, inApp: true },
-        documentApproved: { email: true, inApp: true },
-        documentRejected: { email: true, inApp: true },
-        documentPublished: { email: true, inApp: false },
-        documentSuperseded: { email: true, inApp: true },
-        acknowledgeRequired: { email: true, inApp: true },
-        acknowledgeCompleted: { email: true, inApp: true },
-        workflowReminder: { email: true, inApp: true },
-        systemMaintenance: { email: true, inApp: true }
-      },
+      notifications,
       reviewReminder: 3,
       approvalReminder: 2,
       dailyDigest: false,
@@ -41,6 +41,19 @@ class ConfigService {
       ? nested
       : raw;
 
+    const allowedKeys = Object.keys(defaults.notifications || {})
+    const sourceNotifications = (source.notifications && typeof source.notifications === 'object')
+      ? source.notifications
+      : {}
+    const filteredNotifications = allowedKeys.reduce((acc, key) => {
+      const v = sourceNotifications[key]
+      acc[key] = {
+        email: Boolean(v?.email ?? defaults.notifications[key]?.email),
+        inApp: Boolean(v?.inApp ?? defaults.notifications[key]?.inApp)
+      }
+      return acc
+    }, {})
+
     return {
       smtpHost: source.smtpHost ?? defaults.smtpHost,
       smtpPort: String(source.smtpPort ?? defaults.smtpPort),
@@ -48,9 +61,7 @@ class ConfigService {
       smtpPassword: source.smtpPassword ?? defaults.smtpPassword,
       fromName: source.fromName ?? defaults.fromName,
       fromEmail: source.fromEmail ?? defaults.fromEmail,
-      notifications: (source.notifications && typeof source.notifications === 'object')
-        ? source.notifications
-        : defaults.notifications,
+      notifications: filteredNotifications,
       reviewReminder: Number(source.reviewReminder ?? defaults.reviewReminder),
       approvalReminder: Number(source.approvalReminder ?? defaults.approvalReminder),
       dailyDigest: Boolean(source.dailyDigest ?? defaults.dailyDigest),
@@ -589,14 +600,12 @@ class ConfigService {
       incomingPassword === '' ||
       incomingPassword === '••••••••';
 
-    const merged = {
+    const merged = this.normalizeNotificationSettings({
       ...current,
       ...normalized,
       smtpPassword: shouldPreservePassword ? current.smtpPassword : normalized.smtpPassword,
-      notifications: (normalized?.notifications && typeof normalized.notifications === 'object')
-        ? { ...(current.notifications || {}), ...normalized.notifications }
-        : (current.notifications || {})
-    };
+      notifications: { ...(current.notifications || {}), ...(normalized.notifications || {}) }
+    })
     const settingsJson = JSON.stringify(merged);
     const config = await prisma.configuration.upsert({
       where: { key: 'notification_settings' },

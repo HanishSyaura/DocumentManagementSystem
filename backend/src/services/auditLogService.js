@@ -277,11 +277,8 @@ class AuditLogService {
 
   // Helper methods
   getClientIP(req) {
-    if (!req) return null;
-    return req.ip || 
-           req.headers?.['x-forwarded-for']?.split(',')[0] || 
-           req.connection?.remoteAddress ||
-           null;
+    const { getClientIp } = require('../utils/clientIp')
+    return getClientIp(req) || null
   }
 
   getAuthDescription(action, metadata) {

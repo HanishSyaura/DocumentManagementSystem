@@ -19,6 +19,7 @@ const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // CORS configuration
 app.use(cors({

@@ -57,13 +57,14 @@ class TrustedDeviceService {
     const rawToken = crypto.randomBytes(32).toString('hex')
     const tokenHash = this.hashToken(rawToken)
     const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    const { getClientIp } = require('../utils/clientIp')
 
     await prisma.trustedDevice.create({
       data: {
         userId,
         tokenHash,
         userAgent: req.headers?.['user-agent'] || null,
-        ipAddress: req.ip || null,
+        ipAddress: getClientIp(req) || null,
         expiresAt
       }
     })

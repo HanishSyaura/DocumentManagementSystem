@@ -347,13 +347,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) has been published`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      publishedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       allUsers.map(u => u.id),
-      'DOCUMENT_PUBLISHED',
+      'documentPublished',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Published document notification sent to ${allUsers.length} users`);
     return allUsers.length;
@@ -374,13 +382,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) has been superseded by ${supersedingDoc.fileCode}`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      supersededBy: supersedingDoc?.fileCode || '',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       allUsers.map(u => u.id),
-      'DOCUMENT_SUPERSEDED',
+      'documentSuperseded',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Superseded document notification sent to ${allUsers.length} users`);
     return allUsers.length;
@@ -401,13 +417,21 @@ class NotificationService {
     const message = `Document "${document.title}" (${document.fileCode}) has been marked as obsolete. Reason: ${reason}`;
     const link = `/documents/${documentId}`;
 
-    await this.createBulkNotifications(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      reason: reason || '',
+      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+    }
+
+    await this.sendBulkNotifications(
       allUsers.map(u => u.id),
-      'DOCUMENT_OBSOLETE',
+      'documentObsoleted',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Obsolete document notification sent to ${allUsers.length} users`);
     return allUsers.length;

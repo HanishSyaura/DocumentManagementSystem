@@ -105,7 +105,7 @@ exports.createBackup = async (req, res) => {
       entityId: backup.id,
       description: `Created backup: ${name}`,
       metadata: { fileName, size: stats.size },
-      ipAddress: req.ip,
+      ipAddress: auditLogService.getClientIP(req),
       userAgent: req.get('user-agent')
     })
 
@@ -240,7 +240,7 @@ exports.restoreBackup = async (req, res) => {
       entityId: backup.id,
       description: `Restored backup: ${backup.name}`,
       metadata: { fileName: backup.fileName },
-      ipAddress: req.ip,
+      ipAddress: auditLogService.getClientIP(req),
       userAgent: req.get('user-agent')
     })
 
@@ -290,7 +290,7 @@ exports.deleteBackup = async (req, res) => {
       entityId: parseInt(id),
       description: `Deleted backup: ${backup.name}`,
       metadata: { fileName: backup.fileName },
-      ipAddress: req.ip,
+      ipAddress: auditLogService.getClientIP(req),
       userAgent: req.get('user-agent')
     })
 

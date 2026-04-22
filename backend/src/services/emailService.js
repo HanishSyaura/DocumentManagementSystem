@@ -160,6 +160,8 @@ class EmailService {
         documentApproved: 'DOCUMENT_APPROVED',
         documentRejected: 'DOCUMENT_REJECTED',
         documentPublished: 'DOCUMENT_PUBLISHED',
+        documentSuperseded: 'DOCUMENT_SUPERSEDED',
+        documentObsoleted: 'DOCUMENT_OBSOLETED',
         acknowledgeRequired: 'ACKNOWLEDGE_REQUIRED',
         acknowledgeCompleted: 'ACKNOWLEDGE_COMPLETED'
       }
@@ -301,6 +303,36 @@ class EmailService {
               <p><strong>Published By:</strong> ${d.publishedBy}</p>
             </div>
             <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">View Published Document</a>
+          </div>
+        `
+      },
+      DOCUMENT_SUPERSEDED: {
+        subject: '🔁 Document Superseded',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0f6fcf;">Document Superseded</h2>
+            <p>A document has been superseded:</p>
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              <p><strong>File Code:</strong> ${d.fileCode}</p>
+              ${d.supersededBy ? `<p><strong>Superseded By:</strong> ${d.supersededBy}</p>` : ''}
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">View</a>
+          </div>
+        `
+      },
+      DOCUMENT_OBSOLETED: {
+        subject: '🛑 Document Marked Obsolete',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #EF4444;">Document Marked Obsolete</h2>
+            <p>A document has been marked as obsolete:</p>
+            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              <p><strong>File Code:</strong> ${d.fileCode}</p>
+              ${d.reason ? `<p><strong>Reason:</strong> ${d.reason}</p>` : ''}
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #EF4444; color: white; text-decoration: none; border-radius: 5px;">View</a>
           </div>
         `
       }

@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { normalizeIp } = require('../utils/clientIp')
 
 class ReportsService {
   async getProjectCategoriesByIds(ids = []) {
@@ -175,7 +176,7 @@ class ReportsService {
       department: a.user?.department || 'N/A',
       action: a.action,
       module: a.entity || 'System',
-      ipAddress: a.ipAddress || 'N/A'
+      ipAddress: (a.ipAddress ? normalizeIp(a.ipAddress) : '') || 'N/A'
     }));
 
     return {
@@ -240,7 +241,7 @@ class ReportsService {
       module: log.entity || 'System',
       action: log.action,
       description: log.description || '-',
-      ipAddress: log.ipAddress || '::1',
+      ipAddress: (log.ipAddress ? normalizeIp(log.ipAddress) : '') || '::1',
       status: log.action.includes('FAILED') || log.action.includes('REJECT') ? 'Failed' : 'Success'
     }));
 
@@ -543,7 +544,7 @@ class ReportsService {
       action: log.action,
       entity: log.entity || 'N/A',
       entityId: log.entityId || 'N/A',
-      ipAddress: log.ipAddress || 'N/A'
+      ipAddress: (log.ipAddress ? normalizeIp(log.ipAddress) : '') || 'N/A'
     }));
 
     return {
