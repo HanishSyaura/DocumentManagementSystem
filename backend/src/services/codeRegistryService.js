@@ -178,17 +178,6 @@ class CodeRegistryService {
     for (const r of legacy) {
       const doc = docByFileCode.get(r.fileCode)
       if (!doc) {
-        rows.push({
-          register: 'NOT EXIST',
-          fileCode: r.fileCode,
-          documentTitle: r.documentTitle || '',
-          documentType: r.documentType?.name || '',
-          projectCategory: r.projectCategory?.name || '',
-          date: r.documentDate || r.createdAt,
-          status: 'NOT EXIST',
-          rev: r.revision || '',
-          source: r.source || 'SYSTEM'
-        })
         continue
       }
 
