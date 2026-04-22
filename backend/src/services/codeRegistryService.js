@@ -95,6 +95,7 @@ class CodeRegistryService {
     ndr.forEach((r) => r?.fileCode && fileCodesToEnrich.add(r.fileCode))
     obsolete.forEach((r) => r?.fileCode && fileCodesToEnrich.add(r.fileCode))
     archive.forEach((r) => r?.fileCode && fileCodesToEnrich.add(r.fileCode))
+    legacy.forEach((r) => r?.fileCode && fileCodesToEnrich.add(r.fileCode))
 
     const relatedDocs = fileCodesToEnrich.size > 0
       ? await prisma.document.findMany({
@@ -175,16 +176,32 @@ class CodeRegistryService {
     }
 
     for (const r of legacy) {
+      const doc = docByFileCode.get(r.fileCode)
+      if (!doc) {
+        rows.push({
+          register: 'NOT EXIST',
+          fileCode: r.fileCode,
+          documentTitle: r.documentTitle || '',
+          documentType: r.documentType?.name || '',
+          projectCategory: r.projectCategory?.name || '',
+          date: r.documentDate || r.createdAt,
+          status: 'NOT EXIST',
+          rev: r.revision || '',
+          source: r.source || 'SYSTEM'
+        })
+        continue
+      }
+
       rows.push({
-        register: 'LEGACY',
-        fileCode: r.fileCode,
-        documentTitle: r.documentTitle || '',
-        documentType: r.documentType?.name || '',
-        projectCategory: r.projectCategory?.name || '',
-        date: r.documentDate || r.createdAt,
-        status: r.registryStatus || 'LEGACY',
-        rev: r.revision || '',
-        source: r.source || 'LEGACY_IMPORT'
+        register: 'DOCUMENT',
+        fileCode: doc.fileCode,
+        documentTitle: doc.title || r.documentTitle || '',
+        documentType: doc.documentType?.name || r.documentType?.name || '',
+        projectCategory: doc.projectCategory?.name || r.projectCategory?.name || '',
+        date: doc.updatedAt || doc.createdAt || r.documentDate || r.createdAt,
+        status: doc.status || 'NOT EXIST',
+        rev: doc.version || r.revision || '',
+        source: r.source || 'SYSTEM'
       })
     }
 
