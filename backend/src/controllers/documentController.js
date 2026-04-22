@@ -1435,7 +1435,10 @@ class DocumentController {
       folderDownloadMap.set(fid, await folderPermissionService.canUser(fid, req.user, 'download'))
     }
 
-    // Format documents with file information from latest version
+      const documentTypes = await prisma.documentType.findMany({ select: { id: true, prefix: true } })
+      const prefixByTypeId = new Map(documentTypes.map((dt) => [dt.id, dt.prefix]))
+
+      // Format documents with file information from latest version
     const formattedDocs = result.documents.map(doc => {
       const latestVersion = doc.versions && doc.versions[0];
       
@@ -1451,11 +1454,11 @@ class DocumentController {
         return `${mb.toFixed(1)} MB`;
       };
 
-      return {
+        return {
         id: doc.id,
         folderId: doc.folderId,
         canDownload: doc.folderId ? Boolean(folderDownloadMap.get(doc.folderId)) : true,
-        fileCode: doc.isClientDocument ? '-' : doc.fileCode,
+        fileCode: doc.isClientDocument ? '-' : documentService.normalizeFileCodePrefix(doc.fileCode, prefixByTypeId.get(doc.documentTypeId)),
         title: doc.title,
         documentType: doc.documentType?.name || '',
         version: doc.version,

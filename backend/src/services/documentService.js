@@ -28,8 +28,8 @@ class DocumentService {
 
   buildNormalizedFileCode(parts, settings) {
     const sepOut = String(settings?.separator || '/')
-    const segs = [String(parts.prefix || '').toUpperCase()]
-    if (settings?.includeVersion) segs.push(String(parts.versionSegment || '').toUpperCase())
+    const segs = [String(parts.prefix || '')]
+    if (settings?.includeVersion) segs.push(String(parts.versionSegment || ''))
     if ((this.getDateDigitsFromSettings(settings?.dateFormat) || 0) > 0) segs.push(String(parts.dateSegment || ''))
     const counterDigits = Math.max(1, parseInt(settings?.counterDigits, 10) || 3)
     segs.push(String(parts.runningNumber || 0).padStart(counterDigits, '0'))
@@ -72,7 +72,7 @@ class DocumentService {
     }
 
     const parseStructuredParts = (arr) => {
-      const prefix = String(arr[0] || '').toUpperCase()
+      const prefix = String(arr[0] || '')
       if (!new RegExp(`^[A-Za-z]{1,${prefixLen}}$`).test(prefix)) {
         fail('INVALID_PREFIX', `Prefix is invalid for "${input}"`)
       }
@@ -299,6 +299,22 @@ class DocumentService {
     }
 
     return input
+  }
+
+  normalizeFileCodePrefix(fileCode, preferredPrefix = '') {
+    const input = String(fileCode || '').trim()
+    if (!input) return input
+    const pref = String(preferredPrefix || '').trim()
+    if (!pref) return input
+    const m = input.match(/^[A-Za-z]{1,}$/)
+    if (m) {
+      const rest = input.slice(m[0].length)
+      return `${pref}${rest}`
+    }
+    const prefixMatch = input.match(/^[A-Za-z]{1,}/)
+    if (!prefixMatch) return input
+    const rest = input.slice(prefixMatch[0].length)
+    return `${pref}${rest}`
   }
 
   async normalizeFileCodeFromSystemSettings(raw) {
