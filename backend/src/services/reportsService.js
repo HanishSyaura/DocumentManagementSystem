@@ -1,6 +1,30 @@
 const prisma = require('../config/database');
 
 class ReportsService {
+  async getProjectCategoriesByIds(ids = []) {
+    const list = Array.isArray(ids) ? ids : []
+    const norm = Array.from(new Set(list.map((x) => parseInt(x, 10)).filter((x) => !Number.isNaN(x))))
+    if (norm.length === 0) return []
+    return prisma.projectCategory.findMany({
+      where: { id: { in: norm } },
+      select: { id: true, name: true, code: true }
+    })
+  }
+
+  async getDocumentsByFileCodes(fileCodes = []) {
+    const list = Array.isArray(fileCodes) ? fileCodes : []
+    const norm = Array.from(new Set(list.map((x) => String(x || '').trim()).filter(Boolean)))
+    if (norm.length === 0) return []
+    return prisma.document.findMany({
+      where: { fileCode: { in: norm } },
+      select: {
+        fileCode: true,
+        projectCategoryId: true,
+        projectCategory: { select: { id: true, name: true, code: true } }
+      }
+    })
+  }
+
   /**
    * Get report data as JSON for viewing
    */
@@ -604,11 +628,15 @@ class ReportsService {
    * Get document register
    */
   async getDocumentRegister(filters = {}) {
-    const { documentType, status, startDate, endDate } = filters;
+    const { documentType, status, startDate, endDate, projectCategoryId } = filters;
     const where = {};
 
     if (documentType) where.documentType = documentType;
     if (status) where.status = status;
+    if (projectCategoryId !== undefined && projectCategoryId !== null) {
+      const pcId = parseInt(projectCategoryId, 10)
+      if (!Number.isNaN(pcId)) where.projectCategoryId = pcId
+    }
     if (startDate || endDate) {
       where.registeredDate = {};
       if (startDate) where.registeredDate.gte = new Date(startDate);
@@ -625,7 +653,7 @@ class ReportsService {
    * Get version register - queries approved VersionRequests which represent new versions
    */
   async getVersionRegister(filters = {}) {
-    const { fileCode, startDate, endDate, previousVersion, owner } = filters;
+    const { fileCode, startDate, endDate, previousVersion, owner, projectCategoryId } = filters;
     const where = {
       status: 'APPROVED',
       newDocumentId: { not: null }
@@ -644,12 +672,14 @@ class ReportsService {
         document: {
           include: {
             documentType: true,
-            owner: true
+            owner: true,
+            projectCategory: true
           }
         },
         newDocument: {
           include: {
-            documentType: true
+            documentType: true,
+            projectCategory: true
           }
         },
         requestedBy: {
@@ -675,6 +705,8 @@ class ReportsService {
         id: vr.id,
         fileCode: vr.newDocument?.fileCode || vr.document?.fileCode,
         documentTitle: vr.newDocument?.title || vr.document?.title,
+        projectCategoryId: vr.newDocument?.projectCategoryId ?? vr.document?.projectCategoryId ?? null,
+        projectCategory: vr.newDocument?.projectCategory?.name || vr.document?.projectCategory?.name || '',
         previousVersion: prevVersion,
         newVersion: newVersion,
         versionDate: vr.approvedAt,
@@ -693,6 +725,12 @@ class ReportsService {
     if (owner && owner !== 'all') {
       records = records.filter(r => r.updatedBy?.toLowerCase().includes(owner.toLowerCase()));
     }
+    if (projectCategoryId !== undefined && projectCategoryId !== null) {
+      const pcId = parseInt(projectCategoryId, 10)
+      if (!Number.isNaN(pcId)) {
+        records = records.filter(r => r.projectCategoryId === pcId)
+      }
+    }
 
     return records;
   }
@@ -701,10 +739,11 @@ class ReportsService {
    * Get obsolete register
    */
   async getObsoleteRegister(filters = {}) {
-    const { documentType, startDate, endDate } = filters;
+    const { documentType, startDate, endDate, reason } = filters;
     const where = {};
 
     if (documentType) where.documentType = documentType;
+    if (reason) where.reason = { contains: reason };
     if (startDate || endDate) {
       where.obsoleteDate = {};
       if (startDate) where.obsoleteDate.gte = new Date(startDate);

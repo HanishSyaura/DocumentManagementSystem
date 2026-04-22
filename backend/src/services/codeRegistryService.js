@@ -6,6 +6,9 @@ const { BadRequestError } = require('../utils/errors')
 class CodeRegistryService {
   async getConsolidatedMasterRecord(filters = {}, pagination = {}) {
     const search = String(filters.search || '').trim()
+    const projectCategoryId = filters.projectCategoryId !== undefined && filters.projectCategoryId !== null
+      ? parseInt(filters.projectCategoryId, 10)
+      : null
     const page = Math.max(1, parseInt(pagination.page, 10) || 1)
     const limit = Math.max(1, parseInt(pagination.limit, 10) || 50)
     const exportAll = String(filters.export || '') === '1'
@@ -120,6 +123,7 @@ class CodeRegistryService {
         documentTitle: r.documentTitle,
         documentType: doc?.documentType?.name || r.documentType || '',
         projectCategory: doc?.projectCategory?.name || '',
+        projectCategoryId: doc?.projectCategory?.id ?? r.projectCategoryId ?? null,
         date: r.registeredDate,
         status: r.status,
         rev: r.version,
@@ -138,6 +142,7 @@ class CodeRegistryService {
         documentTitle: vr.newDocument?.title || vr.document?.title || '',
         documentType: vr.newDocument?.documentType?.name || vr.document?.documentType?.name || '',
         projectCategory: vr.newDocument?.projectCategory?.name || vr.document?.projectCategory?.name || '',
+        projectCategoryId: vr.newDocument?.projectCategoryId ?? vr.document?.projectCategoryId ?? null,
         date: vr.approvedAt,
         status: 'APPROVED',
         rev: newVersion || prevVersion,
@@ -153,6 +158,7 @@ class CodeRegistryService {
         documentTitle: r.documentTitle,
         documentType: doc?.documentType?.name || r.documentType || '',
         projectCategory: doc?.projectCategory?.name || '',
+        projectCategoryId: doc?.projectCategoryId ?? null,
         date: r.obsoleteDate,
         status: 'OBSOLETE',
         rev: '',
@@ -168,6 +174,7 @@ class CodeRegistryService {
         documentTitle: r.documentTitle,
         documentType: doc?.documentType?.name || '',
         projectCategory: doc?.projectCategory?.name || '',
+        projectCategoryId: doc?.projectCategoryId ?? null,
         date: r.archivedDate,
         status: 'ARCHIVED',
         rev: r.version,
@@ -187,6 +194,7 @@ class CodeRegistryService {
         documentTitle: doc.title || r.documentTitle || '',
         documentType: doc.documentType?.name || r.documentType?.name || '',
         projectCategory: doc.projectCategory?.name || r.projectCategory?.name || '',
+        projectCategoryId: doc.projectCategoryId ?? r.projectCategory?.id ?? null,
         date: doc.updatedAt || doc.createdAt || r.documentDate || r.createdAt,
         status: doc.status || 'NOT EXIST',
         rev: doc.version || r.revision || '',
@@ -207,7 +215,11 @@ class CodeRegistryService {
       if (b >= a) byFileCode.set(row.fileCode, row)
     }
 
-    const consolidated = Array.from(byFileCode.values())
+    let consolidated = Array.from(byFileCode.values())
+    if (projectCategoryId && !Number.isNaN(projectCategoryId)) {
+      consolidated = consolidated.filter((r) => r.projectCategoryId === projectCategoryId)
+    }
+    consolidated = consolidated
       .sort((a, b) => {
         const ta = a.date ? new Date(a.date).getTime() : 0
         const tb = b.date ? new Date(b.date).getTime() : 0

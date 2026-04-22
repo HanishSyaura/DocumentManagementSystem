@@ -42,7 +42,7 @@ function TabNavigation({ activeTab, onTabChange }) {
 }
 
 // New Document Register Component
-function NewDocumentRegister() {
+function NewDocumentRegister({ projectCategories = [], documentTypes = [], users = [] }) {
   const { itemsPerPage, t } = usePreferences()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -52,8 +52,9 @@ function NewDocumentRegister() {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    type: 'all',
-    owner: 'all',
+    documentTypeId: 'all',
+    projectCategoryId: 'all',
+    ownerId: 'all',
     search: ''
   })
   const [currentPage, setCurrentPage] = useState(1)
@@ -147,7 +148,7 @@ function NewDocumentRegister() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_date_from')}</label>
             <input
@@ -169,28 +170,49 @@ function NewDocumentRegister() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('document_type')}</label>
             <select
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              value={filters.documentTypeId}
+              onChange={(e) => setFilters({ ...filters, documentTypeId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={documentTypes.length === 0}
             >
               <option value="all">{t('mr_all_types')}</option>
-              <option value="proposal">Proposal</option>
-              <option value="project-plan">Project Plan</option>
-              <option value="requirement">Requirement Analysis</option>
-              <option value="risk">Risk Management</option>
+              {documentTypes.map((dt) => (
+                <option key={dt.id} value={dt.id}>
+                  {dt.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <select
+              value={filters.projectCategoryId}
+              onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={projectCategories.length === 0}
+            >
+              <option value="all">All Categories</option>
+              {projectCategories.map((pc) => (
+                <option key={pc.id} value={pc.id}>
+                  {pc.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('owner')}</label>
             <select
-              value={filters.owner}
-              onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
+              value={filters.ownerId}
+              onChange={(e) => setFilters({ ...filters, ownerId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={users.length === 0}
             >
               <option value="all">{t('mr_all_owners')}</option>
-              <option value="john">John Doe</option>
-              <option value="jane">Jane Smith</option>
-              <option value="mike">Mike Johnson</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -233,6 +255,9 @@ function NewDocumentRegister() {
                   {t('type')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {t('project_category')}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('version')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -252,13 +277,13 @@ function NewDocumentRegister() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
                     {t('mr_loading_documents')}
                   </td>
                 </tr>
               ) : paginatedDocuments.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8">
+                  <td colSpan="9" className="px-4 py-8">
                     <EmptyState
                       message={t('mr_no_docs_found')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_docs_registered')}
@@ -278,6 +303,9 @@ function NewDocumentRegister() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {doc.type}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {doc.projectCategory || ''}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {doc.version}
@@ -356,7 +384,7 @@ function NewDocumentRegister() {
 }
 
 // New Version Register Component
-function NewVersionRegister() {
+function NewVersionRegister({ projectCategories = [], users = [] }) {
   const { itemsPerPage, t } = usePreferences()
   const [versions, setVersions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -366,7 +394,8 @@ function NewVersionRegister() {
     dateFrom: '',
     dateTo: '',
     type: 'all',
-    owner: 'all',
+    reason: 'all',
+    projectCategoryId: 'all',
     search: ''
   })
 
@@ -385,6 +414,7 @@ function NewVersionRegister() {
         id: record.id,
         fileCode: record.fileCode,
         title: record.documentTitle,
+        projectCategory: record.projectCategory || '',
         previousVersion: record.previousVersion,
         newVersion: record.newVersion,
         versionDate: new Date(record.versionDate).toLocaleDateString('en-GB'),
@@ -430,7 +460,7 @@ function NewVersionRegister() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_version_date_from')}</label>
             <input
@@ -465,11 +495,30 @@ function NewVersionRegister() {
               value={filters.owner}
               onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={users.length === 0}
             >
               <option value="all">{t('mr_all_users')}</option>
-              <option value="sarah">Sarah Williams</option>
-              <option value="john">John Doe</option>
-              <option value="jane">Jane Smith</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.name}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <select
+              value={filters.projectCategoryId}
+              onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={projectCategories.length === 0}
+            >
+              <option value="all">All Categories</option>
+              {projectCategories.map((pc) => (
+                <option key={pc.id} value={pc.id}>
+                  {pc.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -504,6 +553,7 @@ function NewVersionRegister() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_previous_version')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_new_version')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_version_date')}</th>
@@ -515,13 +565,13 @@ function NewVersionRegister() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
                     {t('mr_loading_versions')}
                   </td>
                 </tr>
               ) : paginatedVersions.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8">
+                  <td colSpan="9" className="px-4 py-8">
                     <EmptyState
                       message={t('mr_no_versions')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_new_versions')}
@@ -535,6 +585,7 @@ function NewVersionRegister() {
                 <tr key={version.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm font-medium text-blue-600">{version.fileCode}</td>
                   <td className="px-4 py-3 text-sm text-gray-900">{version.title}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{version.projectCategory}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{version.previousVersion}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
@@ -575,7 +626,7 @@ function NewVersionRegister() {
 }
 
 // Obsolete Register Component
-function ObsoleteRegister() {
+function ObsoleteRegister({ projectCategories = [] }) {
   const { itemsPerPage, t } = usePreferences()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -586,6 +637,7 @@ function ObsoleteRegister() {
     dateTo: '',
     type: 'all',
     owner: 'all',
+    projectCategoryId: 'all',
     search: ''
   })
 
@@ -605,6 +657,7 @@ function ObsoleteRegister() {
         fileCode: record.fileCode,
         title: record.documentTitle,
         type: record.documentType,
+        projectCategory: record.projectCategory || '',
         obsoleteDate: new Date(record.obsoleteDate).toLocaleDateString('en-GB'),
         reason: record.reason,
         replacedBy: record.replacedBy || 'N/A',
@@ -649,7 +702,7 @@ function ObsoleteRegister() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_obsolete_date_from')}</label>
             <input
@@ -685,8 +738,8 @@ function ObsoleteRegister() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_reason')}</label>
             <select
-              value={filters.owner}
-              onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
+              value={filters.reason}
+              onChange={(e) => setFilters({ ...filters, reason: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">{t('mr_all_reasons')}</option>
@@ -694,6 +747,22 @@ function ObsoleteRegister() {
               <option value="outdated">Outdated</option>
               <option value="replaced">Replaced by new document</option>
               <option value="merged">Merged with another document</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <select
+              value={filters.projectCategoryId}
+              onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={projectCategories.length === 0}
+            >
+              <option value="all">All Categories</option>
+              {projectCategories.map((pc) => (
+                <option key={pc.id} value={pc.id}>
+                  {pc.name}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -729,6 +798,7 @@ function ObsoleteRegister() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('type')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_obsolete_date')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_reason')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_replaced_by')}</th>
@@ -738,13 +808,13 @@ function ObsoleteRegister() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                     {t('mr_loading_documents')}
                   </td>
                 </tr>
               ) : paginatedDocuments.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8">
+                  <td colSpan="8" className="px-4 py-8">
                     <EmptyState
                       message={t('mr_no_obsolete_docs')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_obsolete_yet')}
@@ -759,6 +829,7 @@ function ObsoleteRegister() {
                   <td className="px-4 py-3 text-sm font-medium text-gray-600">{doc.fileCode}</td>
                   <td className="px-4 py-3 text-sm text-gray-900">{doc.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{doc.type}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{doc.projectCategory}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{doc.obsoleteDate}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{doc.reason}</td>
                   <td className="px-4 py-3 text-sm text-blue-600 font-medium">{doc.replacedBy}</td>
@@ -793,7 +864,7 @@ function ObsoleteRegister() {
 }
 
 // Old Version Register Component
-function OldVersionRegister() {
+function OldVersionRegister({ projectCategories = [] }) {
   const { itemsPerPage, t } = usePreferences()
   const [versions, setVersions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -804,6 +875,7 @@ function OldVersionRegister() {
     dateTo: '',
     type: 'all',
     owner: 'all',
+    projectCategoryId: 'all',
     search: ''
   })
 
@@ -822,6 +894,7 @@ function OldVersionRegister() {
         id: record.id,
         fileCode: record.fileCode,
         title: record.documentTitle,
+        projectCategory: record.projectCategory || '',
         version: record.version,
         archivedDate: new Date(record.archivedDate).toLocaleDateString('en-GB'),
         archivedBy: record.archivedBy,
@@ -867,7 +940,7 @@ function OldVersionRegister() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_archived_date_from')}</label>
             <input
@@ -907,6 +980,22 @@ function OldVersionRegister() {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <select
+              value={filters.projectCategoryId}
+              onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={projectCategories.length === 0}
+            >
+              <option value="all">All Categories</option>
+              {projectCategories.map((pc) => (
+                <option key={pc.id} value={pc.id}>
+                  {pc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
             <input
               type="text"
@@ -938,6 +1027,7 @@ function OldVersionRegister() {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_old_version')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_current_version')}</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_archived_date')}</th>
@@ -948,13 +1038,13 @@ function OldVersionRegister() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
                     {t('mr_loading_versions')}
                   </td>
                 </tr>
               ) : paginatedVersions.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8">
+                  <td colSpan="8" className="px-4 py-8">
                     <EmptyState
                       message={t('mr_no_old_versions')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_archived_versions')}
@@ -968,6 +1058,7 @@ function OldVersionRegister() {
                 <tr key={version.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm font-medium text-blue-600">{version.fileCode}</td>
                   <td className="px-4 py-3 text-sm text-gray-900">{version.title}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{version.projectCategory}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{version.version}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
@@ -1011,7 +1102,7 @@ function ConsolidatedRegister() {
   const [rows, setRows] = useState([])
   const [pagination, setPagination] = useState({ page: 1, limit: itemsPerPage, total: 0 })
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ search: '' })
+  const [filters, setFilters] = useState({ search: '', projectCategoryId: 'all' })
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(itemsPerPage)
   const [importOpen, setImportOpen] = useState(false)
@@ -1052,7 +1143,7 @@ function ConsolidatedRegister() {
     setLoading(true)
     try {
       const res = await api.get('/reports/master-record/consolidated', {
-        params: { search: filters.search, page: currentPage, limit: pageSize }
+        params: { search: filters.search, projectCategoryId: filters.projectCategoryId, page: currentPage, limit: pageSize }
       })
       const data = res.data?.data || {}
       setRows(Array.isArray(data.rows) ? data.rows : [])
@@ -1083,7 +1174,7 @@ function ConsolidatedRegister() {
   const exportExcel = async () => {
     try {
       const res = await api.get('/reports/master-record/consolidated', {
-        params: { search: filters.search, export: 1 }
+        params: { search: filters.search, projectCategoryId: filters.projectCategoryId, export: 1 }
       })
       const data = res.data?.data || {}
       const allRows = Array.isArray(data.rows) ? data.rows : []
@@ -1289,7 +1380,7 @@ function ConsolidatedRegister() {
   return (
     <div className="space-y-6">
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
             <input
@@ -1299,6 +1390,22 @@ function ConsolidatedRegister() {
               onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setCurrentPage(1) }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <select
+              value={filters.projectCategoryId}
+              onChange={(e) => { setFilters({ ...filters, projectCategoryId: e.target.value }); setCurrentPage(1) }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={projectCategories.length === 0}
+            >
+              <option value="all">All Categories</option>
+              {projectCategories.map((pc) => (
+                <option key={pc.id} value={pc.id}>
+                  {pc.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="md:col-span-2 flex items-end justify-end gap-3">
             {isAdmin() && (
@@ -1468,6 +1575,9 @@ function ConsolidatedRegister() {
 export default function MasterRecord() {
   const { t } = usePreferences()
   const [activeTab, setActiveTab] = useState('new-documents')
+  const [projectCategories, setProjectCategories] = useState([])
+  const [documentTypes, setDocumentTypes] = useState([])
+  const [users, setUsers] = useState([])
   const [stats, setStats] = useState({
     totalDocuments: 0,
     active: 0,
@@ -1477,7 +1587,42 @@ export default function MasterRecord() {
 
   useEffect(() => {
     loadStats()
+    loadProjectCategories()
+    loadDocumentTypes()
+    loadUsers()
   }, [])
+
+  const loadProjectCategories = async () => {
+    try {
+      const res = await api.get('/system/config/project-categories')
+      setProjectCategories(res.data?.data?.projectCategories || [])
+    } catch (_) {
+      setProjectCategories([])
+    }
+  }
+
+  const loadDocumentTypes = async () => {
+    try {
+      const res = await api.get('/system/config/document-types')
+      setDocumentTypes(res.data?.data?.documentTypes || [])
+    } catch (_) {
+      setDocumentTypes([])
+    }
+  }
+
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/reports/config/users', { params: { status: 'ACTIVE' } })
+      const raw = res.data?.data?.users || []
+      const formatted = raw.map((u) => ({
+        id: u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || `User ${u.id}`
+      }))
+      setUsers(formatted)
+    } catch (_) {
+      setUsers([])
+    }
+  }
 
   const loadStats = async () => {
     try {
@@ -1551,10 +1696,18 @@ export default function MasterRecord() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === 'new-documents' && <NewDocumentRegister />}
-        {activeTab === 'new-versions' && <NewVersionRegister />}
-        {activeTab === 'obsolete' && <ObsoleteRegister />}
-        {activeTab === 'old-versions' && <OldVersionRegister />}
+        {activeTab === 'new-documents' && (
+          <NewDocumentRegister
+            projectCategories={projectCategories}
+            documentTypes={documentTypes}
+            users={users}
+          />
+        )}
+        {activeTab === 'new-versions' && (
+          <NewVersionRegister projectCategories={projectCategories} users={users} />
+        )}
+        {activeTab === 'obsolete' && <ObsoleteRegister projectCategories={projectCategories} />}
+        {activeTab === 'old-versions' && <OldVersionRegister projectCategories={projectCategories} />}
         {activeTab === 'consolidated' && <ConsolidatedRegister />}
       </div>
     </div>

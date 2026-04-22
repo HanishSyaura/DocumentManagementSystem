@@ -1,4 +1,5 @@
 const express = require('express');
+const prisma = require('../config/database');
 const configService = require('../services/configService');
 const reportsService = require('../services/reportsService');
 const codeRegistryService = require('../services/codeRegistryService');
@@ -41,12 +42,37 @@ router.get('/config/settings', authorize('admin'), asyncHandler(async (req, res)
 
 // Master records
 router.get('/master-record/new-documents', asyncHandler(async (req, res) => {
-  const { dateFrom, dateTo, type, owner, search } = req.query;
+  const { dateFrom, dateTo, type, owner, search, projectCategoryId, documentTypeId, ownerId } = req.query;
+  let documentType = type && type !== 'all' ? type : undefined
+  if (documentTypeId && documentTypeId !== 'all') {
+    const docTypes = await configService.getDocumentTypes()
+    const match = docTypes.find((dt) => String(dt.id) === String(documentTypeId))
+    documentType = match?.name || documentType
+  }
+
+  let ownerName = owner && owner !== 'all' ? owner : undefined
+  if (ownerId && ownerId !== 'all') {
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(ownerId, 10) },
+      select: { firstName: true, lastName: true, email: true }
+    })
+    if (user) {
+      ownerName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || ownerName
+    }
+  }
+
   const records = await reportsService.getDocumentRegister({ 
-    documentType: type !== 'all' ? type : undefined, 
+    documentType, 
     startDate: dateFrom, 
-    endDate: dateTo 
+    endDate: dateTo,
+    projectCategoryId: projectCategoryId && projectCategoryId !== 'all' ? projectCategoryId : undefined
   });
+
+  const categoryIds = Array.from(new Set(records.map((r) => r.projectCategoryId).filter((id) => id !== null && id !== undefined)))
+  const categories = categoryIds.length
+    ? await reportsService.getProjectCategoriesByIds(categoryIds)
+    : []
+  const categoryById = new Map(categories.map((c) => [c.id, c]))
   
   // Format for frontend
   let formattedRecords = records.map(record => ({
@@ -54,16 +80,19 @@ router.get('/master-record/new-documents', asyncHandler(async (req, res) => {
     fileCode: record.fileCode,
     title: record.documentTitle,
     type: record.documentType,
+    projectCategoryId: record.projectCategoryId ?? null,
+    projectCategory: categoryById.get(record.projectCategoryId)?.name || '',
     version: record.version,
     owner: record.owner,
     department: record.department,
     status: record.status,
-    dateCreated: record.createdAt ? new Date(record.createdAt).toLocaleDateString('en-GB') : ''
+    registeredDate: record.registeredDate ? new Date(record.registeredDate).toLocaleDateString('en-GB') : ''
   }));
   
   // Filter by owner
-  if (owner && owner !== 'all') {
-    formattedRecords = formattedRecords.filter(r => r.owner.includes(owner));
+  if (ownerName) {
+    const needle = String(ownerName).toLowerCase()
+    formattedRecords = formattedRecords.filter(r => String(r.owner || '').toLowerCase().includes(needle));
   }
   
   // Search filter
@@ -85,13 +114,20 @@ router.get('/master-record/document-register', asyncHandler(async (req, res) => 
 }));
 
 router.get('/master-record/version-register', asyncHandler(async (req, res) => {
-  const { fileCode, startDate, endDate } = req.query;
-  const records = await reportsService.getVersionRegister({ fileCode, startDate, endDate });
+  const { fileCode, startDate, endDate, dateFrom, dateTo, search, type, owner, previousVersion, projectCategoryId } = req.query;
+  const records = await reportsService.getVersionRegister({
+    fileCode: search || fileCode,
+    startDate: startDate || dateFrom,
+    endDate: endDate || dateTo,
+    previousVersion: previousVersion || (type !== 'all' ? type : undefined),
+    owner: owner && owner !== 'all' ? owner : undefined,
+    projectCategoryId: projectCategoryId && projectCategoryId !== 'all' ? projectCategoryId : undefined
+  });
   return ResponseFormatter.success(res, { records });
 }));
 
 router.get('/master-record/obsolete-register', asyncHandler(async (req, res) => {
-  const { documentType, type, startDate, endDate, dateFrom, dateTo } = req.query;
+  const { documentType, type, startDate, endDate, dateFrom, dateTo, projectCategoryId, reason } = req.query;
   // Support both 'documentType' and 'type' parameter names, and date filters
   const effectiveType = documentType || (type !== 'all' ? type : undefined);
   const effectiveStartDate = startDate || dateFrom;
@@ -99,13 +135,33 @@ router.get('/master-record/obsolete-register', asyncHandler(async (req, res) => 
   const records = await reportsService.getObsoleteRegister({ 
     documentType: effectiveType, 
     startDate: effectiveStartDate, 
-    endDate: effectiveEndDate 
+    endDate: effectiveEndDate,
+    reason: reason && reason !== 'all' ? reason : undefined
   });
-  return ResponseFormatter.success(res, { records });
+
+  const fileCodes = Array.from(new Set(records.map((r) => r.fileCode).filter(Boolean)))
+  const docs = fileCodes.length
+    ? await reportsService.getDocumentsByFileCodes(fileCodes)
+    : []
+  const docByFileCode = new Map(docs.map((d) => [d.fileCode, d]))
+  const pcId = projectCategoryId && projectCategoryId !== 'all' ? parseInt(projectCategoryId, 10) : null
+
+  const enriched = records
+    .map((r) => {
+      const d = docByFileCode.get(r.fileCode)
+      return {
+        ...r,
+        projectCategoryId: d?.projectCategoryId ?? null,
+        projectCategory: d?.projectCategory?.name || ''
+      }
+    })
+    .filter((r) => (pcId && !Number.isNaN(pcId) ? r.projectCategoryId === pcId : true))
+
+  return ResponseFormatter.success(res, { records: enriched });
 }));
 
 router.get('/master-record/archive-register', asyncHandler(async (req, res) => {
-  const { fileCode, startDate, endDate, dateFrom, dateTo, type, owner, search } = req.query;
+  const { fileCode, startDate, endDate, dateFrom, dateTo, type, owner, search, projectCategoryId } = req.query;
   // Support frontend parameter names
   const effectiveStartDate = startDate || dateFrom;
   const effectiveEndDate = endDate || dateTo;
@@ -116,13 +172,32 @@ router.get('/master-record/archive-register', asyncHandler(async (req, res) => {
     version: type !== 'all' ? type : undefined,
     currentVersion: owner !== 'all' ? owner : undefined
   });
-  return ResponseFormatter.success(res, { records });
+
+  const fileCodes = Array.from(new Set(records.map((r) => r.fileCode).filter(Boolean)))
+  const docs = fileCodes.length
+    ? await reportsService.getDocumentsByFileCodes(fileCodes)
+    : []
+  const docByFileCode = new Map(docs.map((d) => [d.fileCode, d]))
+  const pcId = projectCategoryId && projectCategoryId !== 'all' ? parseInt(projectCategoryId, 10) : null
+
+  const enriched = records
+    .map((r) => {
+      const d = docByFileCode.get(r.fileCode)
+      return {
+        ...r,
+        projectCategoryId: d?.projectCategoryId ?? null,
+        projectCategory: d?.projectCategory?.name || ''
+      }
+    })
+    .filter((r) => (pcId && !Number.isNaN(pcId) ? r.projectCategoryId === pcId : true))
+
+  return ResponseFormatter.success(res, { records: enriched });
 }));
 
 router.get('/master-record/consolidated', asyncHandler(async (req, res) => {
-  const { search, page, limit, export: exportFlag } = req.query;
+  const { search, page, limit, export: exportFlag, projectCategoryId } = req.query;
   const result = await codeRegistryService.getConsolidatedMasterRecord(
-    { search, export: exportFlag },
+    { search, export: exportFlag, projectCategoryId: projectCategoryId && projectCategoryId !== 'all' ? projectCategoryId : undefined },
     { page, limit }
   );
   return ResponseFormatter.success(res, { rows: result.rows, pagination: result.pagination });

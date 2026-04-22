@@ -147,13 +147,39 @@ export default function MyDocumentsStatus() {
     loadDocuments()
   }, [])
 
+  const matchesStatusFilter = (doc, filterValue) => {
+    if (filterValue === 'All') return true
+    const status = doc.status
+    if (filterValue === 'Obsolete') {
+      return ['Obsolete', 'Superseded', 'Archived'].includes(status)
+    }
+    if (filterValue === 'Waiting for Review') {
+      return ['Waiting for Review', 'Pending Review', 'In Review', 'Return for Amendments'].includes(status)
+    }
+    if (filterValue === 'Waiting for Approval') {
+      return [
+        'Waiting for Approval', 'Pending Approval', 'In Approval',
+        'PENDING_FIRST_APPROVAL', 'IN_FIRST_APPROVAL', 'Pending First Approval', 'In First Approval',
+        'PENDING_SECOND_APPROVAL', 'IN_SECOND_APPROVAL', 'Pending Second Approval', 'In Second Approval',
+        'READY_TO_PUBLISH', 'Ready to Publish'
+      ].includes(status)
+    }
+    if (filterValue === 'Published') {
+      return ['Published', 'PUBLISHED', 'Approved'].includes(status)
+    }
+    if (filterValue === 'Draft') {
+      return ['Draft', 'Draft Saved', 'Acknowledged', 'Drafting'].includes(status)
+    }
+    return status === filterValue
+  }
+
   // Filter and search documents
   useEffect(() => {
     let filtered = documents
 
     // Apply status filter
     if (statusFilter !== 'All') {
-      filtered = filtered.filter(doc => doc.status === statusFilter)
+      filtered = filtered.filter(doc => matchesStatusFilter(doc, statusFilter))
     }
 
     // Apply search
