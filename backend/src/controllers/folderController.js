@@ -4,6 +4,10 @@ const auditLogService = require('../services/auditLogService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
 const prisma = require('../config/database');
+const archiver = require('archiver')
+const fs = require('fs')
+const path = require('path')
+const encryptionService = require('../services/encryptionService')
 
 class FolderController {
   /**
@@ -269,6 +273,115 @@ class FolderController {
     const data = await folderPermissionService.setFolderAccessConfig(folderId, req.user, req.body)
     await auditLogService.logSystem(req.user.id, 'FOLDER_ACCESS_UPDATE', 'Folder', req, { folderId })
     return ResponseFormatter.success(res, data, 'Folder access updated successfully')
+  })
+
+  downloadFolder = asyncHandler(async (req, res) => {
+    const folderId = parseInt(req.params.id)
+    await folderPermissionService.assertCan(folderId, req.user, 'download')
+
+    const { root, folders, documents } = await folderService.getFolderDownloadItems(folderId)
+
+    const sanitizeZipSegment = (val) => {
+      const s = String(val || '')
+        .replace(/[\\/]/g, '_')
+        .replace(/[\x00-\x1F<>:"|?*]/g, '_')
+        .trim()
+      return s || 'folder'
+    }
+
+    const joinZipPath = (...parts) =>
+      parts
+        .filter(Boolean)
+        .map((p) => String(p).replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''))
+        .filter(Boolean)
+        .join('/')
+
+    const rootName = sanitizeZipSegment(root?.name || `folder-${folderId}`)
+    const zipName = `${rootName}.zip`
+    const asciiName = zipName.replace(/[^A-Za-z0-9._-]/g, '_') || 'folder.zip'
+    const encodedName = encodeURIComponent(zipName)
+
+    res.setHeader('Content-Type', 'application/zip')
+    res.setHeader('Content-Disposition', `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`)
+
+    const archive = archiver('zip', { zlib: { level: 9 } })
+    archive.on('error', (err) => {
+      throw err
+    })
+    archive.pipe(res)
+
+    const byId = new Map((folders || []).map((f) => [f.id, f]))
+    const relPathCache = new Map()
+    relPathCache.set(root.id, '')
+
+    const folderRelPath = (id) => {
+      const fid = Number(id)
+      if (!fid) return ''
+      if (relPathCache.has(fid)) return relPathCache.get(fid)
+      const f = byId.get(fid)
+      if (!f) return ''
+      if (fid === root.id) {
+        relPathCache.set(fid, '')
+        return ''
+      }
+      const parentRel = f.parentId ? folderRelPath(f.parentId) : ''
+      const seg = sanitizeZipSegment(f.name)
+      const rel = parentRel ? `${parentRel}/${seg}` : seg
+      relPathCache.set(fid, rel)
+      return rel
+    }
+
+    const usedNames = new Map()
+    const uniqueZipName = (zipPath) => {
+      const key = String(zipPath || '')
+      const n = usedNames.get(key) || 0
+      usedNames.set(key, n + 1)
+      if (n === 0) return key
+      const ext = path.posix.extname(key)
+      const base = ext ? key.slice(0, -ext.length) : key
+      return `${base} (${n})${ext}`
+    }
+
+    const missing = []
+    for (const d of documents || []) {
+      const v = (d.versions || [])[0]
+      if (!v?.filePath) continue
+
+      const rawFileName = String(v.fileName || d.title || `document-${d.id}`).trim() || `document-${d.id}`
+      const safeFileName = rawFileName
+        .replace(/[\\/]/g, '_')
+        .replace(/[\x00-\x1F<>:"|?*]/g, '_')
+        .trim()
+
+      const relFolder = folderRelPath(d.folderId)
+      const zipPath = uniqueZipName(joinZipPath(rootName, relFolder, safeFileName))
+
+      const absolutePath = path.isAbsolute(v.filePath)
+        ? v.filePath
+        : path.resolve(process.cwd(), v.filePath)
+
+      if (!fs.existsSync(absolutePath)) {
+        missing.push(`${zipPath} => missing source file`)
+        continue
+      }
+
+      if (v.isEncrypted) {
+        try {
+          const buf = await encryptionService.getDecryptedBuffer(absolutePath)
+          archive.append(buf, { name: zipPath })
+        } catch (e) {
+          missing.push(`${zipPath} => decrypt failed`)
+        }
+      } else {
+        archive.file(absolutePath, { name: zipPath })
+      }
+    }
+
+    if (missing.length > 0) {
+      archive.append(missing.join('\n') + '\n', { name: joinZipPath(rootName, 'MISSING_FILES.txt') })
+    }
+
+    await archive.finalize()
   })
 
   listAccessSubjects = asyncHandler(async (req, res) => {

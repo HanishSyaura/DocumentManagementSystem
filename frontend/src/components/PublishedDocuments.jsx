@@ -126,6 +126,7 @@ export default function PublishedDocuments() {
     return flatFolders.find((f) => f.id === selectedFolder) || null
   }, [flatFolders, selectedFolder])
   const canCreateInSelected = Boolean(selectedFolderMeta?.canCreate)
+  const canDownloadSelected = Boolean(selectedFolderMeta?.canDownload)
   const hasAnyCreatableFolder = useMemo(() => flatFolders.some((f) => Boolean(f.canCreate)), [flatFolders])
 
   useEffect(() => {
@@ -360,16 +361,36 @@ export default function PublishedDocuments() {
       })
       
       const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement('a')
+      const link = window.document.createElement('a')
       link.href = url
       link.setAttribute('download', doc.fileName)
-      document.body.appendChild(link)
+      window.document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to download document:', error)
       setAlertModal({ show: true, title: 'Error', message: 'Failed to download document', type: 'error' })
+    }
+  }
+
+  const handleDownloadFolder = async (folder) => {
+    try {
+      const res = await api.get(`/folders/${folder.id}/download`, {
+        responseType: 'blob'
+      })
+
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/zip' }))
+      const link = window.document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${folder.name || 'folder'}.zip`)
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download folder:', error)
+      setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to download folder', type: 'error' })
     }
   }
   
@@ -811,6 +832,20 @@ export default function PublishedDocuments() {
                 top: `${contextMenuPosition.y}px` 
               }}
             >
+              {folder?.canDownload && (
+                <button
+                  onClick={() => {
+                    setShowContextMenu(false)
+                    handleDownloadFolder(folder)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {t('download_folder')}
+                </button>
+              )}
               {(folder?.canEdit || folder?.canManage || isAdmin) && (
                 <button
                   onClick={() => {
@@ -1224,6 +1259,15 @@ export default function PublishedDocuments() {
                     {t('upload_file')}
                   </button>
                 </PermissionGate>
+                {selectedFolder && canDownloadSelected && selectedFolderMeta && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadFolder(selectedFolderMeta)}
+                    className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    {t('download_folder')}
+                  </button>
+                )}
               </div>
             </div>
 

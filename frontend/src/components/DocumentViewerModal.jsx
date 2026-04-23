@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import api from '../api/axios'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
@@ -9,14 +9,20 @@ export default function DocumentViewerModal({ document, onClose }) {
   const [loading, setLoading] = useState(true)
   const [fileUrl, setFileUrl] = useState(null)
   const [htmlContent, setHtmlContent] = useState(null)
+  const [docxBuffer, setDocxBuffer] = useState(null)
   const [contentType, setContentType] = useState(null)
   const [error, setError] = useState(null)
+  const docxContainerRef = useRef(null)
 
   useEffect(() => {
     const loadDocument = async () => {
       try {
         setLoading(true)
         setError(null)
+        setFileUrl(null)
+        setHtmlContent(null)
+        setDocxBuffer(null)
+        setContentType(null)
         
         const res = await api.get(`/documents/${document.id}/preview`, {
           responseType: 'blob'
@@ -24,15 +30,23 @@ export default function DocumentViewerModal({ document, onClose }) {
         
         // Get file extension from response headers or document title
         const mimeType = res.headers['content-type'] || ''
-        const fileName = document.title || ''
+        const fileName = document.fileName || document.title || ''
         const fileExtension = fileName.toLowerCase().split('.').pop()
         
-        // Handle Word documents (.docx, .doc)
-        if (mimeType.includes('word') || fileExtension === 'docx' || fileExtension === 'doc') {
+        const isDocxLike =
+          fileExtension === 'docx' ||
+          fileExtension === 'dotx' ||
+          mimeType.includes('officedocument.wordprocessingml')
+        const isLegacyDoc = fileExtension === 'doc' || mimeType.includes('msword')
+
+        if (isDocxLike) {
           const arrayBuffer = await res.data.arrayBuffer()
-          const result = await mammoth.convertToHtml({ arrayBuffer })
-          setHtmlContent(result.value)
-          setContentType('html')
+          setDocxBuffer(arrayBuffer)
+          setContentType('docx')
+        } else if (isLegacyDoc) {
+          const url = window.URL.createObjectURL(new Blob([res.data], { type: mimeType }))
+          setFileUrl(url)
+          setContentType('other')
         }
         // Handle Excel files (.xlsx, .xls, .csv)
         else if (mimeType.includes('spreadsheet') || fileExtension === 'xlsx' || fileExtension === 'xls' || fileExtension === 'csv') {
@@ -80,6 +94,44 @@ export default function DocumentViewerModal({ document, onClose }) {
       }
     }
   }, [document])
+
+  useEffect(() => {
+    if (contentType !== 'docx' || !docxBuffer || !docxContainerRef.current) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const mod = await import('docx-preview')
+        if (cancelled) return
+        const renderAsync = mod?.renderAsync
+        if (typeof renderAsync !== 'function') {
+          throw new Error('DOCX renderer not available')
+        }
+
+        docxContainerRef.current.innerHTML = ''
+        await renderAsync(docxBuffer, docxContainerRef.current, undefined, {
+          inWrapper: true,
+          ignoreWidth: false,
+          ignoreHeight: false,
+          ignoreFonts: false
+        })
+      } catch (e) {
+        try {
+          const result = await mammoth.convertToHtml({ arrayBuffer: docxBuffer })
+          if (cancelled) return
+          setHtmlContent(result.value)
+          setContentType('html')
+        } catch (err) {
+          if (cancelled) return
+          setError(err?.message || e?.message || 'Failed to load document')
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [contentType, docxBuffer])
 
   const handleDownload = async () => {
     try {
@@ -165,6 +217,14 @@ export default function DocumentViewerModal({ document, onClose }) {
               >
                 {t('close')}
               </button>
+            </div>
+          ) : contentType === 'docx' && docxBuffer ? (
+            <div className="h-full overflow-auto bg-gray-100">
+              <div className="min-h-full py-8 px-4">
+                <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div ref={docxContainerRef} className="p-6" />
+                </div>
+              </div>
             </div>
           ) : contentType === 'html' && htmlContent ? (
             <div className="h-full overflow-auto p-8 bg-white">

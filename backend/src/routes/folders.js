@@ -17,6 +17,7 @@ router.delete('/:id', folderController.deleteFolder);
 
 // Get documents in a folder
 router.get('/:id/documents', folderController.getFolderDocuments);
+router.get('/:id/download', folderController.downloadFolder);
 router.get('/:id/access', folderController.getFolderAccess);
 router.put('/:id/access', folderController.updateFolderAccess);
 

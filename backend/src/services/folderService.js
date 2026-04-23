@@ -493,6 +493,56 @@ class FolderService {
     if (status === 'OBSOLETE') return 'Obsolete';
     return 'In Process';
   }
+
+  async getFolderDownloadItems(folderId) {
+    const root = await prisma.folder.findUnique({
+      where: { id: folderId },
+      select: { id: true, parentId: true, name: true }
+    })
+
+    if (!root) {
+      throw new Error('Folder not found')
+    }
+
+    const folders = [root]
+    let frontier = [root.id]
+
+    while (frontier.length > 0) {
+      const children = await prisma.folder.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true, parentId: true, name: true }
+      })
+      folders.push(...children)
+      frontier = children.map((c) => c.id)
+    }
+
+    const folderIds = folders.map((f) => f.id)
+
+    const documents = await prisma.document.findMany({
+      where: {
+        folderId: { in: folderIds },
+        status: { in: ['PUBLISHED', 'OBSOLETE', 'SUPERSEDED'] }
+      },
+      select: {
+        id: true,
+        folderId: true,
+        fileCode: true,
+        title: true,
+        versions: {
+          where: { isPublished: true },
+          orderBy: { uploadedAt: 'desc' },
+          take: 1,
+          select: {
+            fileName: true,
+            filePath: true,
+            isEncrypted: true
+          }
+        }
+      }
+    })
+
+    return { root, folders, documents }
+  }
 }
 
 module.exports = new FolderService();

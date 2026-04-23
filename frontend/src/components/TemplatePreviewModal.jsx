@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
 
 export default function TemplatePreviewModal({ template, onClose }) {
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState(null)
+  const [docxBuffer, setDocxBuffer] = useState(null)
   const [contentType, setContentType] = useState(null)
   const [error, setError] = useState(null)
+  const docxContainerRef = useRef(null)
 
   useEffect(() => {
     const loadPreview = async () => {
       try {
         setLoading(true)
+        setError(null)
+        setContent(null)
+        setDocxBuffer(null)
+        setContentType(null)
         const token = localStorage.getItem('token')
         const baseURL = import.meta.env.VITE_API_URL || '/api'
         
@@ -29,11 +35,9 @@ export default function TemplatePreviewModal({ template, onClose }) {
         const fileExtension = template.fileName.toLowerCase().split('.').pop()
         
         if (fileExtension === 'docx' || fileExtension === 'dotx') {
-          // Handle Word documents
           const arrayBuffer = await response.arrayBuffer()
-          const result = await mammoth.convertToHtml({ arrayBuffer })
-          setContent(result.value)
-          setContentType('html')
+          setDocxBuffer(arrayBuffer)
+          setContentType('docx')
         } else if (fileExtension === 'xlsx' || fileExtension === 'xls' || fileExtension === 'csv') {
           // Handle Excel/CSV files
           const arrayBuffer = await response.arrayBuffer()
@@ -58,6 +62,44 @@ export default function TemplatePreviewModal({ template, onClose }) {
     }
   }, [template])
 
+  useEffect(() => {
+    if (contentType !== 'docx' || !docxBuffer || !docxContainerRef.current) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const mod = await import('docx-preview')
+        if (cancelled) return
+        const renderAsync = mod?.renderAsync
+        if (typeof renderAsync !== 'function') {
+          throw new Error('DOCX renderer not available')
+        }
+
+        docxContainerRef.current.innerHTML = ''
+        await renderAsync(docxBuffer, docxContainerRef.current, undefined, {
+          inWrapper: true,
+          ignoreWidth: false,
+          ignoreHeight: false,
+          ignoreFonts: false
+        })
+      } catch (e) {
+        try {
+          const result = await mammoth.convertToHtml({ arrayBuffer: docxBuffer })
+          if (cancelled) return
+          setContent(result.value)
+          setContentType('html')
+        } catch (err) {
+          if (cancelled) return
+          setError(err?.message || e?.message || 'Failed to load template preview')
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [contentType, docxBuffer])
+
   const handleDownload = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -75,12 +117,12 @@ export default function TemplatePreviewModal({ template, onClose }) {
       
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
+      const a = window.document.createElement('a')
       a.href = url
       a.download = template.fileName || template.templateName
-      document.body.appendChild(a)
+      window.document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
+      window.document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Failed to download template:', err)
@@ -142,6 +184,14 @@ export default function TemplatePreviewModal({ template, onClose }) {
               >
                 Close
               </button>
+            </div>
+          ) : contentType === 'docx' && docxBuffer ? (
+            <div className="h-full overflow-auto bg-gray-100">
+              <div className="min-h-full py-6 px-4">
+                <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div ref={docxContainerRef} className="p-6" />
+                </div>
+              </div>
             </div>
           ) : content && contentType === 'html' ? (
             <div className="h-full overflow-auto p-6 bg-white">
