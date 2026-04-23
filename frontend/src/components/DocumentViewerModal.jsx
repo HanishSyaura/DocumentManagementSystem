@@ -139,10 +139,29 @@ export default function DocumentViewerModal({ document, onClose }) {
         responseType: 'blob'
       })
       
-      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const contentDisposition = res.headers?.['content-disposition'] || ''
+      const contentTypeHeader = res.headers?.['content-type'] || ''
+      const getFileNameFromContentDisposition = (value) => {
+        const v = String(value || '')
+        const mStar = v.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+        if (mStar && mStar[1]) {
+          try {
+            return decodeURIComponent(mStar[1].trim().replace(/^"|"$/g, ''))
+          } catch {
+            return mStar[1].trim().replace(/^"|"$/g, '')
+          }
+        }
+        const m = v.match(/filename\s*=\s*("?)([^";]+)\1/i)
+        if (m && m[2]) return m[2].trim()
+        return null
+      }
+
+      const fallbackName = document.fileName || document.title || `document-${document.id}`
+      const downloadName = getFileNameFromContentDisposition(contentDisposition) || fallbackName
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: contentTypeHeader || undefined }))
       const link = window.document.createElement('a')
       link.href = url
-      link.setAttribute('download', document.title || `document-${document.id}`)
+      link.setAttribute('download', downloadName)
       window.document.body.appendChild(link)
       link.click()
       link.remove()
