@@ -4,6 +4,83 @@ const emailService = require('./emailService');
 const configService = require('./configService');
 
 class NotificationService {
+  getValidNotificationTypes() {
+    return new Set([
+      'DOCUMENT_ASSIGNED',
+      'REVIEW_REQUIRED',
+      'APPROVAL_REQUIRED',
+      'ACKNOWLEDGMENT_REQUIRED',
+      'STATUS_CHANGED',
+      'DOCUMENT_APPROVED',
+      'DOCUMENT_REJECTED',
+      'DOCUMENT_RETURNED',
+      'VERSION_UPDATE',
+      'SYSTEM_ALERT'
+    ])
+  }
+
+  normalizeTypeKey(type) {
+    const raw = String(type || '').trim()
+    return raw
+  }
+
+  resolveNotificationDbType(type) {
+    const raw = this.normalizeTypeKey(type)
+    if (!raw) return 'SYSTEM_ALERT'
+
+    const valid = this.getValidNotificationTypes()
+    if (valid.has(raw)) return raw
+
+    const map = {
+      acknowledgeRequired: 'ACKNOWLEDGMENT_REQUIRED',
+      acknowledgeCompleted: 'STATUS_CHANGED',
+      documentSubmitted: 'REVIEW_REQUIRED',
+      reviewAssigned: 'DOCUMENT_ASSIGNED',
+      reviewCompleted: 'STATUS_CHANGED',
+      approvalRequest: 'APPROVAL_REQUIRED',
+      documentApproved: 'DOCUMENT_APPROVED',
+      documentRejected: 'DOCUMENT_REJECTED',
+      documentReturned: 'DOCUMENT_RETURNED',
+      documentPublished: 'STATUS_CHANGED',
+      documentSuperseded: 'STATUS_CHANGED',
+      documentObsoleted: 'STATUS_CHANGED',
+      documentAssigned: 'DOCUMENT_ASSIGNED',
+      statusChanged: 'STATUS_CHANGED',
+      versionUpdate: 'VERSION_UPDATE',
+      reviewRequired: 'REVIEW_REQUIRED',
+      approvalRequired: 'APPROVAL_REQUIRED',
+      acknowledgementRequired: 'ACKNOWLEDGMENT_REQUIRED',
+      approvalGranted: 'DOCUMENT_APPROVED',
+      approvalRejected: 'DOCUMENT_REJECTED',
+      systemAlerts: 'SYSTEM_ALERT'
+    }
+
+    return map[raw] || 'SYSTEM_ALERT'
+  }
+
+  getUserEventPreference(notificationsObj, eventKey) {
+    if (!notificationsObj || typeof notificationsObj !== 'object') return null
+
+    const direct = notificationsObj[eventKey]
+    if (direct && typeof direct === 'object') {
+      return {
+        inApp: direct.inApp,
+        email: direct.email
+      }
+    }
+
+    const emailMap = notificationsObj.emailNotifications
+    const inAppMap = notificationsObj.inAppNotifications
+    if ((emailMap && typeof emailMap === 'object') || (inAppMap && typeof inAppMap === 'object')) {
+      return {
+        inApp: inAppMap?.[eventKey],
+        email: emailMap?.[eventKey]
+      }
+    }
+
+    return null
+  }
+
   buildRoleNameCandidates(name) {
     const raw = String(name || '').trim()
     if (!raw) return []
@@ -53,10 +130,11 @@ class NotificationService {
    * Create in-app notification
    */
   async createNotification(userId, type, title, message, link = null) {
+    const dbType = this.resolveNotificationDbType(type)
     const notification = await prisma.notification.create({
       data: {
         userId,
-        type,
+        type: dbType,
         title,
         message,
         link
@@ -70,10 +148,11 @@ class NotificationService {
    * Create notifications for multiple users
    */
   async createBulkNotifications(userIds, type, title, message, link = null) {
+    const dbType = this.resolveNotificationDbType(type)
     const notifications = await prisma.notification.createMany({
       data: userIds.map(userId => ({
         userId,
-        type,
+        type: dbType,
         title,
         message,
         link
@@ -793,9 +872,7 @@ class NotificationService {
       where: { userId },
       select: { notifications: true }
     })
-    const userPref = userPrefRow?.notifications && typeof userPrefRow.notifications === 'object'
-      ? userPrefRow.notifications[type]
-      : null
+    const userPref = this.getUserEventPreference(userPrefRow?.notifications, type)
 
     const eventPreference = {
       inApp: Boolean(systemPref.inApp) && userPref?.inApp !== false,
@@ -804,7 +881,11 @@ class NotificationService {
 
     // Send in-app notification
     if (eventPreference.inApp) {
-      await this.createNotification(userId, type, title, message, link);
+      try {
+        await this.createNotification(userId, type, title, message, link);
+      } catch (error) {
+        console.error(`Failed to create in-app notification for ${type}:`, error);
+      }
     }
 
     // Send email notification
@@ -846,7 +927,7 @@ class NotificationService {
       select: { userId: true, notifications: true }
     })
     const prefByUserId = new Map(
-      userPrefs.map((p) => [p.userId, (p.notifications && typeof p.notifications === 'object') ? p.notifications[type] : null])
+      userPrefs.map((p) => [p.userId, this.getUserEventPreference(p.notifications, type)])
     )
 
     const effective = userIds.map((id) => {
@@ -863,8 +944,12 @@ class NotificationService {
     // Send in-app notifications
     if (inAppUserIds.length > 0) {
       console.log(`[NotificationService] Creating in-app notifications for ${inAppUserIds.length} users`);
-      await this.createBulkNotifications(inAppUserIds, type, title, message, link);
-      console.log(`[NotificationService] In-app notifications created successfully`);
+      try {
+        await this.createBulkNotifications(inAppUserIds, type, title, message, link);
+        console.log(`[NotificationService] In-app notifications created successfully`);
+      } catch (error) {
+        console.error(`Failed to create bulk in-app notifications for ${type}:`, error);
+      }
     } else {
       console.log(`[NotificationService] In-app notifications disabled for ${type}`);
     }
