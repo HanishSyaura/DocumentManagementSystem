@@ -117,8 +117,13 @@ class CodeRegistryService {
 
     for (const r of ndr) {
       const doc = docByFileCode.get(r.fileCode)
+      const parts = String(r.fileCode || '').split('/')
+      const versionSegment = /^\d+$/.test(String(parts[1] || '').trim())
+        ? String(parts[1]).trim().padStart(2, '0')
+        : String(parts[1] || '').trim()
+      const register = versionSegment && versionSegment !== '01' ? 'NVR' : 'NDR'
       rows.push({
-        register: 'NDR',
+        register,
         fileCode: r.fileCode,
         documentTitle: r.documentTitle,
         documentType: doc?.documentType?.name || r.documentType || '',
@@ -126,7 +131,7 @@ class CodeRegistryService {
         projectCategoryId: doc?.projectCategory?.id ?? r.projectCategoryId ?? null,
         date: r.registeredDate,
         status: r.status,
-        rev: r.version,
+        rev: versionSegment ? `${versionSegment}.0` : r.version,
         source: 'SYSTEM'
       })
     }

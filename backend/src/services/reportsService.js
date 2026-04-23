@@ -26,6 +26,26 @@ class ReportsService {
     })
   }
 
+  normalizeVersionSegment(versionSegment) {
+    const raw = String(versionSegment || '').trim()
+    if (!raw) return ''
+    if (/^\d+$/.test(raw)) return raw.padStart(2, '0')
+    return raw
+  }
+
+  extractVersionSegmentFromFileCode(fileCode) {
+    const parts = String(fileCode || '').split('/')
+    return this.normalizeVersionSegment(parts[1] || '')
+  }
+
+  buildPreviousVersion(versionSegment) {
+    const seg = this.normalizeVersionSegment(versionSegment)
+    if (!/^\d+$/.test(seg)) return ''
+    const n = parseInt(seg, 10)
+    if (!Number.isFinite(n) || n <= 1) return '01.0'
+    return String(n - 1).padStart(2, '0') + '.0'
+  }
+
   /**
    * Get report data as JSON for viewing
    */
@@ -644,10 +664,15 @@ class ReportsService {
       if (endDate) where.registeredDate.lte = new Date(endDate);
     }
 
-    return await prisma.documentRegister.findMany({
+    const rows = await prisma.documentRegister.findMany({
       where,
       orderBy: { registeredDate: 'desc' }
-    });
+    })
+
+    return rows.filter((r) => {
+      const vSeg = this.extractVersionSegmentFromFileCode(r.fileCode)
+      return !vSeg || vSeg === '01'
+    })
   }
 
   /**
@@ -715,6 +740,64 @@ class ReportsService {
         changeSummary: vr.reasonForRevision || vr.remarks || 'Version update'
       };
     });
+
+    const versionRequestFileCodes = new Set(
+      records
+        .map((r) => String(r.fileCode || '').toLowerCase())
+        .filter(Boolean)
+    )
+
+    const drWhere = {}
+    if (projectCategoryId !== undefined && projectCategoryId !== null) {
+      const pcId = parseInt(projectCategoryId, 10)
+      if (!Number.isNaN(pcId)) drWhere.projectCategoryId = pcId
+    }
+    if (startDate || endDate) {
+      drWhere.registeredDate = {}
+      if (startDate) drWhere.registeredDate.gte = new Date(startDate)
+      if (endDate) drWhere.registeredDate.lte = new Date(endDate)
+    }
+
+    const docRegisters = await prisma.documentRegister.findMany({
+      where: drWhere,
+      orderBy: { registeredDate: 'desc' }
+    })
+
+    const categoryIds = Array.from(
+      new Set(
+        docRegisters
+          .map((r) => r.projectCategoryId)
+          .filter((id) => id !== null && id !== undefined)
+      )
+    )
+    const categories = categoryIds.length ? await this.getProjectCategoriesByIds(categoryIds) : []
+    const categoryById = new Map(categories.map((c) => [c.id, c]))
+
+    const supplemental = docRegisters
+      .filter((r) => {
+        const vSeg = this.extractVersionSegmentFromFileCode(r.fileCode)
+        if (!vSeg || vSeg === '01') return false
+        const fc = String(r.fileCode || '').toLowerCase()
+        if (!fc) return false
+        return !versionRequestFileCodes.has(fc)
+      })
+      .map((r) => {
+        const vSeg = this.extractVersionSegmentFromFileCode(r.fileCode)
+        return {
+          id: `dr-${r.id}`,
+          fileCode: r.fileCode,
+          documentTitle: r.documentTitle,
+          projectCategoryId: r.projectCategoryId ?? null,
+          projectCategory: categoryById.get(r.projectCategoryId)?.name || '',
+          previousVersion: this.buildPreviousVersion(vSeg),
+          newVersion: vSeg ? `${vSeg}.0` : '',
+          versionDate: r.registeredDate,
+          updatedBy: r.owner || 'Unknown',
+          changeSummary: 'Registered as non-initial version'
+        }
+      })
+
+    records = [...supplemental, ...records]
 
     // Apply additional filters
     if (fileCode) {
