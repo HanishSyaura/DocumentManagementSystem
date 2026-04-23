@@ -9,6 +9,26 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
+const formatDuration = (durationMs, isActive) => {
+  const safe = Math.max(0, Number(durationMs) || 0)
+  const hours = Math.floor(safe / (1000 * 60 * 60));
+  const minutes = Math.floor((safe % (1000 * 60 * 60)) / (1000 * 60));
+  return isActive ? `${hours}h ${minutes}m (Active)` : `${hours}h ${minutes}m`;
+};
+
+const getNextLoginTime = async (userId, loginAt) => {
+  const nextLogin = await prisma.auditLog.findFirst({
+    where: {
+      userId,
+      action: 'LOGIN',
+      createdAt: { gt: loginAt }
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { createdAt: true }
+  })
+  return nextLogin?.createdAt || null
+}
+
 /**
  * Get audit logs
  * GET /api/audit/logs
@@ -166,22 +186,26 @@ router.get('/user-activities', asyncHandler(async (req, res) => {
     filteredSessions.slice(skip, skip + parseInt(limit)).map(async (session) => {
       if (!session.user) return null;
 
+      const nowForSession = new Date()
+      const nextLoginAt = await getNextLoginTime(session.userId, session.createdAt)
+      const upperBound = nextLoginAt || nowForSession
+
       // Get all activities for this user after login
       const userActivities = await prisma.auditLog.findMany({
         where: {
           userId: session.userId,
-          createdAt: { gte: session.createdAt }
+          createdAt: { gte: session.createdAt, lt: upperBound }
         },
         orderBy: { createdAt: 'asc' }
       });
 
       // Find logout or calculate duration
       const logoutEvent = userActivities.find(a => a.action === 'LOGOUT' && a.createdAt > session.createdAt);
-      const endTime = logoutEvent ? logoutEvent.createdAt : new Date();
+      const nonLoginNonLogout = userActivities.filter(a => a.action !== 'LOGIN' && a.action !== 'LOGOUT');
+      const lastActivityAt = nonLoginNonLogout.length > 0 ? nonLoginNonLogout[nonLoginNonLogout.length - 1].createdAt : session.createdAt
+      const endTime = logoutEvent ? logoutEvent.createdAt : lastActivityAt
       const durationMs = endTime.getTime() - session.createdAt.getTime();
-      const hours = Math.floor(durationMs / (1000 * 60 * 60));
-      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-      const durationStr = logoutEvent ? `${hours}h ${minutes}m` : `${hours}h ${minutes}m (Active)`;
+      const durationStr = formatDuration(durationMs, !logoutEvent);
 
       const userName = `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || session.user.email;
       const roleName = session.user.roles?.[0]?.role?.displayName || 'User';
@@ -197,12 +221,12 @@ router.get('/user-activities', asyncHandler(async (req, res) => {
         duration: durationStr,
         ipAddress: session.ipAddress || 'N/A',
         device: session.userAgent || 'Unknown Device',
-        actionsPerformed: userActivities.length - 1, // Exclude login event
+        actionsPerformed: nonLoginNonLogout.length,
         status: logoutEvent ? 'Completed' : 'Active',
-        pagesViewed: userActivities.filter(a => a.action === 'VIEW').length,
-        documentsAccessed: userActivities.filter(a => a.entity === 'Document' && a.action === 'VIEW').length,
-        downloads: userActivities.filter(a => a.action === 'DOWNLOAD').length,
-        recentActions: userActivities.slice(-5).reverse().map(a => ({
+        pagesViewed: nonLoginNonLogout.filter(a => a.action === 'VIEW').length,
+        documentsAccessed: nonLoginNonLogout.filter(a => a.entity === 'Document' && a.action === 'VIEW').length,
+        downloads: nonLoginNonLogout.filter(a => a.action === 'DOWNLOAD').length,
+        recentActions: nonLoginNonLogout.slice(-5).reverse().map(a => ({
           action: a.action,
           entityName: a.description || `${a.entity} ${a.entityId || ''}`,
           module: a.entity || 'System',
@@ -246,7 +270,8 @@ router.get('/user-activities/stats', asyncHandler(async (req, res) => {
       action: 'LOGIN',
       createdAt: { gte: todayStart }
     },
-    select: { userId: true, id: true, createdAt: true }
+    select: { userId: true, id: true, createdAt: true },
+    orderBy: { createdAt: 'asc' }
   });
 
   const logouts = await prisma.auditLog.findMany({
@@ -257,27 +282,51 @@ router.get('/user-activities/stats', asyncHandler(async (req, res) => {
     select: { userId: true, createdAt: true }
   });
 
-  const logoutMap = new Map();
-  logouts.forEach(l => {
-    if (!logoutMap.has(l.userId) || l.createdAt > logoutMap.get(l.userId)) {
-      logoutMap.set(l.userId, l.createdAt);
-    }
-  });
-
-  let activeUsers = 0;
-  let totalDuration = 0;
-  let completedSessions = 0;
-
+  const loginsByUser = new Map()
   for (const login of allLogins) {
-    const logoutTime = logoutMap.get(login.userId);
-    if (!logoutTime || logoutTime < login.createdAt) {
-      activeUsers++;
-      totalDuration += (now.getTime() - login.createdAt.getTime());
-    } else {
-      completedSessions++;
-      totalDuration += (logoutTime.getTime() - login.createdAt.getTime());
-    }
+    if (!loginsByUser.has(login.userId)) loginsByUser.set(login.userId, [])
+    loginsByUser.get(login.userId).push(login)
   }
+  const logoutsByUser = new Map()
+  for (const l of logouts) {
+    if (!logoutsByUser.has(l.userId)) logoutsByUser.set(l.userId, [])
+    logoutsByUser.get(l.userId).push(l.createdAt)
+  }
+  for (const [userId, arr] of logoutsByUser.entries()) {
+    arr.sort((a, b) => a.getTime() - b.getTime())
+    logoutsByUser.set(userId, arr)
+  }
+
+  const activeUserIds = new Set()
+  let totalDuration = 0;
+
+  await Promise.all(allLogins.map(async (login) => {
+    const userLogins = loginsByUser.get(login.userId) || []
+    const idx = userLogins.findIndex(l => l.id === login.id)
+    const nextLoginAt = idx >= 0 && idx < userLogins.length - 1 ? userLogins[idx + 1].createdAt : null
+    const upperBound = nextLoginAt || now
+
+    const userLogouts = logoutsByUser.get(login.userId) || []
+    const logoutTime = userLogouts.find(t => t > login.createdAt && t < upperBound) || null
+
+    if (logoutTime) {
+      totalDuration += (logoutTime.getTime() - login.createdAt.getTime());
+      return
+    }
+
+    activeUserIds.add(login.userId)
+    const lastActivity = await prisma.auditLog.findFirst({
+      where: {
+        userId: login.userId,
+        createdAt: { gte: login.createdAt, lt: upperBound },
+        action: { notIn: ['LOGIN', 'LOGOUT'] }
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true }
+    })
+    const endTime = lastActivity?.createdAt || login.createdAt
+    totalDuration += (endTime.getTime() - login.createdAt.getTime());
+  }))
 
   const avgDuration = allLogins.length > 0 ? totalDuration / allLogins.length : 0;
   const avgHours = Math.floor(avgDuration / (1000 * 60 * 60));
@@ -295,7 +344,7 @@ router.get('/user-activities/stats', asyncHandler(async (req, res) => {
     res,
     {
       stats: {
-        activeUsers,
+        activeUsers: activeUserIds.size,
         totalSessionsToday: todayLogins,
         avgSessionDuration: `${avgHours}h ${avgMinutes}m`,
         totalActionsToday: totalActions
@@ -363,19 +412,23 @@ router.get('/user-activities/export', asyncHandler(async (req, res) => {
   for (const session of filteredSessions) {
     if (!session.user) continue;
 
+    const nowForSession = new Date()
+    const nextLoginAt = await getNextLoginTime(session.userId, session.createdAt)
+    const upperBound = nextLoginAt || nowForSession
+
     const userActivities = await prisma.auditLog.findMany({
       where: {
         userId: session.userId,
-        createdAt: { gte: session.createdAt }
+        createdAt: { gte: session.createdAt, lt: upperBound }
       }
     });
 
     const logoutEvent = userActivities.find(a => a.action === 'LOGOUT' && a.createdAt > session.createdAt);
-    const endTime = logoutEvent ? logoutEvent.createdAt : new Date();
+    const nonLoginNonLogout = userActivities.filter(a => a.action !== 'LOGIN' && a.action !== 'LOGOUT');
+    const lastActivityAt = nonLoginNonLogout.length > 0 ? nonLoginNonLogout[nonLoginNonLogout.length - 1].createdAt : session.createdAt
+    const endTime = logoutEvent ? logoutEvent.createdAt : lastActivityAt
     const durationMs = endTime.getTime() - session.createdAt.getTime();
-    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    const durationStr = logoutEvent ? `${hours}h ${minutes}m` : `${hours}h ${minutes}m (Active)`;
+    const durationStr = formatDuration(durationMs, !logoutEvent)
 
     const userName = `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() || session.user.email;
     const roleName = session.user.roles?.[0]?.role?.displayName || 'User';
@@ -401,7 +454,7 @@ router.get('/user-activities/export', asyncHandler(async (req, res) => {
       logoutEvent ? formatCSVDate(logoutEvent.createdAt) : 'Still Active',
       durationStr,
       session.ipAddress || 'N/A',
-      userActivities.length - 1,
+      nonLoginNonLogout.length,
       logoutEvent ? 'Completed' : 'Active'
     ]);
   }
