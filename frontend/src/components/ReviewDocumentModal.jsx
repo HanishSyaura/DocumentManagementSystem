@@ -12,7 +12,8 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
     comments: '',
     reviewedFile: null,
     reviewDecision: '', // 'reviewed' or 'amendments'
-    assignedApprover: null // Only ONE approver can be assigned
+    assignedApprover: null, // Only ONE approver can be assigned
+    skipApproval: false
   })
 
   const [isDragging, setIsDragging] = useState(false)
@@ -116,7 +117,8 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
     const { value, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      reviewDecision: checked ? value : ''
+      reviewDecision: checked ? value : '',
+      ...(checked && value === 'reviewed' ? {} : { assignedApprover: null, skipApproval: false })
     }))
   }
 
@@ -124,6 +126,15 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
     setFormData(prev => ({
       ...prev,
       assignedApprover: approverId ? parseInt(approverId) : null
+    }))
+  }
+
+  const handleSkipApprovalChange = (e) => {
+    const checked = e.target.checked
+    setFormData(prev => ({
+      ...prev,
+      skipApproval: checked,
+      ...(checked ? { assignedApprover: null } : {})
     }))
   }
 
@@ -169,7 +180,7 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
     }
 
     // Require approver assignment when document is reviewed
-    if (formData.reviewDecision === 'reviewed' && !formData.assignedApprover) {
+    if (formData.reviewDecision === 'reviewed' && !formData.skipApproval && !formData.assignedApprover) {
       alert('Please assign an approver for the reviewed document')
       return
     }
@@ -319,6 +330,17 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
                   />
                   <span className="ml-2 text-sm text-gray-700">{t('document_reviewed')}</span>
                 </label>
+                {formData.reviewDecision === 'reviewed' && (
+                  <label className="flex items-center ml-6">
+                    <input
+                      type="checkbox"
+                      checked={formData.skipApproval}
+                      onChange={handleSkipApprovalChange}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{t('skip_approval_flow')}</span>
+                  </label>
+                )}
                 <label className="flex items-center">
                   <input
                     type="checkbox"
@@ -349,36 +371,38 @@ export default function ReviewDocumentModal({ document, onClose, onSubmit }) {
             </div>
 
             {/* Assign Approver */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('assign_approver_label')}
-              </label>
-              <div className="relative">
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-gray-700"
-                  value={formData.assignedApprover || ''}
-                  onChange={(e) => handleApproverSelect(e.target.value)}
-                  disabled={loadingApprovers}
-                >
-                  <option value="">
-                    {loadingApprovers ? t('loading_approvers') : t('select_approver')}
-                  </option>
-                  {approversList.map((approver) => (
-                    <option key={approver.id} value={approver.id}>
-                      {approver.name}
+            {formData.reviewDecision === 'reviewed' && !formData.skipApproval && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('assign_approver_label')}
+                </label>
+                <div className="relative">
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-gray-700"
+                    value={formData.assignedApprover || ''}
+                    onChange={(e) => handleApproverSelect(e.target.value)}
+                    disabled={loadingApprovers}
+                  >
+                    <option value="">
+                      {loadingApprovers ? t('loading_approvers') : t('select_approver')}
                     </option>
-                  ))}
-                </select>
-                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                    {approversList.map((approver) => (
+                      <option key={approver.id} value={approver.id}>
+                        {approver.name}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                {approversList.length === 0 && !loadingApprovers && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    {t('no_approvers_found')}
+                  </p>
+                )}
               </div>
-              {approversList.length === 0 && !loadingApprovers && (
-                <p className="text-sm text-amber-600 mt-1">
-                  {t('no_approvers_found')}
-                </p>
-              )}
-            </div>
+            )}
 
           </div>
 

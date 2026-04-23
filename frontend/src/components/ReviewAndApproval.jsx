@@ -192,7 +192,9 @@ export default function ReviewAndApproval() {
       apiFormData.append('comments', formData.comments || '')
       
       // Add approver if reviewing (not returning)
-      if (formData.reviewDecision === 'reviewed' && formData.assignedApprover) {
+      if (formData.reviewDecision === 'reviewed' && formData.skipApproval) {
+        apiFormData.append('skipApproval', 'true')
+      } else if (formData.reviewDecision === 'reviewed' && formData.assignedApprover) {
         apiFormData.append('approverId', formData.assignedApprover)
       }
       

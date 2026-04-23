@@ -84,7 +84,7 @@ class WorkflowService {
    * Review document
    * Transition: PENDING_REVIEW → IN_REVIEW → PENDING_FIRST_APPROVAL / RETURNED
    */
-  async reviewDocument(documentId, userId, action, comments = null, approverId = null, file = null) {
+  async reviewDocument(documentId, userId, action, comments = null, approverId = null, skipApproval = false, file = null) {
     const document = await prisma.document.findUnique({
       where: { id: documentId }
     });
@@ -102,7 +102,7 @@ class WorkflowService {
     // Check if user has reviewer role (will be validated by middleware)
 
     if (action === 'APPROVE') {
-      if (!approverId) {
+      if (!skipApproval && !approverId) {
         throw new BadRequestError('First approver must be assigned');
       }
 
@@ -126,6 +126,50 @@ class WorkflowService {
             isPublished: false
           }
         });
+      }
+
+      if (skipApproval) {
+        const updated = await prisma.document.update({
+          where: { id: documentId },
+          data: {
+            status: 'READY_TO_PUBLISH',
+            stage: 'READY_TO_PUBLISH',
+            reviewedById: userId,
+            reviewedAt: new Date()
+          }
+        });
+
+        await documentAssignmentService.removeAssignmentsByType(documentId, 'REVIEW');
+
+        await prisma.approvalHistory.create({
+          data: {
+            documentId,
+            userId,
+            action: 'REVIEWED',
+            stage: 'READY_TO_PUBLISH',
+            comments: comments || 'Document reviewed and marked as ready to publish (approval skipped)'
+          }
+        });
+
+        try {
+          const ownerDoc = await prisma.document.findUnique({
+            where: { id: documentId },
+            include: {
+              owner: true,
+              documentType: true
+            }
+          });
+
+          await notificationService.notifyOwnerDocumentApproved(
+            documentId,
+            ownerDoc,
+            userId
+          );
+        } catch (error) {
+          console.error('Failed to send notification for approval-skipped review:', error);
+        }
+
+        return updated;
       }
 
       // Move to first approval stage

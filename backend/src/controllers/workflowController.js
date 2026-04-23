@@ -27,7 +27,8 @@ class WorkflowController {
    */
   reviewDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.documentId);
-    const { action, comments, approverId } = req.body;
+    const { action, comments, approverId, skipApproval } = req.body;
+    const skipApprovalBool = skipApproval === true || skipApproval === 'true' || skipApproval === '1';
 
     if (!action || !['APPROVE', 'RETURN'].includes(action)) {
       return ResponseFormatter.validationError(res, [
@@ -36,7 +37,7 @@ class WorkflowController {
     }
 
     // If reviewing (APPROVE), approver must be assigned
-    if (action === 'APPROVE' && !approverId) {
+    if (action === 'APPROVE' && !skipApprovalBool && !approverId) {
       return ResponseFormatter.validationError(res, [
         { field: 'approverId', message: 'Approver must be assigned when reviewing document' }
       ]);
@@ -48,13 +49,15 @@ class WorkflowController {
       action,
       comments,
       approverId ? parseInt(approverId) : null,
+      skipApprovalBool,
       req.file
     );
 
     // Log review action
     await auditLogService.logWorkflow(req.user.id, action === 'APPROVE' ? 'REVIEW_APPROVE' : 'REVIEW_RETURN', document, req, {
       comments,
-      approverId
+      approverId,
+      skipApproval: skipApprovalBool
     });
 
     return ResponseFormatter.success(
