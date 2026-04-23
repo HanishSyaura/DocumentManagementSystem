@@ -8,9 +8,11 @@ class ConfigService {
       acknowledgeCompleted: { email: true, inApp: true },
       documentSubmitted: { email: true, inApp: true },
       reviewAssigned: { email: true, inApp: true },
+      reviewCompleted: { email: true, inApp: true },
       approvalRequest: { email: true, inApp: true },
       documentApproved: { email: true, inApp: true },
       documentRejected: { email: true, inApp: true },
+      documentReturned: { email: true, inApp: true },
       documentPublished: { email: true, inApp: true },
       documentSuperseded: { email: true, inApp: true },
       documentObsoleted: { email: true, inApp: true }

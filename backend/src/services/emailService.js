@@ -156,12 +156,14 @@ class EmailService {
         documentCreated: 'DOCUMENT_CREATED',
         documentSubmitted: 'DOCUMENT_SUBMITTED',
         reviewAssigned: 'REVIEW_ASSIGNED',
+        reviewCompleted: 'REVIEW_COMPLETED',
         approvalRequest: 'APPROVAL_REQUEST',
         documentApproved: 'DOCUMENT_APPROVED',
         documentRejected: 'DOCUMENT_REJECTED',
         documentPublished: 'DOCUMENT_PUBLISHED',
         documentSuperseded: 'DOCUMENT_SUPERSEDED',
         documentObsoleted: 'DOCUMENT_OBSOLETED',
+        documentReturned: 'DOCUMENT_RETURNED',
         acknowledgeRequired: 'ACKNOWLEDGE_REQUIRED',
         acknowledgeCompleted: 'ACKNOWLEDGE_COMPLETED'
       }
@@ -335,13 +337,57 @@ class EmailService {
             <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #EF4444; color: white; text-decoration: none; border-radius: 5px;">View</a>
           </div>
         `
+      },
+      REVIEW_COMPLETED: {
+        subject: '✅ Document Reviewed',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0f6fcf;">Document Reviewed</h2>
+            <p>Your document has been reviewed and forwarded:</p>
+            <div style="background: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              <p><strong>File Code:</strong> ${d.fileCode}</p>
+              <p><strong>Reviewed By:</strong> ${d.reviewedBy || 'Unknown'}</p>
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">View Document</a>
+          </div>
+        `
+      },
+      DOCUMENT_RETURNED: {
+        subject: '↩️ Document Returned for Amendments',
+        html: (d) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #EF4444;">Document Returned</h2>
+            <p>Your document has been returned for amendments:</p>
+            <div style="background: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Title:</strong> ${d.title}</p>
+              <p><strong>File Code:</strong> ${d.fileCode}</p>
+              ${d.comments ? `<p><strong>Comments:</strong> ${d.comments}</p>` : ''}
+            </div>
+            <a href="${d.link}" style="display: inline-block; padding: 10px 20px; background: #EF4444; color: white; text-decoration: none; border-radius: 5px;">View Document</a>
+          </div>
+        `
       }
     };
 
     const templateKey = normalizeType(type)
     const template = templates[templateKey];
     if (!template) {
-      console.warn(`No email template found for type: ${String(type)}`);
+      const d = data || {}
+      const subject = d.subject || d.title || `DMS Notification (${String(type || '').trim() || 'event'})`
+      const link = d.link || ''
+      const message = d.message || ''
+      await this.sendEmail({
+        to,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0f6fcf;">${d.title || 'Notification'}</h2>
+            ${message ? `<p>${message}</p>` : ''}
+            ${link ? `<a href="${link}" style="display: inline-block; padding: 10px 20px; background: #0f6fcf; color: white; text-decoration: none; border-radius: 5px;">Open</a>` : ''}
+          </div>
+        `
+      });
       return;
     }
 

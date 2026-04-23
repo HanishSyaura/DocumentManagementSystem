@@ -4,6 +4,51 @@ const emailService = require('./emailService');
 const configService = require('./configService');
 
 class NotificationService {
+  buildRoleNameCandidates(name) {
+    const raw = String(name || '').trim()
+    if (!raw) return []
+    const cap = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+    return Array.from(new Set([raw, raw.toLowerCase(), raw.toUpperCase(), cap]))
+  }
+
+  async findActiveUsersByRoleName(roleName) {
+    const candidates = this.buildRoleNameCandidates(roleName)
+    if (candidates.length === 0) return []
+
+    let users = await prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: { name: { in: candidates } }
+          }
+        },
+        status: 'ACTIVE'
+      },
+      select: { id: true, email: true }
+    })
+
+    if (users.length > 0) return users
+
+    users = await prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: { displayName: { in: candidates } }
+          }
+        },
+        status: 'ACTIVE'
+      },
+      select: { id: true, email: true }
+    })
+
+    return users
+  }
+
+  buildAbsoluteLink(pathname) {
+    const base = process.env.FRONTEND_URL || 'http://localhost:3000'
+    const p = String(pathname || '')
+    return p.startsWith('http://') || p.startsWith('https://') ? p : `${base}${p.startsWith('/') ? '' : '/'}${p}`
+  }
   /**
    * Create in-app notification
    */
@@ -217,18 +262,7 @@ class NotificationService {
    */
   async notifyAcknowledgmentRequired(documentId, document) {
     // Get users with acknowledger role
-    const acknowledgers = await prisma.user.findMany({
-      where: {
-        roles: {
-          some: {
-            role: {
-              name: 'acknowledger'
-            }
-          }
-        },
-        status: 'ACTIVE'
-      }
-    });
+    const acknowledgers = await this.findActiveUsersByRoleName('acknowledger')
 
     const title = 'Document Needs Acknowledgment';
     const message = `Document "${document.title}" (${document.fileCode}) requires your acknowledgment`;
@@ -238,7 +272,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode && !String(document.fileCode).startsWith('PENDING-') ? document.fileCode : '',
       requestedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendBulkNotifications(
@@ -467,7 +501,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode,
       acknowledgedBy: acknowledgedByName,
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendNotification(
@@ -491,14 +525,21 @@ class NotificationService {
     const message = `Your document "${document.title}" (${document.fileCode}) has been returned. ${comments ? 'Comments: ' + comments : 'Please make necessary amendments.'}`;
     const link = `/documents/${documentId}`;
 
-    // Notify only the document owner
-    await this.createNotification(
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      comments: comments || '',
+      link: this.buildAbsoluteLink(link)
+    }
+
+    await this.sendNotification(
       document.ownerId,
-      'DOCUMENT_RETURNED',
+      'documentReturned',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Document returned notification sent to owner ${document.ownerId}`);
   }
@@ -533,7 +574,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode,
       approvedBy: approvedByName,
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendNotification(
@@ -579,7 +620,7 @@ class NotificationService {
       fileCode: document.fileCode,
       rejectedBy: rejectedByName,
       comments: reason || '',
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendNotification(
@@ -609,7 +650,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode,
       reviewedBy: requestedBy ? `${requestedBy.firstName} ${requestedBy.lastName}` : 'Unknown',
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendNotification(
@@ -639,7 +680,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode,
       assignedBy: assignedBy ? `${assignedBy.firstName} ${assignedBy.lastName}` : 'Unknown',
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     }
 
     await this.sendNotification(
@@ -662,13 +703,25 @@ class NotificationService {
     const message = `Your document "${document.title}" (${document.fileCode}) has been reviewed and forwarded for approval`;
     const link = `/documents/${documentId}`;
 
-    await this.createNotification(
+    const reviewedByUser = Number.isFinite(Number(reviewedBy))
+      ? await prisma.user.findUnique({ where: { id: parseInt(reviewedBy, 10) }, select: { firstName: true, lastName: true } })
+      : (reviewedBy && typeof reviewedBy === 'object' ? reviewedBy : null)
+
+    const emailData = {
+      title: document.title,
+      fileCode: document.fileCode,
+      reviewedBy: reviewedByUser ? `${reviewedByUser.firstName} ${reviewedByUser.lastName}` : 'Unknown',
+      link: this.buildAbsoluteLink(link)
+    }
+
+    await this.sendNotification(
       document.ownerId,
-      'STATUS_CHANGED',
+      'reviewCompleted',
       title,
       message,
-      link
-    );
+      link,
+      emailData
+    )
 
     console.log(`[Notification] Review completion notification sent to owner ${document.ownerId}`);
   }
@@ -735,7 +788,19 @@ class NotificationService {
    */
   async sendNotification(userId, type, title, message, link, emailData = null) {
     const preferences = await this.getNotificationPreferences();
-    const eventPreference = preferences[type] || { email: false, inApp: true };
+    const systemPref = preferences[type] || { email: false, inApp: true }
+    const userPrefRow = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: { notifications: true }
+    })
+    const userPref = userPrefRow?.notifications && typeof userPrefRow.notifications === 'object'
+      ? userPrefRow.notifications[type]
+      : null
+
+    const eventPreference = {
+      inApp: Boolean(systemPref.inApp) && userPref?.inApp !== false,
+      email: Boolean(systemPref.email) && userPref?.email !== false
+    }
 
     // Send in-app notification
     if (eventPreference.inApp) {
@@ -743,7 +808,13 @@ class NotificationService {
     }
 
     // Send email notification
-    if (eventPreference.email && emailData) {
+    const effectiveEmailData = emailData || {
+      title,
+      message,
+      link: this.buildAbsoluteLink(link)
+    }
+
+    if (eventPreference.email) {
       try {
         // Get user email
         const user = await prisma.user.findUnique({
@@ -752,7 +823,7 @@ class NotificationService {
         });
 
         if (user && user.email) {
-          await emailService.sendNotificationEmail(user.email, type, emailData);
+          await emailService.sendNotificationEmail(user.email, type, effectiveEmailData);
         }
       } catch (error) {
         console.error(`Failed to send email notification for ${type}:`, error);
@@ -768,33 +839,56 @@ class NotificationService {
     
     const preferences = await this.getNotificationPreferences();
     console.log(`[NotificationService] Notification preferences for ${type}:`, preferences[type]);
-    
-    const eventPreference = preferences[type] || { email: false, inApp: true };
-    console.log(`[NotificationService] Using preference:`, eventPreference);
+
+    const systemPref = preferences[type] || { email: false, inApp: true }
+    const userPrefs = await prisma.userPreference.findMany({
+      where: { userId: { in: userIds } },
+      select: { userId: true, notifications: true }
+    })
+    const prefByUserId = new Map(
+      userPrefs.map((p) => [p.userId, (p.notifications && typeof p.notifications === 'object') ? p.notifications[type] : null])
+    )
+
+    const effective = userIds.map((id) => {
+      const up = prefByUserId.get(id)
+      return {
+        userId: id,
+        inApp: Boolean(systemPref.inApp) && up?.inApp !== false,
+        email: Boolean(systemPref.email) && up?.email !== false
+      }
+    })
+    const inAppUserIds = effective.filter((x) => x.inApp).map((x) => x.userId)
+    const emailUserIds = effective.filter((x) => x.email).map((x) => x.userId)
 
     // Send in-app notifications
-    if (eventPreference.inApp) {
-      console.log(`[NotificationService] Creating in-app notifications for ${userIds.length} users`);
-      await this.createBulkNotifications(userIds, type, title, message, link);
+    if (inAppUserIds.length > 0) {
+      console.log(`[NotificationService] Creating in-app notifications for ${inAppUserIds.length} users`);
+      await this.createBulkNotifications(inAppUserIds, type, title, message, link);
       console.log(`[NotificationService] In-app notifications created successfully`);
     } else {
       console.log(`[NotificationService] In-app notifications disabled for ${type}`);
     }
 
     // Send email notifications
-    if (eventPreference.email && emailData) {
+    const effectiveEmailData = emailData || {
+      title,
+      message,
+      link: this.buildAbsoluteLink(link)
+    }
+
+    if (emailUserIds.length > 0) {
       console.log(`[NotificationService] Sending email notifications`);
       try {
         // Get user emails
         const users = await prisma.user.findMany({
-          where: { id: { in: userIds } },
+          where: { id: { in: emailUserIds } },
           select: { email: true }
         });
 
         for (const user of users) {
           if (user.email) {
             try {
-              await emailService.sendNotificationEmail(user.email, type, emailData);
+              await emailService.sendNotificationEmail(user.email, type, effectiveEmailData);
             } catch (error) {
               console.error(`Failed to send email to ${user.email}:`, error);
             }
@@ -804,7 +898,7 @@ class NotificationService {
         console.error(`Failed to send bulk email notifications for ${type}:`, error);
       }
     } else {
-      console.log(`[NotificationService] Email notifications not sent: email=${eventPreference.email}, hasEmailData=${!!emailData}`);
+      console.log(`[NotificationService] Email notifications disabled or no recipients for ${type}`);
     }
   }
 
@@ -814,18 +908,7 @@ class NotificationService {
   async notifyDocumentSubmittedWithEmail(documentId, document) {
     console.log(`[NotificationService] notifyDocumentSubmittedWithEmail called for document ${documentId}`);
     
-    const reviewers = await prisma.user.findMany({
-      where: {
-        roles: {
-          some: {
-            role: {
-              name: 'reviewer'
-            }
-          }
-        },
-        status: 'ACTIVE'
-      }
-    });
+    const reviewers = await this.findActiveUsersByRoleName('reviewer')
 
     console.log(`[NotificationService] Found ${reviewers.length} active reviewers:`, reviewers.map(r => r.email));
 
@@ -842,7 +925,7 @@ class NotificationService {
       title: document.title,
       fileCode: document.fileCode,
       submittedBy: document.owner ? `${document.owner.firstName} ${document.owner.lastName}` : 'Unknown',
-      link: `${process.env.FRONTEND_URL || 'http://localhost:3000'}${link}`
+      link: this.buildAbsoluteLink(link)
     };
 
     await this.sendBulkNotifications(

@@ -110,11 +110,11 @@ class NotificationController {
 
     const errors = [];
     if (!type) errors.push({ field: 'type', message: 'Type is required' });
-    if (!title) errors.push({ field: 'title', message: 'Title is required' });
     if (!message) errors.push({ field: 'message', message: 'Message is required' });
     if (errors.length) return ResponseFormatter.validationError(res, errors);
 
-    const created = await notificationService.createNotification(req.user.id, type, title, message, link);
+    const safeTitle = title || message;
+    const created = await notificationService.createNotification(req.user.id, type, safeTitle, message, link);
     return ResponseFormatter.success(res, { notification: created }, 'Notification created successfully', 201);
   });
 }
