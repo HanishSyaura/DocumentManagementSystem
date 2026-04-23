@@ -19,6 +19,7 @@ class ConfigService {
     }
 
     return {
+      frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
       smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
       smtpPort: process.env.SMTP_PORT || '587',
       smtpUsername: process.env.SMTP_USERNAME || '',
@@ -56,7 +57,13 @@ class ConfigService {
       return acc
     }, {})
 
+    const rawFrontendUrl = String(source.frontendUrl ?? defaults.frontendUrl ?? '').trim()
+    const frontendUrl = rawFrontendUrl.endsWith('/')
+      ? rawFrontendUrl.slice(0, -1)
+      : rawFrontendUrl
+
     return {
+      frontendUrl,
       smtpHost: source.smtpHost ?? defaults.smtpHost,
       smtpPort: String(source.smtpPort ?? defaults.smtpPort),
       smtpUsername: source.smtpUsername ?? defaults.smtpUsername,

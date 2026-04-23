@@ -122,7 +122,7 @@ class NotificationService {
   }
 
   buildAbsoluteLink(pathname) {
-    const base = process.env.FRONTEND_URL || 'http://localhost:3000'
+    const base = this._cachedFrontendUrl || process.env.FRONTEND_URL || 'http://localhost:3000'
     const p = String(pathname || '')
     return p.startsWith('http://') || p.startsWith('https://') ? p : `${base}${p.startsWith('/') ? '' : '/'}${p}`
   }
@@ -855,6 +855,10 @@ class NotificationService {
   async getNotificationPreferences() {
     try {
       const settings = await configService.getNotificationSettings();
+      const base = String(settings?.frontendUrl || '').trim()
+      if (base) {
+        this._cachedFrontendUrl = base.endsWith('/') ? base.slice(0, -1) : base
+      }
       return settings.notifications || {};
     } catch (error) {
       console.error('Failed to load notification preferences:', error);
@@ -889,11 +893,8 @@ class NotificationService {
     }
 
     // Send email notification
-    const effectiveEmailData = emailData || {
-      title,
-      message,
-      link: this.buildAbsoluteLink(link)
-    }
+    const effectiveEmailData = emailData || { title, message, link }
+    effectiveEmailData.link = this.buildAbsoluteLink(link)
 
     if (eventPreference.email) {
       try {
@@ -955,11 +956,8 @@ class NotificationService {
     }
 
     // Send email notifications
-    const effectiveEmailData = emailData || {
-      title,
-      message,
-      link: this.buildAbsoluteLink(link)
-    }
+    const effectiveEmailData = emailData || { title, message, link }
+    effectiveEmailData.link = this.buildAbsoluteLink(link)
 
     if (emailUserIds.length > 0) {
       console.log(`[NotificationService] Sending email notifications`);

@@ -4227,6 +4227,7 @@ function NotificationSettings() {
   const { t } = usePreferences()
   const smtpUiRevision = 'smtp-ui-2026-04-20-c'
   const defaultNotificationSettings = {
+    frontendUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
     smtpHost: 'smtp.company.com',
     smtpPort: '587',
     smtpUsername: 'noreply@company.com',
@@ -4445,6 +4446,16 @@ function NotificationSettings() {
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">From Email</label>
             <input type="email" value={settings.fromEmail} onChange={(e) => setSettings(prev => ({ ...prev, fromEmail: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-900 mb-2">Frontend URL (for email buttons)</label>
+            <input
+              type="url"
+              value={settings.frontendUrl || ''}
+              onChange={(e) => setSettings(prev => ({ ...prev, frontendUrl: e.target.value }))}
+              placeholder="e.g. https://dms.clbgroups.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none"
+            />
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-900 mb-2">Test Recipient Email</label>
