@@ -82,7 +82,7 @@ router.get('/master-record/new-documents', asyncHandler(async (req, res) => {
     type: record.documentType,
     projectCategoryId: record.projectCategoryId ?? null,
     projectCategory: categoryById.get(record.projectCategoryId)?.name || '',
-    version: record.version,
+    version: reportsService.extractVersionSegmentFromFileCode(record.fileCode) || record.version,
     owner: record.owner,
     department: record.department,
     status: record.status,

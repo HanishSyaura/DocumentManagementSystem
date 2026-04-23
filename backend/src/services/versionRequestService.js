@@ -3,6 +3,7 @@ const prisma = new PrismaClient();
 const { NotFoundError, BadRequestError, ForbiddenError } = require('../utils/errors');
 const path = require('path');
 const fs = require('fs').promises;
+const configService = require('./configService');
 
 class VersionRequestService {
   /**
@@ -291,7 +292,7 @@ class VersionRequestService {
     // Generate new file code with incremented version
     const originalDocument = request.document;
     const bump = String(request.reasonForRevision || '').toLowerCase() === 'minor' ? 'minor' : 'major'
-    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
+    const newFileCode = await this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
     const existingDoc = await prisma.document.findFirst({
@@ -460,7 +461,17 @@ class VersionRequestService {
     return `a${chars.join('')}`
   }
 
-  incrementFileCodeVersion(fileCode, bump = 'major') {
+  async getVersionDigitsLen() {
+    try {
+      const settings = await configService.getDocumentNumberingSettings()
+      const n = parseInt(settings?.versionDigits, 10)
+      return Number.isFinite(n) && n > 0 ? n : 2
+    } catch {
+      return 2
+    }
+  }
+
+  async incrementFileCodeVersion(fileCode, bump = 'major') {
     const parts = String(fileCode || '').split('/');
     
     if (parts.length < 2) {
@@ -475,7 +486,8 @@ class VersionRequestService {
 
     const digitsStr = m[1]
     const suffix = m[2] || ''
-    const digitsLen = digitsStr.length
+    const configuredLen = await this.getVersionDigitsLen()
+    const digitsLen = Math.max(digitsStr.length, configuredLen)
     const n = parseInt(digitsStr, 10)
     if (isNaN(n)) {
       throw new BadRequestError('Invalid version number in file code')
@@ -503,7 +515,7 @@ class VersionRequestService {
     // Generate new file code with incremented version
     const originalDocument = request.document;
     const bump = String(request.reasonForRevision || '').toLowerCase() === 'minor' ? 'minor' : 'major'
-    const newFileCode = this.incrementFileCodeVersion(originalDocument.fileCode, bump);
+    const newFileCode = await this.incrementFileCodeVersion(originalDocument.fileCode, bump);
 
     // Check if new file code already exists
     const existingDoc = await prisma.document.findFirst({

@@ -29,8 +29,12 @@ class ReportsService {
   normalizeVersionSegment(versionSegment) {
     const raw = String(versionSegment || '').trim()
     if (!raw) return ''
-    if (/^\d+$/.test(raw)) return raw.padStart(2, '0')
-    return raw
+    const m = /^(\d+)([a-zA-Z]*)$/.exec(raw)
+    if (!m) return raw
+    const digitsStr = m[1]
+    const suffix = (m[2] || '').toLowerCase()
+    const digitsLen = Math.max(2, digitsStr.length)
+    return `${digitsStr.padStart(digitsLen, '0')}${suffix}`
   }
 
   extractVersionSegmentFromFileCode(fileCode) {
@@ -40,10 +44,15 @@ class ReportsService {
 
   buildPreviousVersion(versionSegment) {
     const seg = this.normalizeVersionSegment(versionSegment)
-    if (!/^\d+$/.test(seg)) return ''
-    const n = parseInt(seg, 10)
-    if (!Number.isFinite(n) || n <= 1) return '01.0'
-    return String(n - 1).padStart(2, '0') + '.0'
+    const m = /^(\d+)([a-z]*)$/.exec(seg)
+    if (!m) return ''
+    const digitsStr = m[1]
+    const suffix = m[2] || ''
+    const digitsLen = Math.max(2, digitsStr.length)
+    if (suffix) return digitsStr.padStart(digitsLen, '0')
+    const n = parseInt(digitsStr, 10)
+    if (!Number.isFinite(n) || n <= 1) return '01'
+    return String(n - 1).padStart(digitsLen, '0')
   }
 
   /**
@@ -724,8 +733,8 @@ class ReportsService {
       // Extract version from file code (e.g., MOM/01/... -> 01)
       const originalParts = vr.document?.fileCode?.split('/') || [];
       const newParts = vr.newDocument?.fileCode?.split('/') || [];
-      const prevVersion = originalParts[1] ? `${originalParts[1]}.0` : vr.document?.version || '1.0';
-      const newVersion = newParts[1] ? `${newParts[1]}.0` : '2.0';
+      const prevVersion = originalParts[1] ? this.normalizeVersionSegment(originalParts[1]) : this.extractVersionSegmentFromFileCode(vr.document?.fileCode);
+      const newVersion = newParts[1] ? this.normalizeVersionSegment(newParts[1]) : this.extractVersionSegmentFromFileCode(vr.newDocument?.fileCode);
       
       return {
         id: vr.id,
@@ -790,7 +799,7 @@ class ReportsService {
           projectCategoryId: r.projectCategoryId ?? null,
           projectCategory: categoryById.get(r.projectCategoryId)?.name || '',
           previousVersion: this.buildPreviousVersion(vSeg),
-          newVersion: vSeg ? `${vSeg}.0` : '',
+          newVersion: this.normalizeVersionSegment(vSeg),
           versionDate: r.registeredDate,
           updatedBy: r.owner || 'Unknown',
           changeSummary: 'Registered as non-initial version'

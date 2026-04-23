@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import ReviewDocumentModal from './ReviewDocumentModal'
 import ApproveDocumentModal from './ApproveDocumentModal'
@@ -20,6 +20,9 @@ import { usePreferences } from '../contexts/PreferencesContext'
 export default function ReviewAndApproval() {
   const { itemsPerPage, t } = usePreferences()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const deepLinkDocId = searchParams.get('docId')
+  const didHandleDeepLink = useRef(false)
   const [documents, setDocuments] = useState([])
   const [filteredDocuments, setFilteredDocuments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -98,6 +101,50 @@ export default function ReviewAndApproval() {
   useEffect(() => {
     loadDocuments()
   }, [])
+
+  useEffect(() => {
+    if (didHandleDeepLink.current) return
+    const raw = parseInt(deepLinkDocId, 10)
+    const docId = Number.isFinite(raw) ? raw : null
+    if (!docId) return
+    if (!documents || documents.length === 0) return
+
+    const doc = documents.find((d) => d && String(d.id) === String(docId))
+    if (!doc) return
+
+    didHandleDeepLink.current = true
+    setSelectedDocument(doc)
+
+    const stage = String(doc.stage || '').toUpperCase()
+    const status = String(doc.status || '').toUpperCase()
+
+    if (doc.type === 'supersede-request') {
+      setReviewSupersedeModalOpen(true)
+      return
+    }
+
+    if (stage === 'REVIEW' || status === 'PENDING_REVIEW' || status === 'IN_REVIEW') {
+      setReviewModalOpen(true)
+      return
+    }
+
+    if (stage === 'ACKNOWLEDGMENT' || status === 'PENDING_ACKNOWLEDGMENT') {
+      setAcknowledgeModalOpen(true)
+      return
+    }
+
+    if (status === 'READY_TO_PUBLISH' || stage === 'READY_TO_PUBLISH') {
+      setPublishModalOpen(true)
+      return
+    }
+
+    if (stage === 'FIRST_APPROVAL' || stage === 'SECOND_APPROVAL' || stage === 'APPROVAL' || status === 'PENDING_FIRST_APPROVAL' || status === 'PENDING_SECOND_APPROVAL') {
+      setApproveModalOpen(true)
+      return
+    }
+
+    setViewModalOpen(true)
+  }, [deepLinkDocId, documents])
 
   // Filter and search documents
   useEffect(() => {

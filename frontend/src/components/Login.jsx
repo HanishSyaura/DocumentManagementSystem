@@ -169,10 +169,13 @@ export default function Login() {
           updateUserData(res.data.data.user)
         }
         
-        // Redirect to first accessible route based on permissions
+        let next = null
+        try {
+          next = localStorage.getItem('postLoginRedirect')
+          if (next) localStorage.removeItem('postLoginRedirect')
+        } catch {}
         const defaultRoute = getDefaultRoute()
-        console.log('Redirecting user to:', defaultRoute)
-        navigate(defaultRoute)
+        navigate(next || defaultRoute)
       } else {
         setError('No token returned')
         setLoading(false)
@@ -213,8 +216,13 @@ export default function Login() {
           updateUserData(res.data.data.user)
         }
         
+        let next = null
+        try {
+          next = localStorage.getItem('postLoginRedirect')
+          if (next) localStorage.removeItem('postLoginRedirect')
+        } catch {}
         const defaultRoute = getDefaultRoute()
-        navigate(defaultRoute)
+        navigate(next || defaultRoute)
       } else {
         setError('Verification successful but no token returned')
         setLoading(false)

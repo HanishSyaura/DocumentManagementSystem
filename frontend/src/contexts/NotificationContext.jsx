@@ -136,6 +136,15 @@ export const NotificationProvider = ({ children }) => {
       const res = await silentApi.get('/notifications')
       const backendNotifications = res.data.data?.notifications || res.data.notifications || []
       
+      const mapSeverity = (type) => {
+        const t = String(type || '').toUpperCase()
+        if (t === 'DOCUMENT_APPROVED') return 'success'
+        if (t === 'DOCUMENT_REJECTED' || t === 'DOCUMENT_RETURNED') return 'error'
+        if (t === 'REVIEW_REQUIRED' || t === 'APPROVAL_REQUIRED' || t === 'ACKNOWLEDGMENT_REQUIRED') return 'warning'
+        if (t === 'SYSTEM_ALERT') return 'warning'
+        return 'info'
+      }
+
       // Map backend fields to frontend format
       const mappedNotifications = backendNotifications.map(n => ({
         id: n.id,
@@ -144,7 +153,7 @@ export const NotificationProvider = ({ children }) => {
         message: n.message,
         link: n.link,
         read: n.isRead,
-        severity: n.severity || 'info',
+        severity: mapSeverity(n.type),
         timestamp: n.createdAt,
         createdAt: n.createdAt,
         metadata: n.metadata || {}

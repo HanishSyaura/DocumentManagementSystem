@@ -14,6 +14,7 @@ import LogsReports from './pages/LogsReports'
 import ReportViewer from './components/ReportViewer'
 import MasterRecord from './pages/MasterRecord'
 import ProfileSettings from './pages/ProfileSettings'
+import DocumentLink from './pages/DocumentLink'
 import Login from './components/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/diagnostic" element={<DiagnosticPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/documents/:id" element={<DocumentLink />} />
           
           {/* Protected Routes */}
           <Route

@@ -308,7 +308,15 @@ function NewDocumentRegister({ projectCategories = [], documentTypes = [], users
                       {doc.projectCategory || ''}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {doc.version}
+                      {(() => {
+                        const seg = String(doc.fileCode || '').split('/')[1] || ''
+                        const m = /^(\d+)([a-zA-Z]*)$/.exec(String(seg || '').trim())
+                        if (!m) return doc.version
+                        const digitsStr = m[1]
+                        const suffix = (m[2] || '').toLowerCase()
+                        const digitsLen = Math.max(2, digitsStr.length)
+                        return `${digitsStr.padStart(digitsLen, '0')}${suffix}` || doc.version
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {doc.registeredDate}
@@ -483,7 +491,7 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_previous_version')}</label>
             <input
               type="text"
-              placeholder="e.g., 2.1"
+              placeholder="e.g., 02a"
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

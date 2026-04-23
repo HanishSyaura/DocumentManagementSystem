@@ -53,7 +53,7 @@ const CheckIcon = () => (
   </svg>
 )
 
-function NotificationItem({ type = 'info', message, time }) {
+function NotificationItem({ type = 'info', title, message, time, unread }) {
   const styles = {
     warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
     info: 'bg-blue-50 text-blue-800 border-blue-200',
@@ -74,7 +74,13 @@ function NotificationItem({ type = 'info', message, time }) {
         {icons[type]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-snug">{message}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {title && <p className="text-sm font-semibold leading-snug truncate">{title}</p>}
+            <p className={`text-sm leading-snug ${title ? 'mt-0.5 font-medium' : 'font-medium'}`}>{message}</p>
+          </div>
+          {unread && <span className="w-2.5 h-2.5 bg-blue-600 rounded-full flex-shrink-0 mt-1" />}
+        </div>
         <p className="text-xs mt-1 opacity-75">{time}</p>
       </div>
     </div>
@@ -100,8 +106,10 @@ function QuickAccessButton({ icon: Icon, label, onClick }) {
 export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(isCollapsed)
   const [isNotificationsCollapsed, setIsNotificationsCollapsed] = useState(false)
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false)
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications()
   const { t } = usePreferences()
+  const navigate = useNavigate()
 
   // Sync with parent collapse state
   React.useEffect(() => {
@@ -123,6 +131,14 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
     if (!notification.read) {
       markAsRead(notification.id)
     }
+    const link = notification.link
+    if (link) {
+      if (String(link).startsWith('http://') || String(link).startsWith('https://')) {
+        window.location.assign(link)
+      } else {
+        navigate(link)
+      }
+    }
   }
 
   const getTimeAgo = (timestamp) => {
@@ -138,6 +154,24 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
     const days = Math.floor(hours / 24)
     return `${days} ${t('time_days_ago')}`
   }
+
+  const normalizeDate = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const getGroupKey = (timestamp) => {
+    const now = normalizeDate(new Date())
+    const date = normalizeDate(new Date(timestamp))
+    const diffDays = Math.round((now - date) / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return 'today'
+    if (diffDays === 1) return 'yesterday'
+    return 'earlier'
+  }
+
+  const visibleNotifications = (showUnreadOnly ? notifications.filter(n => !n.read) : notifications)
+  const grouped = visibleNotifications.reduce((acc, n) => {
+    const k = getGroupKey(n.timestamp || n.createdAt)
+    acc[k] = acc[k] || []
+    acc[k].push(n)
+    return acc
+  }, {})
 
   return (
     <>
@@ -158,13 +192,29 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             {t('system_notifications')}
-            {notifications.length > 0 && (
+            {unreadCount > 0 && (
               <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                {notifications.length}
+                {unreadCount}
               </span>
             )}
           </h3>
           <div className="flex items-center gap-2">
+            {notifications.length > 0 && unreadCount > 0 && (
+              <button
+                onClick={() => markAllAsRead()}
+                className="text-xs text-gray-700 hover:text-gray-900 font-medium"
+              >
+                {t('mark_all_read')}
+              </button>
+            )}
+            {notifications.length > 0 && (
+              <button
+                onClick={() => setShowUnreadOnly(v => !v)}
+                className={`text-xs font-medium ${showUnreadOnly ? 'text-blue-600 hover:text-blue-700' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                {showUnreadOnly ? t('show_all') : t('show_unread')}
+              </button>
+            )}
             {notifications.length > 0 && (
               <button 
                 onClick={handleClearAll}
@@ -188,19 +238,30 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
           <>
             <p className="text-xs text-gray-500 mb-3">{t('important_alerts')}</p>
             
-            {notifications.length > 0 ? (
+            {visibleNotifications.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {notifications.map(notification => (
-                  <div
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`cursor-pointer ${!notification.read ? 'opacity-100' : 'opacity-60'}`}
-                  >
-                    <NotificationItem
-                      type={notification.severity || 'info'}
-                      message={notification.message || notification.title}
-                      time={getTimeAgo(notification.timestamp || notification.createdAt)}
-                    />
+                {(['today', 'yesterday', 'earlier']).filter(k => (grouped[k] || []).length > 0).map((k) => (
+                  <div key={k}>
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      {k === 'today' ? t('notif_today') : k === 'yesterday' ? t('notif_yesterday') : t('notif_earlier')}
+                    </div>
+                    <div className="space-y-3">
+                      {(grouped[k] || []).map(notification => (
+                        <div
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`cursor-pointer ${!notification.read ? 'opacity-100' : 'opacity-70'}`}
+                        >
+                          <NotificationItem
+                            type={notification.severity || 'info'}
+                            title={notification.title}
+                            message={notification.message || notification.title}
+                            unread={!notification.read}
+                            time={getTimeAgo(notification.timestamp || notification.createdAt)}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

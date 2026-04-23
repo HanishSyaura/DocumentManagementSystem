@@ -151,7 +151,7 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
 
     const digitsStr = m[1]
     const suffix = m[2] || ''
-    const digitsLen = digitsStr.length
+    const digitsLen = Math.max(2, digitsStr.length)
     const n = parseInt(digitsStr, 10)
     if (Number.isNaN(n)) return code
 

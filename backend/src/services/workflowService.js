@@ -589,6 +589,18 @@ class WorkflowService {
       throw new NotFoundError('Folder');
     }
 
+    const normalizeVersionSegment = (versionSegment) => {
+      const raw = String(versionSegment || '').trim()
+      if (!raw) return ''
+      const m = /^(\d+)([a-zA-Z]*)$/.exec(raw)
+      if (!m) return raw
+      const digitsStr = m[1]
+      const suffix = (m[2] || '').toLowerCase()
+      const digitsLen = Math.max(2, digitsStr.length)
+      return `${digitsStr.padStart(digitsLen, '0')}${suffix}`
+    }
+    const versionSegment = normalizeVersionSegment(String(document.fileCode || '').split('/')[1] || '')
+
     // Publish document
     const updated = await prisma.document.update({
       where: { id: documentId },
@@ -646,6 +658,7 @@ class WorkflowService {
           where: { fileCode_projectCategoryId: { fileCode: document.fileCode, projectCategoryId } },
           data: { 
             status: 'PUBLISHED',
+            version: versionSegment || existingRegister.version,
             registeredDate: new Date()
           }
         });
@@ -656,13 +669,19 @@ class WorkflowService {
             projectCategoryId,
             documentTitle: document.title,
             documentType: document.documentType.name,
-            version: document.version,
+            version: versionSegment || document.version,
             owner: `${document.owner.firstName} ${document.owner.lastName}`,
             department: document.owner.department || '',
             status: 'PUBLISHED'
           }
         });
       }
+    }
+
+    try {
+      await notificationService.notifyDocumentPublished(documentId, updated);
+    } catch (error) {
+      console.error('Failed to send notification for document publish:', error);
     }
 
     return updated;
