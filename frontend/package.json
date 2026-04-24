@@ -8,7 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@corbe30/fortune-excel": "^2.3.2",
     "@heroicons/react": "^2.2.0",
+    "@fortune-sheet/react": "^1.0.4",
     "axios": "^1.4.0",
     "chart.js": "^4.4.0",
     "datatables.net": "^2.0.0",

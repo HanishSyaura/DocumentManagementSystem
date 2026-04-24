@@ -4,6 +4,8 @@ import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
 import { usePreferences } from '../contexts/PreferencesContext'
 import useDocxFitToWidth from '../hooks/useDocxFitToWidth'
+import { Workbook } from '@fortune-sheet/react'
+import { transformExcelToFortune } from '@corbe30/fortune-excel'
 
 export default function DocumentViewerModal({ document, onClose }) {
   const { t } = usePreferences()
@@ -13,6 +15,9 @@ export default function DocumentViewerModal({ document, onClose }) {
   const [docxBuffer, setDocxBuffer] = useState(null)
   const [contentType, setContentType] = useState(null)
   const [error, setError] = useState(null)
+  const workbookRef = useRef(null)
+  const [sheetKey, setSheetKey] = useState(0)
+  const [sheets, setSheets] = useState([{ name: 'Sheet1' }])
   const docxContainerRef = useRef(null)
   const docxViewportRef = useRef(null)
   const [docxZoomMode, setDocxZoomMode] = useState('fit')
@@ -33,6 +38,8 @@ export default function DocumentViewerModal({ document, onClose }) {
         setDocxBuffer(null)
         setContentType(null)
         setDocxZoomMode('fit')
+        setSheets([{ name: 'Sheet1' }])
+        setSheetKey((k) => k + 1)
         
         const res = await api.get(`/documents/${document.id}/preview`, {
           responseType: 'blob'
@@ -60,12 +67,28 @@ export default function DocumentViewerModal({ document, onClose }) {
         }
         // Handle Excel files (.xlsx, .xls, .csv)
         else if (mimeType.includes('spreadsheet') || fileExtension === 'xlsx' || fileExtension === 'xls' || fileExtension === 'csv') {
-          const arrayBuffer = await res.data.arrayBuffer()
-          const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-          const htmlTable = XLSX.utils.sheet_to_html(firstSheet, { editable: false })
-          setHtmlContent(htmlTable)
-          setContentType('html')
+          if (fileExtension === 'xlsx' || fileExtension === 'csv') {
+            try {
+              const safeName = fileName || `document-${document.id}.${fileExtension}`
+              const file = new File([res.data], safeName, { type: mimeType || undefined })
+              setContentType('sheet')
+              await transformExcelToFortune(file, setSheets, setSheetKey, workbookRef)
+            } catch (e) {
+              const arrayBuffer = await res.data.arrayBuffer()
+              const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+              const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+              const htmlTable = XLSX.utils.sheet_to_html(firstSheet, { editable: false })
+              setHtmlContent(htmlTable)
+              setContentType('html')
+            }
+          } else {
+            const arrayBuffer = await res.data.arrayBuffer()
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+            const htmlTable = XLSX.utils.sheet_to_html(firstSheet, { editable: false })
+            setHtmlContent(htmlTable)
+            setContentType('html')
+          }
         }
         // Handle PDF and other files
         else if (mimeType.includes('pdf') || fileExtension === 'pdf') {
@@ -123,12 +146,20 @@ export default function DocumentViewerModal({ document, onClose }) {
           inWrapper: true,
           ignoreWidth: false,
           ignoreHeight: false,
-          ignoreFonts: false
+          ignoreFonts: false,
+          useBase64URL: true
         })
         refreshDocxScale()
       } catch (e) {
         try {
-          const result = await mammoth.convertToHtml({ arrayBuffer: docxBuffer })
+          const result = await mammoth.convertToHtml(
+            { arrayBuffer: docxBuffer },
+            {
+              convertImage: mammoth.images.inline(async (image) => ({
+                src: `data:${image.contentType};base64,${await image.read('base64')}`
+              }))
+            }
+          )
           if (cancelled) return
           setHtmlContent(result.value)
           setContentType('html')
@@ -286,6 +317,10 @@ export default function DocumentViewerModal({ document, onClose }) {
                   <div ref={docxContainerRef} className="p-6" />
                 </div>
               </div>
+            </div>
+          ) : contentType === 'sheet' ? (
+            <div className="h-full w-full overflow-hidden bg-white">
+              <Workbook key={sheetKey} ref={workbookRef} data={sheets} />
             </div>
           ) : contentType === 'html' && htmlContent ? (
             <div className="h-full overflow-auto p-8 bg-white">

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { NotificationProvider } from './contexts/NotificationContext'
 import App from './App'
 import './index.css'
+import '@fortune-sheet/react/dist/index.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
