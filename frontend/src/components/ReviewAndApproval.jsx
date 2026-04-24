@@ -17,6 +17,11 @@ import { hasPermission } from '../utils/permissions'
 import { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
 
+function isPdfDocument(doc) {
+  const name = String(doc?.fileName || '')
+  return name.toLowerCase().endsWith('.pdf')
+}
+
 export default function ReviewAndApproval() {
   const { itemsPerPage, t } = usePreferences()
   const navigate = useNavigate()
@@ -143,10 +148,8 @@ export default function ReviewAndApproval() {
       return
     }
 
-    if (isPdfDocument(doc)) {
-      setViewModalOpen(true)
-    }
-  }, [deepLinkDocId, documents, isPdfDocument])
+    if (isPdfDocument(doc)) setViewModalOpen(true)
+  }, [deepLinkDocId, documents])
 
   // Filter and search documents
   useEffect(() => {
@@ -207,11 +210,6 @@ export default function ReviewAndApproval() {
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize)
     setCurrentPage(1)
-  }
-
-  const isPdfDocument = (doc) => {
-    const name = String(doc?.fileName || '')
-    return name.toLowerCase().endsWith('.pdf')
   }
 
   const handleDownload = async (doc) => {
