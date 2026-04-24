@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
+import useDocxFitToWidth from '../hooks/useDocxFitToWidth'
 
 export default function TemplatePreviewModal({ template, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -9,6 +10,14 @@ export default function TemplatePreviewModal({ template, onClose }) {
   const [contentType, setContentType] = useState(null)
   const [error, setError] = useState(null)
   const docxContainerRef = useRef(null)
+  const docxViewportRef = useRef(null)
+  const [docxZoomMode, setDocxZoomMode] = useState('fit')
+  const { scale: docxScale, refresh: refreshDocxScale } = useDocxFitToWidth({
+    enabled: contentType === 'docx' && !!docxBuffer,
+    mode: docxZoomMode,
+    viewportRef: docxViewportRef,
+    containerRef: docxContainerRef
+  })
 
   useEffect(() => {
     const loadPreview = async () => {
@@ -18,6 +27,7 @@ export default function TemplatePreviewModal({ template, onClose }) {
         setContent(null)
         setDocxBuffer(null)
         setContentType(null)
+        setDocxZoomMode('fit')
         const token = localStorage.getItem('token')
         const baseURL = import.meta.env.VITE_API_URL || '/api'
         
@@ -82,6 +92,7 @@ export default function TemplatePreviewModal({ template, onClose }) {
           ignoreHeight: false,
           ignoreFonts: false
         })
+        refreshDocxScale()
       } catch (e) {
         try {
           const result = await mammoth.convertToHtml({ arrayBuffer: docxBuffer })
@@ -98,7 +109,7 @@ export default function TemplatePreviewModal({ template, onClose }) {
     return () => {
       cancelled = true
     }
-  }, [contentType, docxBuffer])
+  }, [contentType, docxBuffer, refreshDocxScale])
 
   const handleDownload = async () => {
     try {
@@ -144,6 +155,37 @@ export default function TemplatePreviewModal({ template, onClose }) {
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4">
+            {contentType === 'docx' && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDocxZoomMode('fit')}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    docxZoomMode === 'fit'
+                      ? 'text-blue-700 bg-blue-100'
+                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                  }`}
+                  title="Fit to width"
+                >
+                  Fit
+                </button>
+                <button
+                  onClick={() => setDocxZoomMode('actual')}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    docxZoomMode === 'actual'
+                      ? 'text-blue-700 bg-blue-100'
+                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                  }`}
+                  title="Actual size"
+                >
+                  Actual
+                </button>
+                {docxZoomMode === 'fit' && docxScale < 0.999 && (
+                  <span className="text-xs text-gray-500 tabular-nums">
+                    {Math.round(docxScale * 100)}%
+                  </span>
+                )}
+              </div>
+            )}
             <button
               onClick={handleDownload}
               className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
@@ -186,9 +228,9 @@ export default function TemplatePreviewModal({ template, onClose }) {
               </button>
             </div>
           ) : contentType === 'docx' && docxBuffer ? (
-            <div className="h-full overflow-auto bg-gray-100">
+            <div ref={docxViewportRef} className="h-full overflow-auto bg-gray-100">
               <div className="min-h-full py-6 px-4">
-                <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="w-fit mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
                   <div ref={docxContainerRef} className="p-6" />
                 </div>
               </div>

@@ -226,6 +226,8 @@ const translations = {
 
     // Document Viewer
     'document_preview': 'Document Preview',
+    'fit_to_width': 'Fit to width',
+    'actual_size': 'Actual size',
     'download': 'Download',
     'close': 'Close',
     'loading_document': 'Loading document...',
@@ -1322,6 +1324,8 @@ const translations = {
 
     // Document Viewer
     'document_preview': 'Pratonton Dokumen',
+    'fit_to_width': 'Muat ikut lebar',
+    'actual_size': 'Saiz sebenar',
     'download': 'Muat Turun',
     'close': 'Tutup',
     'loading_document': 'Memuatkan dokumen...',
@@ -2418,6 +2422,8 @@ const translations = {
 
     // Document Viewer
     'document_preview': '文档预览',
+    'fit_to_width': '适应宽度',
+    'actual_size': '实际大小',
     'download': '下载',
     'close': '关闭',
     'loading_document': '正在加载文档...',
