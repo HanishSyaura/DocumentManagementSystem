@@ -7,9 +7,6 @@ const MIME_TYPE_MAP = {
   DOC: ['application/msword'],
   DOCX: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   DOTX: ['application/vnd.openxmlformats-officedocument.wordprocessingml.template'],
-  XLS: ['application/vnd.ms-excel'],
-  XLSX: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  XLTX: ['application/vnd.openxmlformats-officedocument.spreadsheetml.template'],
   PPT: ['application/vnd.ms-powerpoint'],
   PPTX: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
   TXT: ['text/plain'],
@@ -17,7 +14,6 @@ const MIME_TYPE_MAP = {
   JPG: ['image/jpeg', 'image/jpg'],
   JPEG: ['image/jpeg'],
   GIF: ['image/gif'],
-  CSV: ['text/csv', 'application/csv'],
   JS: ['text/javascript', 'application/javascript'],
   JSX: ['text/javascript', 'application/javascript'],
   TS: ['application/typescript', 'text/plain'],
@@ -53,9 +49,6 @@ const EXTENSION_MAP = {
   DOC: '.doc',
   DOCX: '.docx',
   DOTX: '.dotx',
-  XLS: '.xls',
-  XLSX: '.xlsx',
-  XLTX: '.xltx',
   PPT: '.ppt',
   PPTX: '.pptx',
   TXT: '.txt',
@@ -63,7 +56,6 @@ const EXTENSION_MAP = {
   JPG: '.jpg',
   JPEG: '.jpeg',
   GIF: '.gif',
-  CSV: '.csv',
   JS: '.js',
   JSX: '.jsx',
   TS: '.ts',
@@ -97,7 +89,7 @@ const EXTENSION_MAP = {
 const DEFAULT_SETTINGS = {
   maxFileSize: 100, // MB
   allowedTypes: [
-    'PDF', 'DOC', 'DOCX', 'DOTX', 'XLS', 'XLSX', 'XLTX', 'PPT', 'PPTX', 'TXT', 'PNG', 'JPG', 'JPEG', 'GIF', 'CSV',
+    'PDF', 'DOC', 'DOCX', 'DOTX', 'PPT', 'PPTX', 'TXT', 'PNG', 'JPG', 'JPEG', 'GIF',
     'JS', 'JSX', 'TS', 'TSX', 'JSON', 'HTML', 'CSS', 'SCSS', 'LESS', 'MD', 'YML', 'YAML', 'XML', 'SQL',
     'PY', 'JAVA', 'C', 'CPP', 'H', 'HPP', 'CS', 'GO', 'RB', 'RS', 'KT', 'SWIFT', 'VUE'
   ],

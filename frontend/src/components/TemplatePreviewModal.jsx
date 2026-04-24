@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import mammoth from 'mammoth'
-import * as XLSX from 'xlsx'
 import useDocxFitToWidth from '../hooks/useDocxFitToWidth'
-import { Workbook } from '@fortune-sheet/react'
-import { transformExcelToFortune } from '@corbe30/fortune-excel'
 
 export default function TemplatePreviewModal({ template, onClose }) {
   const [loading, setLoading] = useState(true)
@@ -11,9 +8,6 @@ export default function TemplatePreviewModal({ template, onClose }) {
   const [docxBuffer, setDocxBuffer] = useState(null)
   const [contentType, setContentType] = useState(null)
   const [error, setError] = useState(null)
-  const workbookRef = useRef(null)
-  const [sheetKey, setSheetKey] = useState(0)
-  const [sheets, setSheets] = useState([{ name: 'Sheet1' }])
   const docxContainerRef = useRef(null)
   const docxViewportRef = useRef(null)
   const [docxZoomMode, setDocxZoomMode] = useState('fit')
@@ -33,8 +27,6 @@ export default function TemplatePreviewModal({ template, onClose }) {
         setDocxBuffer(null)
         setContentType(null)
         setDocxZoomMode('fit')
-        setSheets([{ name: 'Sheet1' }])
-        setSheetKey((k) => k + 1)
         const token = localStorage.getItem('token')
         const baseURL = import.meta.env.VITE_API_URL || '/api'
         
@@ -56,28 +48,7 @@ export default function TemplatePreviewModal({ template, onClose }) {
           setDocxBuffer(arrayBuffer)
           setContentType('docx')
         } else if (fileExtension === 'xlsx' || fileExtension === 'xls' || fileExtension === 'csv') {
-          const blob = await response.blob()
-          if (fileExtension === 'xlsx' || fileExtension === 'csv') {
-            try {
-              const file = new File([blob], template.fileName, { type: blob.type || undefined })
-              setContentType('sheet')
-              await transformExcelToFortune(file, setSheets, setSheetKey, workbookRef)
-            } catch (e) {
-              const arrayBuffer = await blob.arrayBuffer()
-              const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-              const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-              const htmlContent = XLSX.utils.sheet_to_html(firstSheet, { editable: false })
-              setContent(htmlContent)
-              setContentType('html')
-            }
-          } else {
-            const arrayBuffer = await blob.arrayBuffer()
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
-            const htmlContent = XLSX.utils.sheet_to_html(firstSheet, { editable: false })
-            setContent(htmlContent)
-            setContentType('html')
-          }
+          setContentType('other')
         } else {
           throw new Error('Unsupported file format for preview')
         }
@@ -264,10 +235,6 @@ export default function TemplatePreviewModal({ template, onClose }) {
                   <div ref={docxContainerRef} className="p-6" />
                 </div>
               </div>
-            </div>
-          ) : contentType === 'sheet' ? (
-            <div className="h-full w-full overflow-hidden bg-white">
-              <Workbook key={sheetKey} ref={workbookRef} data={sheets} />
             </div>
           ) : content && contentType === 'html' ? (
             <div className="h-full overflow-auto p-6 bg-white">

@@ -143,8 +143,10 @@ export default function ReviewAndApproval() {
       return
     }
 
-    setViewModalOpen(true)
-  }, [deepLinkDocId, documents])
+    if (isPdfDocument(doc)) {
+      setViewModalOpen(true)
+    }
+  }, [deepLinkDocId, documents, isPdfDocument])
 
   // Filter and search documents
   useEffect(() => {
@@ -207,7 +209,65 @@ export default function ReviewAndApproval() {
     setCurrentPage(1)
   }
 
+  const isPdfDocument = (doc) => {
+    const name = String(doc?.fileName || '')
+    return name.toLowerCase().endsWith('.pdf')
+  }
+
+  const handleDownload = async (doc) => {
+    try {
+      const res = await api.get(`/documents/${doc.id}/download`, {
+        responseType: 'blob'
+      })
+
+      const contentDisposition = res.headers?.['content-disposition'] || ''
+      const contentTypeHeader = res.headers?.['content-type'] || ''
+      const getFileNameFromContentDisposition = (value) => {
+        const v = String(value || '')
+        const mStar = v.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+        if (mStar && mStar[1]) {
+          try {
+            return decodeURIComponent(mStar[1].trim().replace(/^"|"$/g, ''))
+          } catch {
+            return mStar[1].trim().replace(/^"|"$/g, '')
+          }
+        }
+        const m = v.match(/filename\s*=\s*("?)([^";]+)\1/i)
+        if (m && m[2]) return m[2].trim()
+        return null
+      }
+
+      const fallbackName = doc.fileName || doc.title || `document-${doc.id}`
+      const downloadName = getFileNameFromContentDisposition(contentDisposition) || fallbackName
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: contentTypeHeader || undefined }))
+      const link = window.document.createElement('a')
+      link.href = url
+      link.setAttribute('download', downloadName)
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Failed to download document:', err)
+      setAlertModal({
+        show: true,
+        title: t('failed_load_doc'),
+        message: t('failed_load_doc'),
+        type: 'error'
+      })
+    }
+  }
+
   const handleView = (doc) => {
+    if (!isPdfDocument(doc)) {
+      setAlertModal({
+        show: true,
+        title: t('download'),
+        message: 'Please download the document to review. Preview is only available for PDF.',
+        type: 'info'
+      })
+      return
+    }
     setSelectedDocument(doc)
     setViewModalOpen(true)
   }
@@ -544,7 +604,10 @@ export default function ReviewAndApproval() {
                       <ActionMenu
                         actions={[
                           ...(hasPermission('documents.review', 'read')
-                            ? [{ label: t('view'), onClick: () => handleView(doc) }]
+                            ? [
+                                ...(isPdfDocument(doc) ? [{ label: t('view'), onClick: () => handleView(doc) }] : []),
+                                { label: t('download'), onClick: () => handleDownload(doc), dividerAfter: true }
+                              ]
                             : []
                           ),
                           ...(doc.stage === 'Review' && hasPermission('documents.review', 'review') && !isDocumentOwner(doc) && isAssignedReviewer(doc)
@@ -637,9 +700,22 @@ export default function ReviewAndApproval() {
                   {hasPermission('documents.review', 'read') && (
                     <button
                       onClick={() => handleView(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg ${
+                        isPdfDocument(doc)
+                          ? 'text-blue-600 border border-blue-600 hover:bg-blue-50'
+                          : 'text-gray-400 border border-gray-200 cursor-not-allowed'
+                      }`}
+                      disabled={!isPdfDocument(doc)}
                     >
                       {t('view')}
+                    </button>
+                  )}
+                  {hasPermission('documents.review', 'read') && (
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      className="flex-1 px-3 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                    >
+                      {t('download')}
                     </button>
                   )}
                   {doc.stage === 'Review' && hasPermission('documents.review', 'review') && !isDocumentOwner(doc) && isAssignedReviewer(doc) && (

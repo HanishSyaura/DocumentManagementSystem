@@ -6,7 +6,6 @@ import EmptyState from '../components/EmptyState'
 import Pagination from '../components/Pagination'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { isAdmin } from '../utils/permissions'
-import * as XLSX from 'xlsx'
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange }) {
@@ -1113,11 +1112,7 @@ function ConsolidatedRegister() {
   const [filters, setFilters] = useState({ search: '', projectCategoryId: 'all' })
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(itemsPerPage)
-  const [importOpen, setImportOpen] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [importFile, setImportFile] = useState(null)
   const [importError, setImportError] = useState('')
-  const [importResult, setImportResult] = useState(null)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [documentTypes, setDocumentTypes] = useState([])
   const [projectCategories, setProjectCategories] = useState([])
@@ -1171,217 +1166,15 @@ function ConsolidatedRegister() {
     return dt.toISOString().split('T')[0]
   }
 
-  const downloadTemplate = () => {
-    const header = ['Document Title', 'Type of Document', 'Project Category', 'Date', 'Status', 'Rev', 'Reference No']
-    const ws = XLSX.utils.aoa_to_sheet([header])
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Running Document')
-    XLSX.writeFile(wb, `consolidated_registry_template_${new Date().toISOString().split('T')[0]}.xlsx`)
-  }
-
   const exportExcel = async () => {
-    try {
-      const res = await api.get('/reports/master-record/consolidated', {
-        params: { search: filters.search, projectCategoryId: filters.projectCategoryId, export: 1 }
-      })
-      const data = res.data?.data || {}
-      const allRows = Array.isArray(data.rows) ? data.rows : []
-      const header = ['Document Title', 'Type of Document', 'Project Category', 'Date', 'Status', 'Rev', 'Reference No', 'Register', 'Source']
-      const aoa = [header]
-      for (const r of allRows) {
-        aoa.push([
-          r.documentTitle || '',
-          r.documentType || '',
-          r.projectCategory || '',
-          formatDate(r.date),
-          r.status || '',
-          r.rev || '',
-          r.fileCode || '',
-          r.register || '',
-          r.source || ''
-        ])
-      }
-      const ws = XLSX.utils.aoa_to_sheet(aoa)
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Consolidated Registry')
-      XLSX.writeFile(wb, `consolidated_registry_${new Date().toISOString().split('T')[0]}.xlsx`)
-    } catch (_) {
-      setAlertModal({ show: true, title: t('mr_export_failed'), message: t('mr_export_failed_desc'), type: 'error' })
-    }
+    setAlertModal({
+      show: true,
+      title: t('download'),
+      message: 'Excel export is disabled.',
+      type: 'info'
+    })
   }
 
-  const findHeaderRow = (aoa) => {
-    const needle = ['reference no', 'reference', 'no rujukan', '参考', '编号']
-    for (let i = 0; i < Math.min(20, aoa.length); i++) {
-      const row = Array.isArray(aoa[i]) ? aoa[i] : []
-      const joined = row.map((c) => String(c || '').toLowerCase()).join(' | ')
-      if (needle.some((n) => joined.includes(n))) return i
-    }
-    return -1
-  }
-
-  const toExcelDate = (v) => {
-    if (!v) return null
-    if (v instanceof Date && !Number.isNaN(v.getTime())) return v
-    if (typeof v === 'number') {
-      const epoch = new Date(Date.UTC(1899, 11, 30))
-      const ms = v * 24 * 60 * 60 * 1000
-      const d = new Date(epoch.getTime() + ms)
-      if (!Number.isNaN(d.getTime())) return d
-      return null
-    }
-    const s = String(v).trim()
-    if (!s) return null
-    const d = new Date(s)
-    if (!Number.isNaN(d.getTime())) return d
-    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
-    if (m) {
-      const dd = parseInt(m[1], 10)
-      const mm = parseInt(m[2], 10) - 1
-      const yy = parseInt(m[3], 10)
-      const d2 = new Date(yy, mm, dd)
-      if (!Number.isNaN(d2.getTime())) return d2
-    }
-    return null
-  }
-
-  const mapColumns = (headerRow) => {
-    const idx = {}
-    const norm = headerRow.map((h) => String(h || '').trim().toLowerCase())
-    const pick = (...names) => {
-      for (const n of names) {
-        const at = norm.indexOf(n)
-        if (at >= 0) return at
-      }
-      return -1
-    }
-    idx.title = pick('document title', 'tajuk dokumen', '文件标题')
-    idx.type = pick('type of document', 'jenis dokumen', 'document type', 'jenis dokumen', '文件类型')
-    idx.category = pick('project category', 'kategori projek', '项目类别')
-    idx.date = pick('date', 'tarikh', '日期')
-    idx.status = pick('status', 'status', '状态')
-    idx.rev = pick('rev', 'revision', 'revisi', '修订')
-    idx.ref = pick('reference no', 'reference', 'reference no.', 'no rujukan', '编号', '参考编号')
-    return idx
-  }
-
-  const openImport = () => {
-    setImportOpen(true)
-    setImporting(false)
-    setImportFile(null)
-    setImportError('')
-    setImportResult(null)
-  }
-
-  const closeImport = () => {
-    setImportOpen(false)
-    setImporting(false)
-    setImportFile(null)
-    setImportError('')
-    setImportResult(null)
-  }
-
-  const runImport = async () => {
-    setImportError('')
-    setImportResult(null)
-    if (!importFile) {
-      setImportError(t('mr_import_select_file'))
-      return
-    }
-    if (documentTypes.length === 0 || projectCategories.length === 0) {
-      setImportError(t('mr_import_missing_master'))
-      return
-    }
-    setImporting(true)
-    try {
-      const buf = await importFile.arrayBuffer()
-      const wb = XLSX.read(buf, { type: 'array' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' })
-      const headerRowIndex = findHeaderRow(aoa)
-      if (headerRowIndex < 0) {
-        setImportError(t('mr_import_bad_template'))
-        setImporting(false)
-        return
-      }
-      const header = aoa[headerRowIndex]
-      const cols = mapColumns(header)
-      if (cols.ref < 0 || cols.title < 0 || cols.type < 0 || cols.category < 0) {
-        setImportError(t('mr_import_bad_template'))
-        setImporting(false)
-        return
-      }
-
-      const matchDocTypeId = (val) => {
-        const s = String(val || '').trim()
-        if (!s) return null
-        const lower = s.toLowerCase()
-        const byName = documentTypes.find((dt) => String(dt.name || '').toLowerCase() === lower)
-        if (byName) return byName.id
-        const byPrefix = documentTypes.find((dt) => String(dt.prefix || '').toLowerCase() === lower)
-        return byPrefix ? byPrefix.id : null
-      }
-
-      const matchProjectCategoryId = (val) => {
-        const s = String(val || '').trim()
-        if (!s) return null
-        const lower = s.toLowerCase()
-        const byName = projectCategories.find((pc) => String(pc.name || '').toLowerCase() === lower)
-        if (byName) return byName.id
-        const byCode = projectCategories.find((pc) => String(pc.code || '').toLowerCase() === lower)
-        return byCode ? byCode.id : null
-      }
-
-      const payloadRows = []
-      for (let r = headerRowIndex + 1; r < aoa.length; r++) {
-        const row = aoa[r]
-        if (!Array.isArray(row)) continue
-        const fileCode = String(row[cols.ref] || '').trim()
-        const documentTitle = String(row[cols.title] || '').trim()
-        const docTypeCell = row[cols.type]
-        const projCell = row[cols.category]
-        const documentTypeId = matchDocTypeId(docTypeCell)
-        const projectCategoryId = matchProjectCategoryId(projCell)
-        const status = cols.status >= 0 ? String(row[cols.status] || '').trim() : ''
-        const rev = cols.rev >= 0 ? String(row[cols.rev] || '').trim() : ''
-        const date = cols.date >= 0 ? toExcelDate(row[cols.date]) : null
-        const hasAny = fileCode || documentTitle || docTypeCell || projCell
-        if (!hasAny) continue
-
-        payloadRows.push({
-          lineNumber: r + 1,
-          fileCode,
-          documentTitle,
-          documentTypeId,
-          projectCategoryId,
-          documentDate: date ? date.toISOString() : null,
-          status,
-          rev
-        })
-      }
-
-      if (payloadRows.length === 0) {
-        setImportError(t('mr_import_empty_rows'))
-        setImporting(false)
-        return
-      }
-
-      const res = await api.post('/reports/master-record/consolidated/import', { rows: payloadRows })
-      setImportResult(res.data?.data || null)
-      const counts = res.data?.data?.counts
-      setAlertModal({
-        show: true,
-        title: t('mr_import_done'),
-        message: `${t('mr_imported')}: ${counts?.imported ?? 0} | ${t('mr_rejected')}: ${counts?.failed ?? 0}`,
-        type: 'success'
-      })
-      await loadRows()
-    } catch (e) {
-      setImportError(e?.response?.data?.message || t('mr_import_failed_desc'))
-    } finally {
-      setImporting(false)
-    }
-  }
 
   const totalPages = Math.max(1, Math.ceil((pagination.total || 0) / pageSize))
 
@@ -1416,14 +1209,6 @@ function ConsolidatedRegister() {
             </select>
           </div>
           <div className="md:col-span-2 flex items-end justify-end gap-3">
-            {isAdmin() && (
-              <button
-                onClick={openImport}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t('mr_import_excel')}
-              </button>
-            )}
             <button
               onClick={exportExcel}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -1498,83 +1283,6 @@ function ConsolidatedRegister() {
         />
       )}
 
-      {importOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={closeImport} />
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full">
-              <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">{t('mr_import_excel')}</h2>
-                  <p className="text-sm text-gray-600 mt-1">{t('mr_import_desc')}</p>
-                </div>
-                <button onClick={closeImport} className="text-gray-400 hover:text-gray-600 transition-colors">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="px-6 py-4 space-y-4">
-                {importError && (
-                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-                    {importError}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={downloadTemplate}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    {t('mr_download_template')}
-                  </button>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="text-sm"
-                  />
-                </div>
-
-                {importResult?.failed?.length > 0 && (
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="px-4 py-2 bg-gray-50 text-sm font-medium text-gray-900">
-                      {t('mr_rejected')} ({importResult.failed.length})
-                    </div>
-                    <div className="max-h-56 overflow-auto divide-y divide-gray-100">
-                      {importResult.failed.slice(0, 50).map((f) => (
-                        <div key={`${f.lineNumber}-${f.reasonCode}`} className="px-4 py-2 text-sm">
-                          <div className="font-medium text-gray-900">Line {f.lineNumber}</div>
-                          <div className="text-gray-700">{f.message}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-                <button
-                  onClick={closeImport}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                  disabled={importing}
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  onClick={runImport}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
-                  disabled={importing}
-                >
-                  {importing ? t('loading') : t('mr_import')}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
