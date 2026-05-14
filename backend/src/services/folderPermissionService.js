@@ -72,8 +72,6 @@ class FolderPermissionService {
     const roleNames = user?.roles || []
 
     if (String(folder.accessMode || 'PUBLIC').toUpperCase() === 'PUBLIC') return true
-    if (this.isAdminRoleNames(roleNames)) return true
-    if (folder.createdById === user?.id) return true
 
     const roleIds = await this.getRoleIdsByNames(roleNames)
     const folderIds = []

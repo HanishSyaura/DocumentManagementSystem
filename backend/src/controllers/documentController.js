@@ -470,7 +470,7 @@ class DocumentController {
    */
   getDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
-    const document = await documentService.getDocumentById(documentId, req.user.id);
+    const document = await documentService.getDocumentById(documentId, req.user);
 
     return ResponseFormatter.success(
       res,
@@ -518,7 +518,7 @@ class DocumentController {
       sortOrder: 'desc'
     };
 
-    const result = await documentService.listDocuments(filters, pagination, req.user.id);
+    const result = await documentService.listDocuments(filters, pagination, req.user);
 
     // Format for frontend
     const documents = result.documents.map(doc => ({
@@ -576,7 +576,7 @@ class DocumentController {
       sortOrder: sortOrder || 'desc'
     };
 
-    const result = await documentService.listDocuments(filters, pagination, req.user.id);
+    const result = await documentService.listDocuments(filters, pagination, req.user);
 
     return ResponseFormatter.paginated(
       res,
@@ -645,6 +645,8 @@ class DocumentController {
   getReviewApprovalDocuments = asyncHandler(async (req, res) => {
     const { page, limit } = req.query;
     const userId = req.user.id;
+    const roles = Array.isArray(req.user?.roles) ? req.user.roles : [];
+    const canViewAllReadyToPublish = roles.includes('admin') || roles.includes('document_controller');
 
     const pagination = {
       page: page ? parseInt(page) : 1,
@@ -657,26 +659,27 @@ class DocumentController {
     // 3. Documents where user is assigned as second approver (secondApproverId)
     // NOTE: Document owners should NOT see their own documents here - only assigned reviewers/approvers
     const stages = ['REVIEW', 'APPROVAL', 'FIRST_APPROVAL', 'SECOND_APPROVAL', 'READY_TO_PUBLISH'];
+    const assignmentFilters = [
+      { reviewerId: userId },
+      { firstApproverId: userId },
+      { secondApproverId: userId },
+      {
+        assignments: {
+          some: {
+            userId: userId
+          }
+        }
+      }
+    ];
+
+    if (canViewAllReadyToPublish) {
+      assignmentFilters.push({ stage: 'READY_TO_PUBLISH' });
+    }
     
     const documents = await prisma.document.findMany({
       where: {
         stage: { in: stages },
-        OR: [
-          // User is assigned as reviewer
-          { reviewerId: userId },
-          // User is assigned as first approver
-          { firstApproverId: userId },
-          // User is assigned as second approver
-          { secondApproverId: userId },
-          // User has an assignment record
-          {
-            assignments: {
-              some: {
-                userId: userId
-              }
-            }
-          }
-        ]
+        OR: assignmentFilters
       },
       include: {
         documentType: true,
@@ -867,8 +870,8 @@ class DocumentController {
 
     // Get both superseded and obsolete documents
     const [obsoleteResult, supersededResult] = await Promise.all([
-      documentService.listDocuments({ status: 'OBSOLETE' }, pagination, req.user.id),
-      documentService.listDocuments({ status: 'SUPERSEDED' }, pagination, req.user.id)
+      documentService.listDocuments({ status: 'OBSOLETE' }, pagination, req.user),
+      documentService.listDocuments({ status: 'SUPERSEDED' }, pagination, req.user)
     ]);
 
     // Combine all documents
@@ -926,7 +929,7 @@ class DocumentController {
       limit: limit ? parseInt(limit) : 100
     };
 
-    const result = await documentService.listDocuments(filters, pagination, req.user.id);
+    const result = await documentService.listDocuments(filters, pagination, req.user);
     
     // Format for frontend with comprehensive tracking information
     const documents = result.documents.map(doc => {
@@ -999,7 +1002,7 @@ class DocumentController {
       limit: limit ? parseInt(limit) : 15
     };
 
-    const result = await documentService.listDocuments(filters, pagination, req.user.id);
+    const result = await documentService.listDocuments(filters, pagination, req.user);
 
     return ResponseFormatter.paginated(
       res,
@@ -1477,7 +1480,7 @@ class DocumentController {
       limit: limit ? parseInt(limit) : 15
     };
 
-    const result = await documentService.listDocuments(filters, pagination, req.user.id);
+    const result = await documentService.listDocuments(filters, pagination, req.user);
 
     const folderDownloadMap = new Map()
     const folderIds = Array.from(new Set(result.documents.map((d) => d.folderId).filter((id) => id !== null && id !== undefined)))

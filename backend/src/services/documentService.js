@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const fileStorageService = require('./fileStorageService');
 const documentAssignmentService = require('./documentAssignmentService');
+const folderPermissionService = require('./folderPermissionService')
 const { NotFoundError, BadRequestError, ForbiddenError } = require('../utils/errors');
 const DocumentNumbering = require('../utils/documentNumbering');
 const path = require('path');
@@ -949,7 +950,10 @@ class DocumentService {
    * Get document by ID
    * Enforces assignment-based access control
    */
-  async getDocumentById(documentId, userId = null) {
+  async getDocumentById(documentId, userOrUserId = null) {
+    const user = typeof userOrUserId === 'object' && userOrUserId ? userOrUserId : null
+    const userId = user ? user.id : userOrUserId
+
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       include: {
@@ -1007,7 +1011,7 @@ class DocumentService {
 
     // Enforce access control if userId is provided
     if (userId) {
-      const hasAccess = await documentAssignmentService.canAccessDocument(documentId, userId);
+      const hasAccess = await documentAssignmentService.canAccessDocument(documentId, user || userId);
       if (!hasAccess) {
         throw new ForbiddenError('You do not have access to this document');
       }
@@ -1054,7 +1058,10 @@ class DocumentService {
    * List documents with filters and pagination
    * Enforces assignment-based access control
    */
-  async listDocuments(filters = {}, pagination = {}, userId = null) {
+  async listDocuments(filters = {}, pagination = {}, userOrUserId = null) {
+    const user = typeof userOrUserId === 'object' && userOrUserId ? userOrUserId : null
+    const userId = user ? user.id : userOrUserId
+
     const {
       status,
       statusIn,
@@ -1082,7 +1089,8 @@ class DocumentService {
 
     // Enforce assignment-based access control
     if (userId) {
-      const accessClause = documentAssignmentService.buildAccessWhereClause(userId);
+      const roleIds = user ? await folderPermissionService.getRoleIdsByNames(user.roles || []) : []
+      const accessClause = documentAssignmentService.buildAccessWhereClause(userId, roleIds);
       Object.assign(where, accessClause);
     }
 

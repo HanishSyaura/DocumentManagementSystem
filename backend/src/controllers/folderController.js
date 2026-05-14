@@ -38,10 +38,6 @@ class FolderController {
         canViewCache.set(folderId, true)
         return true
       }
-      if (isAdmin || f.createdById === req.user?.id) {
-        canViewCache.set(folderId, true)
-        return true
-      }
       const rows = permMap.get(folderId) || []
       if (rows.length > 0) {
         const ok = folderPermissionService.hasActionFromPermRows(rows, 'view')
@@ -75,10 +71,6 @@ class FolderController {
         cache.set(folderId, true)
         return true
       }
-      if (isAdmin || f.createdById === req.user?.id) {
-        cache.set(folderId, true)
-        return true
-      }
       const rows = permMap.get(folderId) || []
       if (rows.length > 0) {
         const ok = folderPermissionService.hasActionFromPermRows(rows, a)
@@ -94,6 +86,13 @@ class FolderController {
       return false
     }
 
+    const canSeeFolderNode = (folderId) => {
+      const f = byId.get(folderId)
+      if (!f) return false
+      const manage = isAdmin || f.createdById === req.user?.id
+      return manage || canViewFolder(folderId)
+    }
+
     const decorate = (node) => {
       const manage = isAdmin || node.createdById === req.user?.id
       return {
@@ -103,10 +102,10 @@ class FolderController {
         canEdit: canActionFolder(node.id, 'edit'),
         canDelete: canActionFolder(node.id, 'delete'),
         canDownload: canActionFolder(node.id, 'download'),
-        children: (node.children || []).map(decorate).filter((c) => canViewFolder(c.id))
+        children: (node.children || []).map(decorate).filter((c) => canSeeFolderNode(c.id))
       }
     }
-    const filtered = (folders || []).filter((f) => canViewFolder(f.id)).map(decorate)
+    const filtered = (folders || []).filter((f) => canSeeFolderNode(f.id)).map(decorate)
 
     return ResponseFormatter.success(
       res,

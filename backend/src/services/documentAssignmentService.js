@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const folderPermissionService = require('./folderPermissionService')
 
 /**
  * Service for managing document assignments
@@ -146,12 +147,16 @@ class DocumentAssignmentService {
    * - User has an assignment
    * - Document is published (accessible to all)
    */
-  async canAccessDocument(documentId, userId) {
+  async canAccessDocument(documentId, userOrUserId) {
+    const user = typeof userOrUserId === 'object' && userOrUserId ? userOrUserId : null
+    const userId = user ? user.id : userOrUserId
+
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       select: {
         ownerId: true,
         createdById: true,
+        folderId: true,
         status: true,
         assignments: {
           where: {
@@ -166,6 +171,12 @@ class DocumentAssignmentService {
 
     if (!document) {
       return false;
+    }
+
+    if (document.folderId) {
+      if (!user) return false
+      const ok = await folderPermissionService.canUser(document.folderId, user, 'view')
+      if (!ok) return false
     }
 
     // Owner and creator always have access
@@ -190,26 +201,41 @@ class DocumentAssignmentService {
    * Build a where clause for document queries that enforces assignment-based access
    * This ensures users only see documents they have access to
    */
-  buildAccessWhereClause(userId) {
-    return {
+  buildAccessWhereClause(userId, roleIds = []) {
+    const rids = Array.isArray(roleIds) ? roleIds.filter((x) => Number.isFinite(x)) : []
+    const folderAccess = {
       OR: [
-        // Documents owned by user
-        { ownerId: userId },
-        // Documents created by user
-        { createdById: userId },
-        // Documents assigned to user
+        { folderId: null },
+        { folder: { accessMode: 'PUBLIC' } },
+        { folder: { permissions: { some: { userId, canView: true } } } },
+        ...(rids.length > 0 ? [{ folder: { permissions: { some: { roleId: { in: rids }, canView: true } } } }] : [])
+      ]
+    }
+
+    return {
+      AND: [
+        folderAccess,
         {
-          assignments: {
-            some: {
-              userId: userId
-            }
-          }
-        },
-        // Published documents (visible to all)
-        { status: 'PUBLISHED' },
-        // Obsolete/Superseded documents (archived, visible to all)
-        { status: 'OBSOLETE' },
-        { status: 'SUPERSEDED' }
+          OR: [
+            // Documents owned by user
+            { ownerId: userId },
+            // Documents created by user
+            { createdById: userId },
+            // Documents assigned to user
+            {
+              assignments: {
+                some: {
+                  userId: userId
+                }
+              }
+            },
+            // Published documents
+            { status: 'PUBLISHED' },
+            // Obsolete/Superseded documents
+            { status: 'OBSOLETE' },
+            { status: 'SUPERSEDED' }
+          ]
+        }
       ]
     };
   }
