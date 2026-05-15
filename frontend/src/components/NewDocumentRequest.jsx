@@ -746,8 +746,27 @@ export default function NewDocumentRequest() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('project_category')} <span className="text-red-500">*</span>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <span>
+                  {t('project_category')} <span className="text-red-500">*</span>
+                </span>
+                <span className="relative inline-flex group">
+                  <svg
+                    className="w-4 h-4 text-gray-400 hover:text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                  </svg>
+                  <span
+                    className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-72 -translate-x-1/2 rounded-md bg-gray-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+                    role="tooltip"
+                  >
+                    For External project categories, select the Client Name. For Internal project categories, select the Project Name.
+                  </span>
+                </span>
               </label>
               <select
                 required
