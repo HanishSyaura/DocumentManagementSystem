@@ -19,6 +19,7 @@ import Login from './components/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import SessionProvider from './components/SessionProvider'
+import RfidLedEpcEncoderRoute from './components/RfidLedEpcEncoderRoute'
 import { PreferencesProvider } from './contexts/PreferencesContext'
 import api from './api/axios'
 import { applyCompanyInfo, applyTheme, persistBranding } from './utils/branding'
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="/diagnostic" element={<DiagnosticPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/documents/:id" element={<DocumentLink />} />
+          <Route path="/rfid-epc-encoder" element={<RfidLedEpcEncoderRoute />} />
           
           {/* Protected Routes */}
           <Route

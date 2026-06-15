@@ -26,6 +26,7 @@ const translations = {
     'logs_report': 'Logs & Report',
     'master_record': 'Master Record',
     'profile_settings': 'Profile Settings',
+    'rfid_epc_encoder': 'RFID EPC Encoder',
     
     // Dashboard
     'dashboard_overview': 'Dashboard Overview',
@@ -1125,6 +1126,7 @@ const translations = {
     'logs_report': 'Log & Laporan',
     'master_record': 'Rekod Induk',
     'profile_settings': 'Tetapan Profil',
+    'rfid_epc_encoder': 'RFID EPC Encoder',
     
     // Dashboard
     'dashboard_overview': 'Gambaran Keseluruhan',
@@ -2224,6 +2226,7 @@ const translations = {
     'logs_report': '日志与报告',
     'master_record': '主记录',
     'profile_settings': '个人设置',
+    'rfid_epc_encoder': 'RFID EPC 编码器',
     
     // Dashboard
     'dashboard_overview': '仪表板概览',
