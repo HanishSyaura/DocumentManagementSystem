@@ -430,6 +430,21 @@ exports.updateVersionControlSettings = asyncHandler(async (req, res) => {
   );
 });
 
+exports.getRfidEpcRegistrySettings = asyncHandler(async (_req, res) => {
+  const settings = await configService.getRfidEpcRegistrySettings()
+  return ResponseFormatter.success(res, { settings }, 'RFID EPC registry settings retrieved successfully')
+})
+
+exports.updateRfidEpcRegistrySettings = asyncHandler(async (req, res) => {
+  const settings = req.body
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data')
+  }
+
+  const updatedSettings = await configService.updateRfidEpcRegistrySettings(settings)
+  return ResponseFormatter.success(res, { settings: updatedSettings }, 'RFID EPC registry settings updated successfully')
+})
+
 /**
  * @desc    Get retention policy settings
  * @route   GET /api/config/retention-policy

@@ -20,6 +20,7 @@ const ROUTE_PRIORITY = [
   { path: '/config', module: 'configuration.roles' },
   { path: '/logs', module: 'logsReport.activityLogs' },
   { path: '/master-record', module: 'masterRecord' },
+  { path: '/rfid-epc-registry', module: 'documents.rfidRegistry' },
   { path: '/profile', module: 'profileSettings' }
 ]
 

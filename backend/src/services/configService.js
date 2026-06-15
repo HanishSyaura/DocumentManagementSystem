@@ -517,6 +517,46 @@ class ConfigService {
     return JSON.parse(config.value);
   }
 
+  async getRfidEpcRegistrySettings() {
+    const config = await prisma.configuration.findUnique({
+      where: { key: 'rfid_epc_registry_settings' }
+    })
+
+    if (config?.value) {
+      try {
+        const parsed = JSON.parse(config.value)
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch (error) {
+        console.error('Failed to parse RFID EPC registry settings:', error)
+      }
+    }
+
+    return {
+      enabled: false,
+      companyPrefixDigits: 7,
+      companyPrefix: '9551234',
+      filter: 1,
+      itemReferenceByDocumentType: {}
+    }
+  }
+
+  async updateRfidEpcRegistrySettings(settings) {
+    const settingsJson = JSON.stringify(settings)
+    const config = await prisma.configuration.upsert({
+      where: { key: 'rfid_epc_registry_settings' },
+      update: {
+        value: settingsJson,
+        description: 'RFID EPC registry configuration'
+      },
+      create: {
+        key: 'rfid_epc_registry_settings',
+        value: settingsJson,
+        description: 'RFID EPC registry configuration'
+      }
+    })
+    return JSON.parse(config.value)
+  }
+
   // ============================================
   // RETENTION POLICY SETTINGS
   // ============================================

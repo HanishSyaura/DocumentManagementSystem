@@ -330,6 +330,7 @@ model Document {
   versionRequests        VersionRequest[]           @relation("VersionRequestSource")
   newVersionRequests     VersionRequest[]           @relation("VersionRequestNew")
   assignments            DocumentAssignment[]
+  epcRegistryRecords     DocumentEpcRegistryRecord[]
 
   @@unique([fileCode, projectCategoryId])
   @@index([fileCode])
@@ -396,11 +397,38 @@ model DocumentVersion {
   uploadedAt   DateTime @default(now())
 
   // Relations
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  uploadedBy User     @relation("VersionUploader", fields: [uploadedById], references: [id])
+  document          Document                  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy        User                      @relation("VersionUploader", fields: [uploadedById], references: [id])
+  epcRegistryRecord DocumentEpcRegistryRecord?
 
   @@index([documentId])
   @@index([version])
+}
+
+model DocumentEpcRegistryRecord {
+  id                 Int      @id @default(autoincrement())
+  documentId         Int
+  documentVersionId  Int      @unique
+  fileCode           String
+  fileName           String
+  epcScheme          String   @default("SGTIN-96")
+  epcHex             String   @unique
+  filter             Int
+  companyPrefixDigits Int
+  companyPrefix      String
+  itemReference      String
+  serial             String
+  tagUri             String
+  pureIdentityUri    String
+  generatedAt        DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  document        Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentVersion DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
+
+  @@index([generatedAt])
+  @@index([fileCode])
+  @@index([documentId])
 }
 
 model DocumentMetadata {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { hasAnyPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
+import api from '../api/axios'
 
 const menuItems = [
   { 
@@ -93,10 +94,10 @@ const menuItems = [
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
   },
   {
-    name: 'RFID EPC Encoder',
-    translationKey: 'rfid_epc_encoder',
-    path: '/rfid-epc-encoder',
-    module: null,
+    name: 'RFID EPC Registry',
+    translationKey: 'rfid_epc_registry',
+    path: '/rfid-epc-registry',
+    module: 'documents.rfidRegistry',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V7a2 2 0 00-2-2h-3M4 11v6a2 2 0 002 2h3m5-14h-4m0 14h4m-5-9h6m-6 4h6M7 7h.01M17 17h.01" /></svg>
   }
 ]
@@ -163,14 +164,47 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
     }
   })
   const [permissionTrigger, setPermissionTrigger] = useState(0)
+  const [rfidRegistryEnabled, setRfidRegistryEnabled] = useState(() => {
+    try {
+      const savedSettings = localStorage.getItem('dms_document_settings')
+      if (!savedSettings) return false
+      const parsed = JSON.parse(savedSettings)
+      return Boolean(parsed?.rfidEpcRegistryEnabled)
+    } catch {
+      return false
+    }
+  })
   
   // Listen for permission changes
+  useEffect(() => {
+    const loadRfidRegistryStatus = async () => {
+      try {
+        const res = await api.get('/epc-registry/status')
+        const enabled = Boolean(res.data?.data?.enabled)
+        setRfidRegistryEnabled(enabled)
+      } catch (error) {
+        console.error('Failed to load RFID EPC registry status:', error)
+      }
+    }
+
+    loadRfidRegistryStatus()
+  }, [])
+
   useEffect(() => {
     const handleStorageChange = (e) => {
       // When user data changes in localStorage, re-compute visible items
       if (e.key === 'user' || e.storageArea === localStorage) {
         console.log('User data changed, refreshing menu permissions')
         setPermissionTrigger(prev => prev + 1)
+      }
+      if (e.key === 'dms_document_settings' || e.storageArea === localStorage) {
+        try {
+          const savedSettings = localStorage.getItem('dms_document_settings')
+          const parsed = savedSettings ? JSON.parse(savedSettings) : {}
+          setRfidRegistryEnabled(Boolean(parsed?.rfidEpcRegistryEnabled))
+        } catch {
+          setRfidRegistryEnabled(false)
+        }
       }
     }
     
@@ -182,11 +216,22 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
       console.log('User permissions updated, refreshing menu')
       setPermissionTrigger(prev => prev + 1)
     }
+    const handleDocumentSettingsChange = () => {
+      try {
+        const savedSettings = localStorage.getItem('dms_document_settings')
+        const parsed = savedSettings ? JSON.parse(savedSettings) : {}
+        setRfidRegistryEnabled(Boolean(parsed?.rfidEpcRegistryEnabled))
+      } catch {
+        setRfidRegistryEnabled(false)
+      }
+    }
     window.addEventListener('userDataChanged', handleCustomUserChange)
+    window.addEventListener('documentSettingsChanged', handleDocumentSettingsChange)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('userDataChanged', handleCustomUserChange)
+      window.removeEventListener('documentSettingsChanged', handleDocumentSettingsChange)
     }
   }, [])
   
@@ -194,6 +239,8 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   // Re-compute when permissions change
   const visibleMenuItems = useMemo(() => {
     return menuItems.filter(item => {
+      if (item.path === '/rfid-epc-registry' && !rfidRegistryEnabled) return false
+
       // Always show items without module requirement (like Profile)
       if (!item.module) return true
       
@@ -204,7 +251,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
       console.log(`Menu item "${item.name}" (${item.module}): ${hasAccess ? 'visible' : 'hidden'}`)
       return hasAccess
     })
-  }, [permissionTrigger]) // Re-check when permissions are updated
+  }, [permissionTrigger, rfidRegistryEnabled]) // Re-check when permissions or config are updated
 
   useEffect(() => {
     let timer = null

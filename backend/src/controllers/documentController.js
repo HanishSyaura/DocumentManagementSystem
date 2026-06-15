@@ -1,6 +1,7 @@
 const documentService = require('../services/documentService');
 const folderPermissionService = require('../services/folderPermissionService');
 const auditLogService = require('../services/auditLogService');
+const epcRegistryService = require('../services/epcRegistryService');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
 const { ConflictError } = require('../utils/errors');
@@ -106,6 +107,8 @@ class DocumentController {
       req.file,
       req.user.id
     );
+
+    await epcRegistryService.generateForUploadedDraft(documentId, version.id, req)
 
     // Log file upload
     await auditLogService.logDocument(req.user.id, 'UPLOAD', { id: documentId, fileCode: version.document?.fileCode || documentId }, req, {
@@ -1851,11 +1854,13 @@ class DocumentController {
     }
 
     // Upload file
-    await documentService.uploadDocumentVersion(
+    const uploadedVersion = await documentService.uploadDocumentVersion(
       documentId,
       req.file,
       req.user.id
     );
+
+    await epcRegistryService.generateForUploadedDraft(documentId, uploadedVersion.id, req)
 
     // Log draft upload
     await auditLogService.logDocument(req.user.id, 'DRAFT_UPLOAD', { id: documentId, fileCode: savedFileCode }, req, {

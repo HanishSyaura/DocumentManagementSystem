@@ -168,6 +168,7 @@ export const MODULE_ROUTES = {
   'logsReport.reports': '/logs',
   'logsReport.analytics': '/logs',
   'masterRecord': '/master-record',
+  'documents.rfidRegistry': '/rfid-epc-registry',
   'profileSettings': '/profile'
 }
 

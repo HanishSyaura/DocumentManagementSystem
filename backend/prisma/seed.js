@@ -49,6 +49,9 @@ async function main() {
     
     // Master Record (5 permissions)
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
+
+    // RFID EPC Registry (3 permissions)
+    'documents.rfidRegistry': { view: true, export: true, manage: true },
     
     // Profile Settings (3 permissions)
     profileSettings: { view: true, edit: true, changePassword: true }
@@ -78,6 +81,7 @@ async function main() {
         'configuration.templates': { view: true, read: true, download: true },
         'logsReport.activityLogs': { view: true, filter: true, export: true },
         masterRecord: { view: true, search: true, filter: true, export: true, download: true },
+        'documents.rfidRegistry': { view: true, export: true },
         profileSettings: { view: true, edit: true, changePassword: true }
       })
     },

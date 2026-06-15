@@ -3648,7 +3648,12 @@ function DocumentSettings() {
     maxVersions: 10,
     draftRetention: 30,
     archivedRetention: 365,
-    deletedRetention: 90
+    deletedRetention: 90,
+    rfidEpcRegistryEnabled: false,
+    rfidCompanyPrefixDigits: 7,
+    rfidCompanyPrefix: '9551234',
+    rfidFilter: 1,
+    rfidItemReferenceByDocumentType: {}
   })
   const [saving, setSaving] = useState(false)
   const [documentTypes, setDocumentTypes] = useState([])
@@ -3670,11 +3675,12 @@ function DocumentSettings() {
   const loadSettings = async () => {
     try {
       // Load all settings from backend
-      const [numberingRes, fileUploadRes, versionRes, retentionRes] = await Promise.all([
+      const [numberingRes, fileUploadRes, versionRes, retentionRes, rfidRes] = await Promise.all([
         api.get('/system/config/document-numbering').catch(err => ({ data: { success: false } })),
         api.get('/system/config/file-upload').catch(err => ({ data: { success: false } })),
         api.get('/system/config/version-control').catch(err => ({ data: { success: false } })),
-        api.get('/system/config/retention-policy').catch(err => ({ data: { success: false } }))
+        api.get('/system/config/retention-policy').catch(err => ({ data: { success: false } })),
+        api.get('/system/config/rfid-epc-registry').catch(err => ({ data: { success: false } }))
       ])
 
       const loadedSettings = { ...settings }
@@ -3716,9 +3722,22 @@ function DocumentSettings() {
         loadedSettings.deletedRetention = retentionSettings.deletedRetention
       }
 
+      if (rfidRes.data.success && rfidRes.data.data.settings) {
+        const rfidSettings = rfidRes.data.data.settings
+        loadedSettings.rfidEpcRegistryEnabled = Boolean(rfidSettings.enabled)
+        loadedSettings.rfidCompanyPrefixDigits = Number(rfidSettings.companyPrefixDigits || 7)
+        loadedSettings.rfidCompanyPrefix = String(rfidSettings.companyPrefix || '')
+        loadedSettings.rfidFilter = Number(rfidSettings.filter ?? 1)
+        loadedSettings.rfidItemReferenceByDocumentType =
+          rfidSettings.itemReferenceByDocumentType && typeof rfidSettings.itemReferenceByDocumentType === 'object'
+            ? rfidSettings.itemReferenceByDocumentType
+            : {}
+      }
+
       setSettings(loadedSettings)
       // Also update localStorage for backward compatibility
       localStorage.setItem('dms_document_settings', JSON.stringify(loadedSettings))
+      window.dispatchEvent(new Event('documentSettingsChanged'))
     } catch (error) {
       console.error('Failed to load settings from backend, using localStorage:', error)
       // Fallback to localStorage
@@ -3846,9 +3865,27 @@ function DocumentSettings() {
         console.error('Failed to save retention policy settings:', error)
         saveErrors.push('retention policy')
       }
+
+      try {
+        const payload = {
+          enabled: Boolean(settings.rfidEpcRegistryEnabled),
+          companyPrefixDigits: Number(settings.rfidCompanyPrefixDigits || 7),
+          companyPrefix: String(settings.rfidCompanyPrefix || '').trim(),
+          filter: Number(settings.rfidFilter ?? 1),
+          itemReferenceByDocumentType:
+            settings.rfidItemReferenceByDocumentType && typeof settings.rfidItemReferenceByDocumentType === 'object'
+              ? settings.rfidItemReferenceByDocumentType
+              : {}
+        }
+        await api.put('/system/config/rfid-epc-registry', payload)
+      } catch (error) {
+        console.error('Failed to save RFID EPC registry settings:', error)
+        saveErrors.push('rfid epc registry')
+      }
       
       // Always save to localStorage for backward compatibility and NDR preview
       localStorage.setItem('dms_document_settings', JSON.stringify(settings))
+      window.dispatchEvent(new Event('documentSettingsChanged'))
       console.log('Saving document settings:', settings)
       
       if (saveErrors.length > 0) {
@@ -4205,6 +4242,116 @@ function DocumentSettings() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
             />
             <p className="text-xs text-gray-500 mt-1">Days to keep deleted items in trash before permanent deletion</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <h4 className="font-semibold text-gray-900 text-base">RFID EPC Registry</h4>
+          <p className="text-sm text-gray-600 mt-1">Enable optional RFID EPC registry generation after draft upload</p>
+        </div>
+        <div className="p-6 space-y-6">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.rfidEpcRegistryEnabled}
+              onChange={(e) => setSettings((prev) => ({ ...prev, rfidEpcRegistryEnabled: e.target.checked }))}
+              className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-900">Enable RFID EPC Registry</span>
+              <p className="text-sm text-gray-600 mt-0.5">
+                When enabled, the system generates an SGTIN-96 EPC hex record automatically after each draft upload.
+              </p>
+            </div>
+          </label>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">Company Prefix Digits</label>
+              <select
+                value={String(settings.rfidCompanyPrefixDigits)}
+                onChange={(e) => setSettings((prev) => ({ ...prev, rfidCompanyPrefixDigits: parseInt(e.target.value) || 7 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+              >
+                <option value="12">12</option>
+                <option value="11">11</option>
+                <option value="10">10</option>
+                <option value="9">9</option>
+                <option value="8">8</option>
+                <option value="7">7</option>
+                <option value="6">6</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">Company Prefix (GS1)</label>
+              <input
+                type="text"
+                value={settings.rfidCompanyPrefix}
+                onChange={(e) => setSettings((prev) => ({ ...prev, rfidCompanyPrefix: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">Filter</label>
+              <select
+                value={String(settings.rfidFilter)}
+                onChange={(e) => setSettings((prev) => ({ ...prev, rfidFilter: parseInt(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+              >
+                <option value="0">0 - All Others</option>
+                <option value="1">1 - POS Item</option>
+                <option value="2">2 - Full Case</option>
+                <option value="3">3 - Reserved</option>
+                <option value="4">4 - Inner Pack</option>
+                <option value="5">5 - Reserved</option>
+                <option value="6">6 - Unit Load</option>
+                <option value="7">7 - Component</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3">
+              <p className="text-sm font-semibold text-gray-900">Item Reference Mapping (by Document Type)</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Use numeric GS1 item reference. Digits depend on company prefix digits.
+              </p>
+            </div>
+            <div className="p-4">
+              {loadingTypes ? (
+                <div className="text-sm text-gray-500">Loading document types...</div>
+              ) : documentTypes.length === 0 ? (
+                <div className="text-sm text-gray-500">No document types found.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {documentTypes.map((dt) => (
+                    <div key={dt.id} className="flex items-center justify-between gap-3 border border-gray-200 rounded-lg p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{dt.name}</p>
+                        <p className="text-xs text-gray-600 truncate">ID: {dt.id}</p>
+                      </div>
+                      <input
+                        type="text"
+                        value={settings.rfidItemReferenceByDocumentType?.[String(dt.id)] || ''}
+                        onChange={(e) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            rfidItemReferenceByDocumentType: {
+                              ...(prev.rfidItemReferenceByDocumentType || {}),
+                              [String(dt.id)]: e.target.value
+                            }
+                          }))
+                        }
+                        placeholder="Numeric"
+                        className="w-40 px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

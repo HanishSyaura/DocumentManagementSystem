@@ -28,6 +28,7 @@ const rolePermissions = {
     'logsReport.reports': { view: true, generate: true, export: true, download: true },
     'logsReport.analytics': { view: true },
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
+    'documents.rfidRegistry': { view: true, export: true, manage: true },
     profileSettings: { view: true, edit: true, changePassword: true }
   },
 
@@ -44,6 +45,7 @@ const rolePermissions = {
     'configuration.templateRequests': { view: true, read: true, update: true },
     'logsReport.activityLogs': { view: true, filter: true, export: true },
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
+    'documents.rfidRegistry': { view: true, export: true },
     profileSettings: { view: true, edit: true, changePassword: true }
   },
 

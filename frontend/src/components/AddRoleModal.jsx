@@ -148,6 +148,12 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
       actions: ['view', 'search', 'filter', 'export', 'download']
     },
     {
+      id: 'documents.rfidRegistry',
+      name: 'RFID EPC Registry',
+      description: 'RFID EPC generated record listing and export',
+      actions: ['view', 'export', 'manage']
+    },
+    {
       id: 'profileSettings',
       name: 'Profile Settings',
       description: 'Personal profile management',

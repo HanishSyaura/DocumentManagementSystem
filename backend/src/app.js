@@ -17,6 +17,7 @@ const auditRoutes = require('./routes/audit');
 const systemRoutes = require('./routes/system');
 const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
+const epcRegistryRoutes = require('./routes/epcRegistry');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -82,7 +83,8 @@ app.get(['/api', '/api/'], (req, res) => {
       workflow: '/api/workflow',
       reports: '/api/reports',
       templates: '/api/templates',
-      notifications: '/api/notifications'
+      notifications: '/api/notifications',
+      epcRegistry: '/api/epc-registry'
     }
   }, 'API root');
 });
@@ -100,6 +102,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
+app.use('/api/epc-registry', epcRegistryRoutes);
 app.use('/api/public', require('./routes/public'));
 
 // Alias routes for easier frontend access
