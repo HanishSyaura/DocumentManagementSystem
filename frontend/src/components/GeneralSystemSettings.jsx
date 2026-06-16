@@ -3638,6 +3638,7 @@ function DocumentSettings() {
     documentCodeFormat: 'PREFIX/VERSION/YYMMDD/COUNTER',
     separator: '/',
     prefixPlaceholder: 'PFX',
+    includeProjectCategoryCode: false,
     includeVersion: true,
     versionDigits: '2',
     dateFormat: 'YYMMDD',
@@ -3795,6 +3796,7 @@ function DocumentSettings() {
           const numberingSettings = {
             separator: settings.separator,
             prefixPlaceholder: settings.prefixPlaceholder,
+            includeProjectCategoryCode: settings.includeProjectCategoryCode,
             includeVersion: settings.includeVersion,
             versionDigits: settings.versionDigits,
             dateFormat: settings.dateFormat,
@@ -3962,6 +3964,21 @@ function DocumentSettings() {
                     <p className="text-xs text-gray-500 mt-1">e.g., PFX, PF, PREFIX (pulls actual prefix from Master Data)</p>
                   </div>
 
+                  <div>
+                    <label className="flex items-center gap-2 mb-1.5">
+                      <input
+                        type="checkbox"
+                        checked={settings.includeProjectCategoryCode}
+                        onChange={(e) => setSettings(prev => ({ ...prev, includeProjectCategoryCode: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <span className="text-xs font-medium text-gray-700">Include Project Category Code</span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      When enabled, the prefix segment compactly combines `project category code` + `document type prefix` while keeping the same total length.
+                    </p>
+                  </div>
+
                   {/* Separator */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -4075,8 +4092,17 @@ function DocumentSettings() {
                     const day = String(now.getDate()).padStart(2, '0');
                     const parts = [];
                     
-                    // Add prefix placeholder
-                    const prefix = settings.prefixPlaceholder || 'PFX';
+                    // Add prefix placeholder / compact prefix preview
+                    const prefixLength = Math.max(1, String(settings.prefixPlaceholder || 'PFX').length);
+                    const docPrefix = 'DOC';
+                    const projectCategoryCode = 'PC';
+                    const prefix = (() => {
+                      if (!settings.includeProjectCategoryCode) return docPrefix.slice(0, prefixLength);
+                      if (prefixLength === 1) return projectCategoryCode.slice(0, 1);
+                      const projectLength = Math.min(projectCategoryCode.length, Math.max(1, Math.ceil(prefixLength / 2)));
+                      const docLength = Math.max(1, prefixLength - projectLength);
+                      return `${projectCategoryCode.slice(0, projectLength)}${docPrefix.slice(0, docLength)}`.slice(0, prefixLength);
+                    })();
                     parts.push(prefix);
                     
                     // Add version
@@ -4125,7 +4151,7 @@ function DocumentSettings() {
                   <svg className="w-5 h-5 mt-0.5 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="leading-relaxed">This is how your document codes will be generated. <span className="font-semibold">All changes update instantly</span> as you adjust the settings above.</p>
+                  <p className="leading-relaxed">This is how your document codes will be generated. <span className="font-semibold">Existing files stay unchanged</span>; only newly generated file codes follow the updated format.</p>
                 </div>
               </div>
 

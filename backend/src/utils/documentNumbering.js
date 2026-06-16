@@ -15,6 +15,7 @@ class DocumentNumbering {
     return {
       separator: '/',
       prefixPlaceholder: 'PFX',
+      includeProjectCategoryCode: false,
       includeVersion: true,
       versionDigits: 2,
       dateFormat: 'YYMMDD',
@@ -34,7 +35,10 @@ class DocumentNumbering {
       });
 
       if (config && config.value) {
-        return JSON.parse(config.value);
+        return {
+          ...this.getDefaultSettings(),
+          ...JSON.parse(config.value)
+        };
       }
     } catch (error) {
       console.error('Failed to load document numbering settings from database:', error);
@@ -42,6 +46,36 @@ class DocumentNumbering {
 
     // Return defaults if not configured or error
     return this.getDefaultSettings();
+  }
+
+  static sanitizeCodeSegment(value) {
+    return String(value ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+  }
+
+  static buildPrefixSegment(prefix, settings = {}, projectCategoryCode = '') {
+    const maxLength = Math.max(1, String(settings?.prefixPlaceholder || 'PFX').length)
+    const basePrefix = this.sanitizeCodeSegment(prefix)
+    const categoryCode = this.sanitizeCodeSegment(projectCategoryCode)
+    const includeProjectCategoryCode = Boolean(settings?.includeProjectCategoryCode)
+
+    if (!includeProjectCategoryCode || !categoryCode) {
+      return (basePrefix || 'X').slice(0, maxLength)
+    }
+
+    if (!basePrefix) {
+      return categoryCode.slice(0, maxLength)
+    }
+
+    if (maxLength === 1) {
+      return categoryCode.slice(0, 1)
+    }
+
+    const categoryLength = Math.min(categoryCode.length, Math.max(1, Math.ceil(maxLength / 2)))
+    const prefixLength = Math.max(1, maxLength - categoryLength)
+
+    return `${categoryCode.slice(0, categoryLength)}${basePrefix.slice(0, prefixLength)}`.slice(0, maxLength)
   }
 
   /**
@@ -89,7 +123,8 @@ class DocumentNumbering {
     const {
       date = new Date(),
       version = '1',
-      settings = null
+      settings = null,
+      projectCategoryCode = ''
     } = options;
 
     // Load settings
@@ -97,12 +132,8 @@ class DocumentNumbering {
     const parts = [];
     const separator = config.separator || '/';
 
-    // Add prefix - truncate based on placeholder length
-    let prefixToUse = prefix;
-    if (config.prefixPlaceholder && config.prefixPlaceholder.length > 0) {
-      const maxLength = config.prefixPlaceholder.length;
-      prefixToUse = prefix.substring(0, maxLength);
-    }
+    // Add prefix - optionally compact with project category code while keeping the same length.
+    const prefixToUse = this.buildPrefixSegment(prefix, config, projectCategoryCode)
     parts.push(prefixToUse);
 
     // Add version (if enabled)
@@ -142,6 +173,7 @@ class DocumentNumbering {
 
     const result = {
       prefix: parts[0] || null,
+      projectCategoryPrefix: null,
       version: null,
       date: null,
       sequence: null
@@ -180,10 +212,11 @@ class DocumentNumbering {
     const {
       date = new Date(),
       version = '1',
-      settings = null
+      settings = null,
+      projectCategoryCode = ''
     } = options;
 
-    return await this.generateFileCode(prefix, 1, { date, version, settings });
+    return await this.generateFileCode(prefix, 1, { date, version, settings, projectCategoryCode });
   }
 }
 

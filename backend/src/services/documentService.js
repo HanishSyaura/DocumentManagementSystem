@@ -73,7 +73,7 @@ class DocumentService {
 
     const parseStructuredParts = (arr) => {
       const prefix = String(arr[0] || '')
-      if (!new RegExp(`^[A-Za-z]{1,${prefixLen}}$`).test(prefix)) {
+      if (!new RegExp(`^[A-Za-z0-9]{1,${prefixLen}}$`).test(prefix)) {
         fail('INVALID_PREFIX', `Prefix is invalid for "${input}"`)
       }
       let idx = 1
@@ -115,7 +115,7 @@ class DocumentService {
     }
 
     const compactRegex = (() => {
-      const prefix = `([A-Za-z]{1,${prefixLen}})`
+      const prefix = `([A-Za-z0-9]{1,${prefixLen}})`
       const version = includeVersion ? `(\\d{${versionDigits}}[A-Za-z]?)` : ''
       const date = dateDigits > 0 ? `(\\d{${dateDigits}})` : ''
       const counter = `(\\d{${counterDigits}})`
@@ -280,7 +280,7 @@ class DocumentService {
     }
 
     const isDigits = (s, len) => new RegExp(`^\\d{${len}}$`).test(String(s || ''))
-    const isPrefixOk = (s) => new RegExp(`^[A-Za-z]{1,${prefixLen}}$`).test(String(s || ''))
+    const isPrefixOk = (s) => new RegExp(`^[A-Za-z0-9]{1,${prefixLen}}$`).test(String(s || ''))
 
     if (parts.length >= 2) {
       const prefix = parts[0]
@@ -299,7 +299,7 @@ class DocumentService {
       }
     }
 
-    const m = cleaned.match(new RegExp(`^([A-Za-z]{1,${prefixLen}})(\\d+)$`))
+    const m = cleaned.match(new RegExp(`^([A-Za-z0-9]{1,${prefixLen}})(\\d+)$`))
     if (m) {
       const prefix = m[1]
       const digits = m[2]
@@ -367,10 +367,24 @@ class DocumentService {
     const dateToUse = documentDate || new Date();
     const prefix = documentType.prefix;
     const settings = await DocumentNumbering.loadSettings()
+    let projectCategoryCode = ''
+
+    if (settings?.includeProjectCategoryCode && projectCategoryId) {
+      const projectCategory = await prisma.projectCategory.findUnique({
+        where: { id: parseInt(projectCategoryId, 10) },
+        select: { code: true }
+      })
+      projectCategoryCode = String(projectCategory?.code || '').trim()
+    }
 
     let sequence = 1
     if (projectCategoryId) {
-      const template = await DocumentNumbering.generateFileCode(prefix, 1, { date: dateToUse, version, settings })
+      const template = await DocumentNumbering.generateFileCode(prefix, 1, {
+        date: dateToUse,
+        version,
+        settings,
+        projectCategoryCode
+      })
       const parsedTemplate = this.parseAndNormalizeFileCodeStrict(template, settings)
       const maxRunning = await this.getCurrentMaxRunningNumber(projectCategoryId, documentTypeId, settings, {
         versionSegment: parsedTemplate.versionSegment
@@ -383,7 +397,8 @@ class DocumentService {
     let fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
       date: dateToUse,
       version: version,
-      settings
+      settings,
+      projectCategoryCode
     })
 
     // Guard against collisions in existing records
@@ -403,7 +418,8 @@ class DocumentService {
       fileCode = await DocumentNumbering.generateFileCode(prefix, sequence, {
         date: dateToUse,
         version,
-        settings
+        settings,
+        projectCategoryCode
       })
       retries += 1
     }

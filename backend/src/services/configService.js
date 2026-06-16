@@ -2,6 +2,35 @@ const prisma = require('../config/database');
 const { NotFoundError, ConflictError } = require('../utils/errors');
 
 class ConfigService {
+  getDefaultDocumentNumberingSettings() {
+    return {
+      separator: '/',
+      prefixPlaceholder: 'PFX',
+      includeProjectCategoryCode: false,
+      includeVersion: true,
+      versionDigits: '2',
+      dateFormat: 'YYMMDD',
+      counterDigits: '3',
+      startingNumber: '1'
+    };
+  }
+
+  normalizeDocumentNumberingSettings(input) {
+    const defaults = this.getDefaultDocumentNumberingSettings();
+    const source = (input && typeof input === 'object') ? input : {};
+
+    return {
+      separator: String(source.separator ?? defaults.separator),
+      prefixPlaceholder: String(source.prefixPlaceholder ?? defaults.prefixPlaceholder),
+      includeProjectCategoryCode: Boolean(source.includeProjectCategoryCode ?? defaults.includeProjectCategoryCode),
+      includeVersion: Boolean(source.includeVersion ?? defaults.includeVersion),
+      versionDigits: String(source.versionDigits ?? defaults.versionDigits),
+      dateFormat: String(source.dateFormat ?? defaults.dateFormat),
+      counterDigits: String(source.counterDigits ?? defaults.counterDigits),
+      startingNumber: String(source.startingNumber ?? defaults.startingNumber)
+    };
+  }
+
   getDefaultNotificationSettings() {
     const notifications = {
       acknowledgeRequired: { email: true, inApp: true },
@@ -367,22 +396,13 @@ class ConfigService {
 
     if (config && config.value) {
       try {
-        return JSON.parse(config.value);
+        return this.normalizeDocumentNumberingSettings(JSON.parse(config.value));
       } catch (error) {
         console.error('Failed to parse document numbering settings:', error);
       }
     }
 
-    // Return default settings if not configured
-    return {
-      separator: '/',
-      prefixPlaceholder: 'PFX',
-      includeVersion: true,
-      versionDigits: '2',
-      dateFormat: 'YYMMDD',
-      counterDigits: '3',
-      startingNumber: '1'
-    };
+    return this.getDefaultDocumentNumberingSettings();
   }
 
   /**
@@ -390,7 +410,8 @@ class ConfigService {
    * Stores settings in Configuration table
    */
   async updateDocumentNumberingSettings(settings) {
-    const settingsJson = JSON.stringify(settings);
+    const normalizedSettings = this.normalizeDocumentNumberingSettings(settings);
+    const settingsJson = JSON.stringify(normalizedSettings);
 
     // Upsert the configuration
     const config = await prisma.configuration.upsert({
@@ -405,7 +426,6 @@ class ConfigService {
         description: 'Document numbering format configuration'
       }
     });
-
     return JSON.parse(config.value);
   }
 
