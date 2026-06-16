@@ -51,13 +51,21 @@ const getEnabledStagesForCategory = async (projectCategoryId) => {
     .sort((a, b) => (a.sortOrder ?? a.stage.sortOrder) - (b.sortOrder ?? b.stage.sortOrder));
 };
 
-const createChecklistItemsFromRequirements = async (projectCategoryId, iterationId) => {
-  const enabledStages = await getEnabledStagesForCategory(projectCategoryId);
+const createChecklistItemsFromRequirements = async (projectCategoryId, iterationId, db = prisma) => {
+  const enabledStages = await db.projectCategoryStage.findMany({
+    where: {
+      projectCategoryId,
+      isEnabled: true,
+      stage: { isActive: true }
+    },
+    include: { stage: true },
+    orderBy: [{ sortOrder: 'asc' }, { stage: { sortOrder: 'asc' } }]
+  });
   if (enabledStages.length === 0) return [];
 
   const stageIds = enabledStages.map((s) => s.stageId);
 
-  const requirements = await prisma.projectCategoryDocumentRequirement.findMany({
+  const requirements = await db.projectCategoryDocumentRequirement.findMany({
     where: {
       projectCategoryId,
       stageId: { in: stageIds },
@@ -67,7 +75,7 @@ const createChecklistItemsFromRequirements = async (projectCategoryId, iteration
 
   if (requirements.length === 0) return [];
 
-  await prisma.projectIterationDocumentItem.createMany({
+  await db.projectIterationDocumentItem.createMany({
     data: requirements.map((r) => ({
       projectIterationId: iterationId,
       stageId: r.stageId,
@@ -76,7 +84,7 @@ const createChecklistItemsFromRequirements = async (projectCategoryId, iteration
     skipDuplicates: true
   });
 
-  return prisma.projectIterationDocumentItem.findMany({
+  return db.projectIterationDocumentItem.findMany({
     where: { projectIterationId: iterationId },
     include: {
       stage: true,
@@ -197,7 +205,7 @@ exports.createProject = async ({ code, name, description, projectCategoryId, man
       }
     });
 
-    await createChecklistItemsFromRequirements(projectCategoryId, iteration.id);
+    await createChecklistItemsFromRequirements(projectCategoryId, iteration.id, tx);
 
     return tx.project.findUnique({
       where: { id: project.id },
@@ -278,7 +286,7 @@ exports.createIteration = async (projectId, { name, createdById }) => {
       include: { currentStage: true }
     });
 
-    await createChecklistItemsFromRequirements(project.projectCategoryId, iteration.id);
+    await createChecklistItemsFromRequirements(project.projectCategoryId, iteration.id, tx);
 
     await tx.auditLog.create({
       data: {

@@ -49,7 +49,7 @@ function AddStageModal({ onClose, onCreate }) {
   }
 
   return (
-    <ModalShell title="Add Custom Stage" onClose={onClose}>
+    <ModalShell title="Add New Stage" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div className="text-sm text-gray-600">
           Add a new stage for the selected project category. This stage will appear in the stage flow and can be reordered after creation.
@@ -326,7 +326,7 @@ function CreateProjectModal({ onClose, onCreated }) {
   }
 
   return (
-    <ModalShell title={t ? t('project_tracking_create_project') : 'Create Project'} onClose={onClose}>
+    <ModalShell title="Create Project" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Project Code</label>
