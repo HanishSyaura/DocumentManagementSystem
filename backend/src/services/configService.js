@@ -532,16 +532,15 @@ class ConfigService {
     }
 
     return {
-      enabled: false,
-      companyPrefixDigits: 7,
-      companyPrefix: '9551234',
-      filter: 1,
-      itemReferenceByDocumentType: {}
+      enabled: false
     }
   }
 
   async updateRfidEpcRegistrySettings(settings) {
-    const settingsJson = JSON.stringify(settings)
+    const normalizedSettings = {
+      enabled: Boolean(settings?.enabled)
+    }
+    const settingsJson = JSON.stringify(normalizedSettings)
     const config = await prisma.configuration.upsert({
       where: { key: 'rfid_epc_registry_settings' },
       update: {

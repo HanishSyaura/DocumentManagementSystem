@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines an optional RFID module for customers who use LED RFID labels. The module automatically generates RFID-compliant EPC (SGTIN-96) in hexadecimal from the DMS file code when a draft file is uploaded, then stores every generated EPC in a registry for management and export.
+This document defines an optional RFID module for customers who use RFID labels. The module automatically converts the DMS file code directly into hexadecimal when a draft file is uploaded, then stores every generated EPC value in a registry for management and export.
 
 This module:
 
@@ -17,7 +17,7 @@ The current RFID implementation is a frontend-only encoder utility:
 
 - route: `/rfid-epc-encoder`
 - page: `frontend/src/components/RfidLedEpcEncoder.jsx`
-- encoder logic: `frontend/src/utils/epcEncoder.js` (SGTIN-96)
+- encoder logic: frontend utility only, with no backend persistence
 
 Limitations:
 
@@ -34,18 +34,24 @@ Replace the standalone encoder with:
 
 Capabilities:
 
-1. auto-generate EPC hex (SGTIN-96) after a draft file upload,
+1. auto-generate EPC hex from `fileCode` after a draft file upload,
 2. store a registry record with `fileCode`, `epcHex`, `fileName`, and document details,
 3. filter by date range and file code,
 4. export the filtered list.
 
-## Vendor Compliance
+## Encoding Model
 
-RFID tags shall be EPC Gen2 UHF compliant and encoded using SGTIN-96 EPC format.
+The simplified implementation does not use GS1 or SGTIN-96 field mapping.
 
-Handheld devices scan:
+Instead:
 
-- `epcHex` (the EPC value stored on the tag).
+- the system takes `fileCode`
+- converts it directly to hexadecimal
+- stores the result as `epcHex`
+
+Handheld devices should scan:
+
+- `epcHex` (the value written to the tag)
 
 ## Scope
 
@@ -88,10 +94,7 @@ Steps:
 
 1. After upload completes, backend checks `rfid_epc_registry_enabled`.
 2. Backend checks if an EPC record already exists for this `documentVersionId`.
-3. Backend derives SGTIN-96 input fields (mapping rules below).
-4. Backend runs the existing SGTIN-96 encoder logic server-side to produce:
-   - `epcHex`
-   - `tagUri`, `pureIdentityUri`
+3. Backend converts `fileCode` directly into hexadecimal to produce `epcHex`.
 5. Backend stores a registry record containing:
    - `epcHex`
    - `fileCode`
@@ -101,7 +104,7 @@ Steps:
 
 Output:
 
-- `epcHex` is available for LED RFID encoding/printing,
+- `epcHex` is available for RFID encoding/printing,
 - the registry list is the single source of truth for all EPC generated records.
 
 ### 4) Registry Management (New)
@@ -112,33 +115,19 @@ Registry page shows records and supports:
 - filter by file code (contains/exact)
 - export of filtered records
 
-## Mapping Rule (File Code → SGTIN-96)
+## Mapping Rule (File Code → Hex)
 
-SGTIN-96 requires numeric GS1 components. Since DMS `fileCode` contains separators and non-numeric prefixes, the EPC must be generated using a deterministic mapping that still preserves `fileCode` for traceability.
+The implementation uses a direct conversion:
 
-### Inputs
-
-- `companyPrefixDigits` + `companyPrefix` (GS1, configuration)
-- `itemReference` (GS1 numeric, configuration per `DocumentType`)
-- `filter` (configuration)
-- `serial` (deterministic numeric derived from the current file code definition)
-
-### Recommended Serial Derivation (Aligned to Current File Code Definition)
-
-Use the existing document numbering definition to parse `fileCode` and derive a stable serial:
-
-1. parse `fileCode` to extract:
-   - `datePart` in `YYMMDD`
-   - `sequence` (counter)
-2. compute:
-   - `serial = datePart * (10 ^ counterDigits) + sequence`
-3. validate:
-   - `serial` must fit SGTIN-96 38-bit serial limit
+- input: `fileCode`
+- encoding: UTF-8 string to hexadecimal
+- output: `epcHex`
 
 Notes:
 
-- `fileCode` is stored in registry for human reference.
-- RFID scanning uses `epcHex`, not `fileCode`.
+- `fileCode` remains the human-readable source value
+- RFID scanning uses `epcHex`, not `fileCode`
+- no GS1 company prefix, filter, or item reference setup is required
 
 ## Proposed Data Model
 
@@ -154,13 +143,13 @@ Suggested fields:
 - `documentTitle` (optional denormalized for fast list)
 - `documentTypeName` (optional denormalized for fast list)
 - `version`
-- `epcScheme` (fixed: `SGTIN-96`)
+- `epcScheme` (example: `FILECODE-HEX`)
 - `epcHex`
-- `filter`
-- `companyPrefixDigits`
-- `companyPrefix`
-- `itemReference`
-- `serial`
+- `filter` (legacy compatibility field, fixed placeholder)
+- `companyPrefixDigits` (legacy compatibility field, fixed placeholder)
+- `companyPrefix` (legacy compatibility field, fixed placeholder)
+- `itemReference` (legacy compatibility field, stores source `fileCode`)
+- `serial` (legacy compatibility field)
 - `tagUri`
 - `pureIdentityUri`
 - `generatedAt`
@@ -235,9 +224,8 @@ Hook point:
 ### Phase 1: Backend + Auto Generation
 
 - add feature flag config
-- add GS1 config + itemReference per DocumentType
 - add Prisma model + migration for registry
-- add service to generate EPC after upload
+- add service to convert `fileCode` directly to hex after upload
 - add list + export endpoints
 - audit logging integration
 
@@ -247,14 +235,14 @@ Hook point:
 - add new menu item for RFID registry (feature + permission gated)
 - build registry list page with filters + export
 
-### Phase 3 (Optional): Admin Configuration UI
+### Phase 3 (Optional): Tag Capacity Validation
 
-- UI to manage GS1 parameters
-- UI to manage itemReference per DocumentType
+- add warning if converted hex exceeds supported tag memory size
+- add configurable tag capacity limit if needed
 
 ## Acceptance Criteria
 
-- on draft upload, system auto-generates an SGTIN-96 `epcHex` when module is enabled
+- on draft upload, system auto-generates a direct-conversion `epcHex` from `fileCode` when module is enabled
 - registry record saved with `fileCode`, `fileName`, and required EPC fields
 - registry page filters by date and file code correctly
 - export returns only the filtered results

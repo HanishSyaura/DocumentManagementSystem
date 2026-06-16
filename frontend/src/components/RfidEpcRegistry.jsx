@@ -92,7 +92,7 @@ export default function RfidEpcRegistry() {
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">RFID EPC Registry</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Automatically generated EPC records from uploaded draft files.
+              Automatically generated hexadecimal records converted from document file codes.
             </p>
           </div>
           {canExport && (

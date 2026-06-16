@@ -1,17 +1,12 @@
 const prisma = require('../config/database')
 const configService = require('./configService')
 const auditLogService = require('./auditLogService')
-const DocumentNumbering = require('../utils/documentNumbering')
-const { encodeSgtin96, getSgtinPartition, MAX_SGTIN_SERIAL } = require('../utils/epcEncoder')
+const { fileCodeToHex } = require('../utils/epcEncoder')
 
 class EpcRegistryService {
   getDefaultSettings() {
     return {
-      enabled: false,
-      companyPrefixDigits: 7,
-      companyPrefix: '9551234',
-      filter: 1,
-      itemReferenceByDocumentType: {}
+      enabled: false
     }
   }
 
@@ -26,34 +21,6 @@ class EpcRegistryService {
   async isEnabled() {
     const settings = await this.getSettings()
     return Boolean(settings.enabled)
-  }
-
-  getItemReference(documentTypeId, itemReferenceDigits, settings) {
-    const map = settings?.itemReferenceByDocumentType
-    const configured = map && typeof map === 'object' ? map[String(documentTypeId)] : null
-    if (configured && /^\d+$/.test(String(configured))) {
-      return String(configured).padStart(itemReferenceDigits, '0').slice(-itemReferenceDigits)
-    }
-
-    // MVP fallback so the module works without extra admin setup.
-    return String(documentTypeId).padStart(itemReferenceDigits, '0').slice(-itemReferenceDigits)
-  }
-
-  async deriveSerial(fileCode, documentVersionId) {
-    try {
-      const numberingSettings = await DocumentNumbering.loadSettings()
-      const parsed = await DocumentNumbering.parseFileCode(fileCode, numberingSettings)
-      const datePart = String(parsed?.date || '').replace(/\D/g, '')
-      const sequenceText = Number.isFinite(parsed?.sequence) ? String(parsed.sequence) : ''
-      const counterDigits = parseInt(numberingSettings.counterDigits, 10) || 3
-
-      if (datePart && sequenceText) {
-        const serial = (BigInt(datePart) * (10n ** BigInt(counterDigits))) + BigInt(sequenceText)
-        if (serial <= MAX_SGTIN_SERIAL) return serial.toString()
-      }
-    } catch {}
-
-    return String(documentVersionId)
   }
 
   buildCsv(records) {
@@ -91,11 +58,6 @@ class EpcRegistryService {
     const enabled = await this.isEnabled()
     if (!enabled) return null
 
-    const existing = await prisma.documentEpcRegistryRecord.findUnique({
-      where: { documentVersionId }
-    })
-    if (existing) return existing
-
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       include: {
@@ -110,52 +72,54 @@ class EpcRegistryService {
     if (!document || !document.versions?.length) return null
 
     const version = document.versions[0]
-    const settings = await this.getSettings()
-    const partition = getSgtinPartition(settings.companyPrefixDigits)
-    const itemReference = this.getItemReference(document.documentTypeId, partition.itemReferenceDigits, settings)
-    let serial = await this.deriveSerial(document.fileCode, documentVersionId)
-
-    let encoded = encodeSgtin96({
-      filter: settings.filter,
-      companyPrefixDigits: settings.companyPrefixDigits,
-      companyPrefix: settings.companyPrefix,
-      itemReference,
-      serial
-    })
-
-    const duplicate = await prisma.documentEpcRegistryRecord.findUnique({
-      where: { epcHex: encoded.hex }
-    })
-
-    if (duplicate) {
-      serial = String((BigInt(serial) * 1000n) + BigInt(documentVersionId))
-      encoded = encodeSgtin96({
-        filter: settings.filter,
-        companyPrefixDigits: settings.companyPrefixDigits,
-        companyPrefix: settings.companyPrefix,
-        itemReference,
-        serial
-      })
+    const epcHex = fileCodeToHex(document.fileCode)
+    const payload = {
+      documentId,
+      documentVersionId,
+      fileCode: document.fileCode,
+      fileName: version.fileName,
+      epcScheme: 'FILECODE-HEX',
+      epcHex,
+      filter: 0,
+      companyPrefixDigits: 0,
+      companyPrefix: 'DIRECT',
+      itemReference: document.fileCode,
+      serial: String(document.id),
+      tagUri: `urn:dms:epc:${epcHex}`,
+      pureIdentityUri: `urn:dms:file-code:${encodeURIComponent(document.fileCode)}`,
+      generatedAt: new Date()
     }
 
-    const record = await prisma.documentEpcRegistryRecord.create({
-      data: {
-        documentId,
-        documentVersionId,
-        fileCode: document.fileCode,
-        fileName: version.fileName,
-        epcScheme: encoded.scheme,
-        epcHex: encoded.hex,
-        filter: encoded.filter,
-        companyPrefixDigits: encoded.companyPrefixDigits,
-        companyPrefix: encoded.companyPrefix,
-        itemReference: encoded.itemReference,
-        serial: encoded.serial,
-        tagUri: encoded.tagUri,
-        pureIdentityUri: encoded.pureIdentityUri,
-        generatedAt: new Date()
-      }
+    const duplicate = await prisma.documentEpcRegistryRecord.findUnique({
+      where: { epcHex }
     })
+
+    let record = null
+    if (duplicate) {
+      if (duplicate.documentId !== documentId) {
+        throw new Error(`EPC hex yang sama sudah digunakan oleh file code lain: ${duplicate.fileCode}`)
+      }
+
+      record = await prisma.documentEpcRegistryRecord.update({
+        where: { id: duplicate.id },
+        data: payload
+      })
+    } else {
+      const existingForDocument = await prisma.documentEpcRegistryRecord.findFirst({
+        where: { documentId }
+      })
+
+      if (existingForDocument) {
+        record = await prisma.documentEpcRegistryRecord.update({
+          where: { id: existingForDocument.id },
+          data: payload
+        })
+      } else {
+        record = await prisma.documentEpcRegistryRecord.create({
+          data: payload
+        })
+      }
+    }
 
     await auditLogService.logDocument(req?.user?.id || null, 'EPC_GENERATE', {
       id: document.id,
@@ -164,6 +128,7 @@ class EpcRegistryService {
       documentVersionId,
       epcHex: record.epcHex,
       epcScheme: record.epcScheme,
+      generationMode: 'direct-file-code-to-hex',
       fileName: record.fileName
     })
 
