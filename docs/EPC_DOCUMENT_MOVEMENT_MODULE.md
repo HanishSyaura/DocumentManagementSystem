@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines an optional RFID module for customers who use RFID labels. The module automatically converts the DMS file code directly into hexadecimal when a draft file is uploaded, then stores every generated EPC value in a registry for management and export.
+This document defines an optional RFID module for customers who use RFID labels. The module automatically generates a fixed-length EPC value from the DMS file code when a draft file is uploaded, then stores every generated EPC value in a registry for management and export.
 
 This module:
 
@@ -34,7 +34,7 @@ Replace the standalone encoder with:
 
 Capabilities:
 
-1. auto-generate EPC hex from `fileCode` after a draft file upload,
+1. auto-generate a fixed-length EPC hex from `fileCode` after a draft file upload,
 2. store a registry record with `fileCode`, `epcHex`, `fileName`, and document details,
 3. filter by date range and file code,
 4. export the filtered list.
@@ -46,7 +46,7 @@ The simplified implementation does not use GS1 or SGTIN-96 field mapping.
 Instead:
 
 - the system takes `fileCode`
-- converts it directly to hexadecimal
+- generates a deterministic fixed-length 96-bit EPC value
 - stores the result as `epcHex`
 
 Handheld devices should scan:
@@ -94,7 +94,7 @@ Steps:
 
 1. After upload completes, backend checks `rfid_epc_registry_enabled`.
 2. Backend checks if an EPC record already exists for this `documentVersionId`.
-3. Backend converts `fileCode` directly into hexadecimal to produce `epcHex`.
+3. Backend generates a deterministic fixed-length 96-bit EPC value from `fileCode`.
 5. Backend stores a registry record containing:
    - `epcHex`
    - `fileCode`
@@ -115,19 +115,22 @@ Registry page shows records and supports:
 - filter by file code (contains/exact)
 - export of filtered records
 
-## Mapping Rule (File Code → Hex)
+## Mapping Rule (File Code → Fixed-Length EPC)
 
-The implementation uses a direct conversion:
+The implementation uses a deterministic hash-based conversion:
 
 - input: `fileCode`
-- encoding: UTF-8 string to hexadecimal
-- output: `epcHex`
+- encoding source: UTF-8 string
+- hash: SHA-256
+- output length: first 24 hex characters with a fixed namespace prefix
+- final output: `epcHex` (96-bit / 24 hex characters)
 
 Notes:
 
 - `fileCode` remains the human-readable source value
 - RFID scanning uses `epcHex`, not `fileCode`
 - no GS1 company prefix, filter, or item reference setup is required
+- fixed-length output is safer for common EPC memory sizes on RFID tags
 
 ## Proposed Data Model
 
@@ -143,7 +146,7 @@ Suggested fields:
 - `documentTitle` (optional denormalized for fast list)
 - `documentTypeName` (optional denormalized for fast list)
 - `version`
-- `epcScheme` (example: `FILECODE-HEX`)
+- `epcScheme` (example: `FILECODE-HASH-96`)
 - `epcHex`
 - `filter` (legacy compatibility field, fixed placeholder)
 - `companyPrefixDigits` (legacy compatibility field, fixed placeholder)
@@ -225,7 +228,7 @@ Hook point:
 
 - add feature flag config
 - add Prisma model + migration for registry
-- add service to convert `fileCode` directly to hex after upload
+- add service to generate fixed-length EPC hex after upload
 - add list + export endpoints
 - audit logging integration
 
@@ -242,7 +245,7 @@ Hook point:
 
 ## Acceptance Criteria
 
-- on draft upload, system auto-generates a direct-conversion `epcHex` from `fileCode` when module is enabled
+- on draft upload, system auto-generates a fixed-length `epcHex` from `fileCode` when module is enabled
 - registry record saved with `fileCode`, `fileName`, and required EPC fields
 - registry page filters by date and file code correctly
 - export returns only the filtered results

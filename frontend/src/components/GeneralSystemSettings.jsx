@@ -4226,17 +4226,17 @@ function DocumentSettings() {
             <div>
               <span className="text-sm font-medium text-gray-900">Enable RFID EPC Registry</span>
               <p className="text-sm text-gray-600 mt-0.5">
-                When enabled, the system converts the document file code directly into hexadecimal and stores it for later RFID encoding.
+                When enabled, the system generates a fixed-length 96-bit EPC value from the document file code and stores it for later RFID encoding.
               </p>
             </div>
           </label>
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <p className="text-sm font-medium text-blue-900">How it works</p>
             <p className="mt-1 text-sm text-blue-800">
-              The system takes the generated document file code, converts it directly into hexadecimal, and saves the result in the RFID registry.
+              The system takes the generated document file code, creates a deterministic fixed-length EPC hex value, and saves the result in the RFID registry.
             </p>
             <p className="mt-2 text-xs text-blue-700">
-              No GS1, SGTIN-96, company prefix, or item reference setup is required for this simplified flow.
+              No GS1, SGTIN-96, company prefix, or item reference setup is required for this simplified flow. The EPC output is capped at 24 hex characters for better tag compatibility.
             </p>
           </div>
         </div>

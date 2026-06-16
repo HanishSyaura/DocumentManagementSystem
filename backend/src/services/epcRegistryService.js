@@ -1,7 +1,7 @@
 const prisma = require('../config/database')
 const configService = require('./configService')
 const auditLogService = require('./auditLogService')
-const { fileCodeToHex } = require('../utils/epcEncoder')
+const { fileCodeToFixedEpcHex, FIXED_EPC_HEX_LENGTH } = require('../utils/epcEncoder')
 
 class EpcRegistryService {
   getDefaultSettings() {
@@ -72,17 +72,17 @@ class EpcRegistryService {
     if (!document || !document.versions?.length) return null
 
     const version = document.versions[0]
-    const epcHex = fileCodeToHex(document.fileCode)
+    const epcHex = fileCodeToFixedEpcHex(document.fileCode)
     const payload = {
       documentId,
       documentVersionId,
       fileCode: document.fileCode,
       fileName: version.fileName,
-      epcScheme: 'FILECODE-HEX',
+      epcScheme: 'FILECODE-HASH-96',
       epcHex,
       filter: 0,
       companyPrefixDigits: 0,
-      companyPrefix: 'DIRECT',
+      companyPrefix: 'FIXED96',
       itemReference: document.fileCode,
       serial: String(document.id),
       tagUri: `urn:dms:epc:${epcHex}`,
@@ -128,7 +128,8 @@ class EpcRegistryService {
       documentVersionId,
       epcHex: record.epcHex,
       epcScheme: record.epcScheme,
-      generationMode: 'direct-file-code-to-hex',
+      generationMode: 'fixed-96-bit-hash-from-file-code',
+      epcHexLength: FIXED_EPC_HEX_LENGTH,
       fileName: record.fileName
     })
 
