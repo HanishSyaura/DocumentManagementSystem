@@ -45,6 +45,14 @@ const formatLifecycleStatus = (status) => {
   return normalized || 'Active'
 }
 
+const formatDateLabel = (value) => {
+  const iso = toDateInputValue(value)
+  if (!iso) return '-'
+  const [y, m, d] = iso.split('-')
+  if (!y || !m || !d) return iso
+  return `${d}/${m}/${y}`
+}
+
 const toDateInputValue = (value) => {
   if (!value) return ''
   const raw = String(value)
@@ -1636,6 +1644,8 @@ function ProjectDetail({ projectId }) {
       ? 'This project is on hold. Progress actions are paused until the project is resumed.'
       : 'Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.'
 
+  const managerLabel = `${`${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.trim() || project.manager?.email || '-'}`.trim()
+
   if (loading) return <div className="p-6 bg-white rounded-lg shadow">Loading...</div>
   if (!project) return <EmptyState title="Project not found" message="The project may have been deleted." />
 
@@ -1678,7 +1688,7 @@ function ProjectDetail({ projectId }) {
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-blue-50/90">
               <ProjectStatusBadge status={project.status} />
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{project.projectCategory?.name || '-'}</span>
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Manager: ${`${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.trim() || project.manager?.email || '-'}`}</span>
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Manager: ${managerLabel}`}</span>
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 font-mono text-[11px]">{`UI ${uiVersionStamp}`}</span>
             </div>
@@ -1801,6 +1811,82 @@ function ProjectDetail({ projectId }) {
                 Delete
               </button>
             )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Project Card Information</div>
+            <div className="mt-1 text-sm text-slate-500">All details captured in the project form are shown here for quick reference.</div>
+          </div>
+          <div className="text-sm text-slate-600">{`Lifecycle Status: ${formatLifecycleStatus(project.status)}`}</div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Code / Reference Number</div>
+              <div className="mt-1 font-mono text-sm text-slate-900">{project.code || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client Name</div>
+              <div className="mt-1 text-sm text-slate-900">{project.clientName || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client PIC</div>
+              <div className="mt-1 text-sm text-slate-900">{project.clientPic || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Internal Project Manager</div>
+              <div className="mt-1 text-sm text-slate-900">{managerLabel}</div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Start Date</div>
+                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.startDate)}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Planned Completion Date</div>
+                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.plannedCompletionDate)}</div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Actual Completion Date</div>
+                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.actualCompletionDate)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Team Members</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.teamMembers || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Scope</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.scope || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Objective</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.objective || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Deliverables</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.deliverables || '-'}</div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Description</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.description || '-'}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1977,8 +2063,6 @@ function ProjectDetail({ projectId }) {
 
       {itemsLoading ? (
         <div className="p-6 bg-white rounded-lg shadow">Loading checklist...</div>
-      ) : items.length === 0 && stageDocuments.length === 0 ? (
-        <EmptyState title="No required documents yet" message="No required document template has been set yet. Go to Project Setup to configure it." />
       ) : activeStageTab === consolidatedTabId ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
@@ -2165,6 +2249,13 @@ function ProjectDetail({ projectId }) {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
+                          {stageItems.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="px-6 py-8 text-sm text-slate-500">
+                                No required checklist items for this stage yet. Add requirements in Project Setup, or attach extra documents using the buttons above.
+                              </td>
+                            </tr>
+                          ) : null}
                           {stageItems.map((it) => (
                             <tr key={it.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{it.documentType?.name || '-'}</td>

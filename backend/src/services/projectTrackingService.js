@@ -636,6 +636,11 @@ exports.listIterationItems = async (iterationId, { user }) => {
   })
   if (!iteration) throw new NotFoundError('Project iteration')
 
+  const existingCount = await prisma.projectIterationDocumentItem.count({ where: { projectIterationId: iterationId } })
+  if (existingCount === 0) {
+    await createChecklistItemsFromRequirements(iteration.project.id, iterationId, prisma)
+  }
+
   const categoryStages = await getEffectiveStagesForProject(iteration.project.id)
   const stageNameMap = new Map(
     categoryStages.map((cs) => [

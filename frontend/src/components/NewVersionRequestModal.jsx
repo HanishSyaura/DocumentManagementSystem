@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function NewVersionRequestModal({ onClose, onSubmit }) {
   // Use dynamic file upload settings
@@ -250,39 +256,20 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">New Version Request (NVR)</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Request a new version for an existing controlled document.
-              </p>
-            </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+    <Modal onClose={handleClose} closeOnBackdrop size="lg">
+      <ModalHeader
+        title="New Version Request (NVR)"
+        subtitle="Request a new version for an existing controlled document."
+        onClose={handleClose}
+      />
 
-          {/* Body */}
-          <div className="px-6 py-4 space-y-6">
+      <ModalBody className="space-y-6">
             {/* Select Document (File Code Search) */}
             <div className="relative document-search">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 Select Document (Search File Code) <span className="text-red-500">*</span>
               </label>
-              <input
+              <TextInput
                 type="text"
                 required
                 value={searchQuery}
@@ -303,43 +290,42 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
                 }}
                 onFocus={() => setShowDropdown(true)}
                 placeholder="Search file codes..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
               
               {/* Dropdown for available documents */}
               {showDropdown && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <AppSurface padding="none" className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-2xl">
                   {filteredDocuments.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">No published documents found</div>
+                    <div className="px-3 py-2 text-sm text-ink-muted">No published documents found</div>
                   ) : (
                     filteredDocuments.map((doc) => (
                       <button
                         key={doc.id}
                         type="button"
                         onClick={() => handleDocumentSelect(doc)}
-                        className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                        className="w-full text-left px-3 py-2 hover:bg-surface-muted transition-colors border-b border-border/70 last:border-0"
                       >
-                        <div className="text-sm font-medium text-gray-900">{doc.fileCode}</div>
-                        <div className="text-xs text-gray-600">{doc.title}</div>
+                        <div className="text-sm font-semibold text-ink">{doc.fileCode}</div>
+                        <div className="text-xs text-ink-muted">{doc.title}</div>
                         {doc.projectCategory && (
-                          <div className="text-xs text-blue-600 mt-0.5">
+                          <div className="text-xs text-brand mt-0.5">
                             {doc.projectCategory.name}
                           </div>
                         )}
                       </button>
                     ))
                   )}
-                </div>
+                </AppSurface>
               )}
               {selectedDocument && (
-                <p className="text-xs text-gray-600 mt-2">
-                  <span className="font-medium">New File Code will be:</span> {computeNewFileCode(selectedDocument.fileCode, formData.changeType)}
+                <p className="text-xs text-ink-muted mt-2">
+                  <span className="font-semibold text-ink">New File Code will be:</span> {computeNewFileCode(selectedDocument.fileCode, formData.changeType)}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 Change Type <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -349,12 +335,12 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
                   onClick={() => setFormData({ ...formData, changeType: 'minor' })}
                   className={`p-3 rounded-lg border text-left transition-colors disabled:opacity-60 ${
                     formData.changeType === 'minor'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:bg-gray-50'
+                      ? 'border-brand bg-blue-50/40'
+                      : 'border-border hover:bg-surface-muted'
                   }`}
                 >
-                  <div className="text-sm font-semibold text-gray-900">Minor change</div>
-                  <div className="text-xs text-gray-600 mt-1">01 → 01a, 01a → 01b (alphabet sequence)</div>
+                  <div className="text-sm font-semibold text-ink">Minor change</div>
+                  <div className="text-xs text-ink-muted mt-1">01 → 01a, 01a → 01b (alphabet sequence)</div>
                 </button>
                 <button
                   type="button"
@@ -362,110 +348,102 @@ export default function NewVersionRequestModal({ onClose, onSubmit }) {
                   onClick={() => setFormData({ ...formData, changeType: 'major' })}
                   className={`p-3 rounded-lg border text-left transition-colors disabled:opacity-60 ${
                     formData.changeType === 'major'
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:bg-gray-50'
+                      ? 'border-brand bg-blue-50/40'
+                      : 'border-border hover:bg-surface-muted'
                   }`}
                 >
-                  <div className="text-sm font-semibold text-gray-900">Major change</div>
-                  <div className="text-xs text-gray-600 mt-1">01 → 02 → 03 (numeric increment)</div>
+                  <div className="text-sm font-semibold text-ink">Major change</div>
+                  <div className="text-xs text-ink-muted mt-1">01 → 02 → 03 (numeric increment)</div>
                 </button>
               </div>
             </div>
 
             {/* Document Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 Document Title <span className="text-red-500">*</span>
               </label>
-              <input
+              <TextInput
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="Document title"
                 disabled={!selectedDocument}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100"
+                className={selectedDocument ? '' : 'bg-surface-muted'}
               />
             </div>
 
             {/* Document Type & Project Category */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   Document Type
                 </label>
-                <input
+                <TextInput
                   type="text"
                   value={formData.documentType}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                  className="bg-surface-muted text-ink-secondary"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   Project Category
                 </label>
-                <input
+                <TextInput
                   type="text"
                   value={formData.projectCategory}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700"
+                  className="bg-surface-muted text-ink-secondary"
                 />
               </div>
             </div>
 
             {/* Date of Document */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 Date of Document <span className="text-red-500">*</span>
               </label>
-              <input
+              <TextInput
                 type="date"
                 required
                 value={formData.dateOfDocument}
                 onChange={(e) => setFormData({ ...formData, dateOfDocument: e.target.value })}
                 disabled={!selectedDocument}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100"
+                className={selectedDocument ? '' : 'bg-surface-muted'}
               />
             </div>
 
             {/* Remarks */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 Remarks
               </label>
-              <textarea
+              <TextArea
                 value={formData.remarks}
                 onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                 placeholder="Input text"
                 rows={3}
                 disabled={!selectedDocument}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none disabled:bg-gray-100"
+                className="resize-none"
               />
             </div>
-          </div>
+      </ModalBody>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitRequest}
-              disabled={loading || !formData.documentId || !formData.title || !formData.dateOfDocument}
-              className="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Sending Request...' : 'Send Request'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <ModalFooter className="flex-wrap justify-end">
+        <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={handleSubmitRequest}
+          disabled={loading || !formData.documentId || !formData.title || !formData.dateOfDocument}
+          className="bg-purple-600 hover:bg-purple-700 text-white"
+        >
+          {loading ? <><InlineSpinner className="h-4 w-4 border-2 border-white/40 border-t-white" /><span>Sending Request...</span></> : 'Send Request'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }

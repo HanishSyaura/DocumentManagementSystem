@@ -14,6 +14,13 @@ import { hasPermission } from '../utils/permissions'
 import { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { useSearchParams } from 'react-router-dom'
+import PageHeader from './ui/PageHeader'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import SelectField from './ui/SelectField'
+import InlineSpinner from './ui/InlineSpinner'
+import { Table, TableContainer, Td, Th, Tr } from './ui/Table'
 
 export default function DraftDocuments() {
   const { itemsPerPage, formatDate, formatDateTime, defaultView, t } = usePreferences()
@@ -394,22 +401,19 @@ export default function DraftDocuments() {
         />
       ) : null}
       
-      <div className="p-6 space-y-6" data-tour-id="drafts-page">
-      {/* Page Header */}
-      <div className="card p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('draft_documents')}</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {t('draft_docs_desc')}
-        </p>
-      </div>
+      <div className="space-y-6" data-tour-id="drafts-page">
+      <PageHeader
+        title={t('draft_documents')}
+        subtitle={t('draft_docs_desc')}
+      />
 
       {/* Document List */}
-      <div className="card p-6" data-tour-id="drafts-list-card">
+      <AppSurface padding="lg" data-tour-id="drafts-list-card">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('draft_docs_list')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-lg font-semibold text-ink">{t('draft_docs_list')}</h2>
+              <p className="text-sm text-ink-muted mt-1">
                 {filteredDocuments.length} {t('documents_found')}
               </p>
             </div>
@@ -417,10 +421,9 @@ export default function DraftDocuments() {
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
               <PermissionGate module="documents.draft" action="create">
-                <button 
+                <Button
                   onClick={() => setShowModal(true)}
                   data-tour-id="drafts-btn-new-draft"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +431,7 @@ export default function DraftDocuments() {
                     </svg>
                     {t('new_draft')}
                   </span>
-                </button>
+                </Button>
               </PermissionGate>
             </div>
           </div>
@@ -440,12 +443,12 @@ export default function DraftDocuments() {
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input
+              <TextInput
                 type="text"
                 placeholder={t('search_docs_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="pl-10 pr-10"
               />
               {searchQuery && (
                 <button
@@ -460,62 +463,69 @@ export default function DraftDocuments() {
             </div>
 
             {/* Status Filter */}
-            <select
+            <SelectField
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white min-w-[200px]"
+              className="min-w-[200px]"
             >
               {allStatuses.map(status => (
                 <option key={status} value={status}>{status}</option>
               ))}
-            </select>
+            </SelectField>
 
             {/* View Toggle */}
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <button
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === 'list' ? 'primary' : 'secondary'}
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-2 flex items-center gap-1 text-sm ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className="px-3"
                 title="List View"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={viewMode === 'grid' ? 'primary' : 'secondary'}
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 flex items-center gap-1 text-sm ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className="px-3"
                 title="Grid View"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Desktop Table (List View) */}
         {viewMode === 'list' && (
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="hidden md:block">
+          <TableContainer>
+          <Table>
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('document_title_col')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('version')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('created_by')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_updated')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
+              <tr>
+                <Th>{t('file_code')}</Th>
+                <Th>{t('document_title_col')}</Th>
+                <Th>{t('version')}</Th>
+                <Th>{t('created_by')}</Th>
+                <Th>{t('last_updated')}</Th>
+                <Th>{t('status')}</Th>
+                <Th>{t('actions')}</Th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-gray-500">
+                  <td colSpan="7" className="py-10">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span>{t('loading_documents')}</span>
+                      <InlineSpinner />
+                      <span className="text-sm text-ink-muted">{t('loading_documents')}</span>
                     </div>
                   </td>
                 </tr>
@@ -532,24 +542,24 @@ export default function DraftDocuments() {
                 </tr>
               ) : (
                 currentDocuments.map((doc) => (
-                  <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <a href="#" className="text-gray-900 font-medium hover:text-blue-600">
+                  <Tr key={doc.id}>
+                    <Td>
+                      <a href="#" className="font-medium text-ink hover:text-brand">
                         {doc.fileCode}
                       </a>
-                    </td>
-                    <td className="py-4 px-4 text-gray-700">{doc.title}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.version}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.createdBy}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.lastUpdated}</td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td>{doc.title}</Td>
+                    <Td>{doc.version}</Td>
+                    <Td>{doc.createdBy}</Td>
+                    <Td>{doc.lastUpdated}</Td>
+                    <Td className="py-3">
                       <div className="space-y-1">
                         <StatusBadge status={doc.status} />
                         {doc.latestReturnRemark && doc.status === 'Return for Amendments' ? (
                           <div className="space-y-1">
                             <button
                               onClick={() => handleViewRemarks(doc)}
-                              className="block max-w-[240px] text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                              className="block max-w-[240px] text-left text-xs text-brand hover:text-brand-hover underline underline-offset-2 truncate"
                               title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
                             >
                               {t('latest_remark')}
@@ -560,14 +570,14 @@ export default function DraftDocuments() {
                                 {isPreviewableReturnFile(doc) ? (
                                   <button
                                     onClick={() => handleViewReturnFile(doc)}
-                                    className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                                    className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                                   >
                                     {t('view_reviewed_file')}
                                   </button>
                                 ) : null}
                                 <button
                                   onClick={() => handleDownloadReturnFile(doc)}
-                                  className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                                  className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                                 >
                                   {t('download_reviewed_file')}
                                 </button>
@@ -576,8 +586,8 @@ export default function DraftDocuments() {
                           </div>
                         ) : null}
                       </div>
-                    </td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td className="py-3">
                       <ActionMenu
                         actions={[
                           ...(isDraftStatus(doc) && hasPermission('documents.draft', 'update')
@@ -609,12 +619,13 @@ export default function DraftDocuments() {
                           )
                         ]}
                       />
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))
               )}
             </tbody>
-          </table>
+          </Table>
+          </TableContainer>
         </div>
         )}
 
@@ -622,10 +633,10 @@ export default function DraftDocuments() {
         {viewMode === 'grid' && (
         <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading ? (
-            <div className="col-span-full text-center py-8 text-gray-500">
+            <div className="col-span-full text-center py-10">
               <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span>{t('loading_documents')}</span>
+                <InlineSpinner />
+                <span className="text-sm text-ink-muted">{t('loading_documents')}</span>
               </div>
             </div>
           ) : currentDocuments.length === 0 ? (
@@ -639,10 +650,10 @@ export default function DraftDocuments() {
             </div>
           ) : (
             currentDocuments.map((doc) => (
-              <div key={doc.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+              <AppSurface key={doc.id} variant="interactive" padding="md" className="shadow-none hover:shadow-dms-soft">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-2xl bg-surface-muted border border-border flex items-center justify-center">
+                    <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
@@ -676,17 +687,17 @@ export default function DraftDocuments() {
                     ]}
                   />
                 </div>
-                <h3 className="font-medium text-gray-900 text-sm mb-1 truncate" title={doc.title}>{doc.title}</h3>
-                <p className="text-xs text-blue-600 font-mono mb-2">{doc.fileCode}</p>
+                <h3 className="font-medium text-ink text-sm mb-1 truncate" title={doc.title}>{doc.title}</h3>
+                <p className="text-xs text-brand font-mono mb-2">{doc.fileCode}</p>
                 <div className="flex items-center justify-between mb-2">
                   <StatusBadge status={doc.status} />
-                  <span className="text-xs text-gray-500">v{doc.version}</span>
+                  <span className="text-xs text-ink-muted">v{doc.version}</span>
                 </div>
                 {doc.latestReturnRemark && doc.status === 'Return for Amendments' ? (
                   <div className="space-y-1">
                     <button
                       onClick={() => handleViewRemarks(doc)}
-                      className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                      className="w-full text-left text-xs text-brand hover:text-brand-hover underline underline-offset-2 truncate"
                       title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
                     >
                       {t('latest_remark')}
@@ -697,14 +708,14 @@ export default function DraftDocuments() {
                         {isPreviewableReturnFile(doc) ? (
                           <button
                             onClick={() => handleViewReturnFile(doc)}
-                            className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                            className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                           >
                             {t('view_reviewed_file')}
                           </button>
                         ) : null}
                         <button
                           onClick={() => handleDownloadReturnFile(doc)}
-                          className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                          className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                         >
                           {t('download_reviewed_file')}
                         </button>
@@ -712,11 +723,11 @@ export default function DraftDocuments() {
                     ) : null}
                   </div>
                 ) : null}
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-ink-muted">
                   <p>{t('by_author')} {doc.createdBy}</p>
                   <p>{doc.lastUpdated}</p>
                 </div>
-              </div>
+              </AppSurface>
             ))
           )}
         </div>
@@ -725,10 +736,10 @@ export default function DraftDocuments() {
         {/* Mobile Cards */}
         <div className="md:hidden space-y-4">
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-10">
               <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span>{t('loading_documents')}</span>
+                <InlineSpinner />
+                <span className="text-sm text-ink-muted">{t('loading_documents')}</span>
               </div>
             </div>
           ) : currentDocuments.length === 0 ? (
@@ -740,13 +751,13 @@ export default function DraftDocuments() {
             />
           ) : (
             currentDocuments.map((doc) => (
-              <div key={doc.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <AppSurface key={doc.id} variant="muted" padding="md" className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <a href="#" className="text-gray-900 font-semibold hover:text-blue-600">
+                    <a href="#" className="text-ink font-semibold hover:text-brand">
                       {doc.fileCode}
                     </a>
-                    <div className="text-sm text-gray-600 mt-1">{doc.title}</div>
+                    <div className="text-sm text-ink-secondary mt-1">{doc.title}</div>
                   </div>
                   <ActionMenu
                     actions={[
@@ -787,7 +798,7 @@ export default function DraftDocuments() {
                   <div className="space-y-1">
                     <button
                       onClick={() => handleViewRemarks(doc)}
-                      className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                      className="w-full text-left text-xs text-brand hover:text-brand-hover underline underline-offset-2 truncate"
                       title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
                     >
                       {t('latest_remark')}
@@ -798,14 +809,14 @@ export default function DraftDocuments() {
                         {isPreviewableReturnFile(doc) ? (
                           <button
                             onClick={() => handleViewReturnFile(doc)}
-                            className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                            className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                           >
                             {t('view_reviewed_file')}
                           </button>
                         ) : null}
                         <button
                           onClick={() => handleDownloadReturnFile(doc)}
-                          className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                          className="text-xs text-brand hover:text-brand-hover underline underline-offset-2"
                         >
                           {t('download_reviewed_file')}
                         </button>
@@ -815,24 +826,24 @@ export default function DraftDocuments() {
                 ) : null}
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-500">{t('version')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.version}</div>
+                    <span className="text-ink-muted">{t('version')}:</span>
+                    <div className="text-ink font-medium">{doc.version}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('created_by')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.createdBy}</div>
+                    <span className="text-ink-muted">{t('created_by')}:</span>
+                    <div className="text-ink font-medium">{doc.createdBy}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('last_updated')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.lastUpdated}</div>
+                    <span className="text-ink-muted">{t('last_updated')}:</span>
+                    <div className="text-ink font-medium">{doc.lastUpdated}</div>
                   </div>
                 </div>
-              </div>
+              </AppSurface>
             ))
           )}
         </div>
 
-      </div>
+      </AppSurface>
 
       {/* Pagination */}
       {!loading && filteredDocuments.length > 0 && (

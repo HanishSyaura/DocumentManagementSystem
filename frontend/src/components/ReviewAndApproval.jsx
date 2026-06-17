@@ -16,6 +16,13 @@ import { PermissionGate } from './PermissionGate'
 import { hasPermission } from '../utils/permissions'
 import { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
+import PageHeader from './ui/PageHeader'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import SelectField from './ui/SelectField'
+import InlineSpinner from './ui/InlineSpinner'
+import { Table, TableContainer, Td, Th, Tr } from './ui/Table'
 
 function isPdfDocument(doc) {
   const name = String(doc?.fileName || '')
@@ -472,32 +479,28 @@ export default function ReviewAndApproval() {
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
       />
-      <div className="p-6 space-y-6">
-      {/* Page Header */}
-      <div className="card p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('review_approval_title')}</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {t('review_approval_desc')}
-        </p>
-      </div>
+      <div className="space-y-6">
+      <PageHeader
+        title={t('review_approval_title')}
+        subtitle={t('review_approval_desc')}
+      />
 
       {/* Document List */}
-      <div className="card p-6" data-tour-id="ra-list-card">
+      <AppSurface padding="lg" data-tour-id="ra-list-card">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('review_approval_list')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-lg font-semibold text-ink">{t('review_approval_list')}</h2>
+              <p className="text-sm text-ink-muted mt-1">
                 List of Documents to be acknowledged, reviewed and approved. ({filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''})
               </p>
             </div>
             
             {/* Actions */}
             <PermissionGate module="documents.draft" action="create">
-              <button 
+              <Button
                 onClick={() => navigate('/drafts')}
                 data-tour-id="ra-btn-upload-new-draft"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -505,7 +508,7 @@ export default function ReviewAndApproval() {
                   </svg>
                   {t('upload_new_draft')}
                 </span>
-              </button>
+              </Button>
             </PermissionGate>
           </div>
 
@@ -516,12 +519,12 @@ export default function ReviewAndApproval() {
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input
+              <TextInput
                 type="text"
                 placeholder={t('search_docs_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="pl-10 pr-10"
               />
               {searchQuery && (
                 <button
@@ -536,43 +539,44 @@ export default function ReviewAndApproval() {
             </div>
 
             {/* Stage Filter */}
-            <select
+            <SelectField
               value={stageFilter}
               onChange={(e) => setStageFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white min-w-[200px]"
+              className="min-w-[200px]"
             >
               {allStages.map(stage => (
                 <option key={stage} value={stage}>{stage}</option>
               ))}
-            </select>
+            </SelectField>
           </div>
         </div>
 
         {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('doc_title')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('version')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('stage')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('submitted_by')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('reviewer')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('approver')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('second_approver')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('last_updated')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="hidden md:block">
+          <TableContainer>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>{t('file_code')}</Th>
+                  <Th>{t('doc_title')}</Th>
+                  <Th>{t('version')}</Th>
+                  <Th>{t('stage')}</Th>
+                  <Th>{t('submitted_by')}</Th>
+                  <Th>{t('reviewer')}</Th>
+                  <Th>{t('approver')}</Th>
+                  <Th>{t('second_approver')}</Th>
+                  <Th>{t('last_updated')}</Th>
+                  <Th>{t('status')}</Th>
+                  <Th>{t('action')}</Th>
+                </tr>
+              </thead>
+              <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" className="text-center py-8 text-gray-500">
+                  <td colSpan="11" className="py-10">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span>{t('loading_docs')}</span>
+                      <InlineSpinner />
+                      <span className="text-sm text-ink-muted">{t('loading_docs')}</span>
                     </div>
                   </td>
                 </tr>
@@ -589,28 +593,28 @@ export default function ReviewAndApproval() {
                 </tr>
               ) : (
                 currentDocuments.map((doc) => (
-                  <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <a href="#" className="text-gray-900 font-medium hover:text-blue-600">
+                  <Tr key={doc.id}>
+                    <Td>
+                      <a href="#" className="font-medium text-ink hover:text-brand">
                         {doc.fileCode}
                       </a>
-                    </td>
-                    <td className="py-4 px-4">
-                      <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
+                    </Td>
+                    <Td>
+                      <a href="#" className="font-medium text-brand hover:text-brand-hover hover:underline">
                         {doc.title}
                       </a>
-                    </td>
-                    <td className="py-4 px-4 text-gray-700">{doc.version}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.stage}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.submittedBy}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.reviewerName || '-'}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.firstApproverName || '-'}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.secondApproverName || '-'}</td>
-                    <td className="py-4 px-4 text-gray-700">{doc.lastUpdated}</td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td>{doc.version}</Td>
+                    <Td>{doc.stage}</Td>
+                    <Td>{doc.submittedBy}</Td>
+                    <Td>{doc.reviewerName || '-'}</Td>
+                    <Td>{doc.firstApproverName || '-'}</Td>
+                    <Td>{doc.secondApproverName || '-'}</Td>
+                    <Td>{doc.lastUpdated}</Td>
+                    <Td className="py-3">
                       <StatusBadge status={doc.status} />
-                    </td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td className="py-3">
                       <ActionMenu
                         actions={[
                           ...(hasPermission('documents.review', 'read')
@@ -638,21 +642,22 @@ export default function ReviewAndApproval() {
                           )
                         ]}
                       />
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))
               )}
-            </tbody>
-          </table>
+              </tbody>
+            </Table>
+          </TableContainer>
         </div>
 
         {/* Mobile Cards */}
         <div className="md:hidden space-y-4">
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-10">
               <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span>{t('loading_docs')}</span>
+                <InlineSpinner />
+                <span className="text-sm text-ink-muted">{t('loading_docs')}</span>
               </div>
             </div>
           ) : currentDocuments.length === 0 ? (
@@ -664,13 +669,13 @@ export default function ReviewAndApproval() {
             />
           ) : (
             currentDocuments.map((doc) => (
-              <div key={doc.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <AppSurface key={doc.id} variant="muted" padding="md" className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <a href="#" className="text-gray-900 font-semibold hover:text-blue-600">
+                    <a href="#" className="text-ink font-semibold hover:text-brand">
                       {doc.fileCode}
                     </a>
-                    <div className="text-sm text-gray-600 mt-1">{doc.title}</div>
+                    <div className="text-sm text-ink-secondary mt-1">{doc.title}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -678,95 +683,101 @@ export default function ReviewAndApproval() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-500">{t('version')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.version}</div>
+                    <span className="text-ink-muted">{t('version')}:</span>
+                    <div className="text-ink font-medium">{doc.version}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('stage')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.stage}</div>
+                    <span className="text-ink-muted">{t('stage')}:</span>
+                    <div className="text-ink font-medium">{doc.stage}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('submitted_by')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.submittedBy}</div>
+                    <span className="text-ink-muted">{t('submitted_by')}:</span>
+                    <div className="text-ink font-medium">{doc.submittedBy}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('reviewer')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.reviewerName || '-'}</div>
+                    <span className="text-ink-muted">{t('reviewer')}:</span>
+                    <div className="text-ink font-medium">{doc.reviewerName || '-'}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('approver')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.firstApproverName || '-'}</div>
+                    <span className="text-ink-muted">{t('approver')}:</span>
+                    <div className="text-ink font-medium">{doc.firstApproverName || '-'}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('second_approver')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.secondApproverName || '-'}</div>
+                    <span className="text-ink-muted">{t('second_approver')}:</span>
+                    <div className="text-ink font-medium">{doc.secondApproverName || '-'}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('last_updated')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.lastUpdated}</div>
+                    <span className="text-ink-muted">{t('last_updated')}:</span>
+                    <div className="text-ink font-medium">{doc.lastUpdated}</div>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-border/70">
                   {hasPermission('documents.review', 'read') && (
-                    <button
+                    <Button
                       onClick={() => handleView(doc)}
-                      className={`flex-1 px-3 py-2 text-sm rounded-lg ${
-                        isPdfDocument(doc)
-                          ? 'text-blue-600 border border-blue-600 hover:bg-blue-50'
-                          : 'text-gray-400 border border-gray-200 cursor-not-allowed'
-                      }`}
+                      size="sm"
+                      variant="secondary"
+                      className={isPdfDocument(doc) ? 'flex-1 border-brand text-brand hover:text-brand-hover' : 'flex-1'}
                       disabled={!isPdfDocument(doc)}
                     >
                       {t('view')}
-                    </button>
+                    </Button>
                   )}
                   {hasPermission('documents.review', 'read') && (
-                    <button
+                    <Button
                       onClick={() => handleDownload(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1 border-brand text-brand hover:text-brand-hover"
                     >
                       {t('download')}
-                    </button>
+                    </Button>
                   )}
                   {doc.stage === 'Review' && hasPermission('documents.review', 'review') && !isDocumentOwner(doc) && isAssignedReviewer(doc) && (
-                    <button
+                    <Button
                       onClick={() => handleReview(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-gray-600 rounded-lg hover:bg-gray-700"
+                      size="sm"
+                      variant="primary"
+                      className="flex-1"
                     >
                       {t('review_action')}
-                    </button>
+                    </Button>
                   )}
                   {(doc.stage === 'Approval' || doc.stage === 'FIRST_APPROVAL' || doc.stage === 'SECOND_APPROVAL') && hasPermission('documents.review', 'approve') && !isDocumentOwner(doc) && isAssignedApprover(doc) && (
-                    <button
+                    <Button
                       onClick={() => handleApprove(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700"
+                      size="sm"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       {t('approve_action')}
-                    </button>
+                    </Button>
                   )}
                   {doc.stage === 'Acknowledge' && (
-                    <button
+                    <Button
                       onClick={() => handleAcknowledge(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                      size="sm"
+                      variant="primary"
+                      className="flex-1"
                     >
                       {t('acknowledge_action')}
-                    </button>
+                    </Button>
                   )}
                   {doc.status === 'READY_TO_PUBLISH' && (
-                    <button
+                    <Button
                       onClick={() => handlePublish(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+                      size="sm"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       {t('publish_action')}
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </div>
+              </AppSurface>
             ))
           )}
         </div>
 
-      </div>
+      </AppSurface>
 
       {/* Pagination */}
       {!loading && filteredDocuments.length > 0 && (

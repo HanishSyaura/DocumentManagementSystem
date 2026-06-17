@@ -4,6 +4,10 @@ import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import AssignReviewerModal from './AssignReviewerModal'
 import { AlertModal } from './ConfirmModal'
 import DocumentAccessModal from './DocumentAccessModal'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function UploadFileModal({ isOpen, onClose, document, onSuccess, canManageAccess = false }) {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -151,172 +155,126 @@ export default function UploadFileModal({ isOpen, onClose, document, onSuccess, 
           }}
         />
       )}
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        {/* Backdrop */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
-        
-        {/* Modal */}
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
-          {/* Header */}
-            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{uploadComplete ? 'File Uploaded' : 'Upload Document File'}</h2>
-                <p className="text-sm text-gray-600 mt-1">{documentCodeLabel}: {documentTitleLabel}</p>
+      <Modal onClose={handleClose} closeOnBackdrop size="sm">
+        <ModalHeader
+          title={uploadComplete ? 'File Uploaded' : 'Upload Document File'}
+          subtitle={`${documentCodeLabel}: ${documentTitleLabel}`}
+          onClose={handleClose}
+        />
+
+        <ModalBody>
+          {uploadComplete ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="mt-0.5 h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div>
+                    <div className="text-sm font-semibold text-green-900">Draft file uploaded successfully</div>
+                    <div className="mt-1 text-sm text-green-800">Next step: submit this draft for review, or open the document to continue editing later.</div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+              <AppSurface variant="muted" padding="md" className="text-sm text-ink-secondary">
+                <div><span className="font-semibold text-ink">File Code:</span> {documentCodeLabel}</div>
+                <div className="mt-1"><span className="font-semibold text-ink">Title:</span> {documentTitleLabel}</div>
+                <div className="mt-1"><span className="font-semibold text-ink">Status:</span> Draft</div>
+              </AppSurface>
+            </div>
+          ) : (
+            <div
+              className="rounded-[18px]"
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <AppSurface
+                variant="muted"
+                padding="lg"
+                className={[
+                  'border-2 border-dashed text-center transition-colors',
+                  isDragging ? 'border-brand bg-blue-50/40' : 'border-border'
+                ].join(' ')}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-4">
-              {uploadComplete ? (
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <svg className="mt-0.5 h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <div>
-                        <div className="text-sm font-semibold text-green-900">Draft file uploaded successfully</div>
-                        <div className="mt-1 text-sm text-green-800">Next step: submit this draft for review, or open the document to continue editing later.</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-                    <div><span className="font-medium">File Code:</span> {documentCodeLabel}</div>
-                    <div className="mt-1"><span className="font-medium">Title:</span> {documentTitleLabel}</div>
-                    <div className="mt-1"><span className="font-medium">Status:</span> Draft</div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    isDragging
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50'
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  {selectedFile ? (
-                    <div className="space-y-2">
-                      <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                      <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedFile(null)}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium"
-                      >
-                        Remove file
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Drop files here</p>
-                      <p className="text-xs text-gray-500 mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
-                      <p className="text-xs text-gray-400 mb-4">OR</p>
-                      <label className="cursor-pointer">
-                        <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                          Browse files
-                        </span>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          className="hidden"
-                          accept={getAcceptString()}
-                          onChange={handleFileSelect}
-                        />
-                      </label>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-              {uploadComplete ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Close
-                  </button>
-                  {canManageAccess && (
+                {selectedFile ? (
+                  <div className="space-y-2">
+                    <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm font-semibold text-ink">{selectedFile.name}</p>
+                    <p className="text-xs text-ink-muted">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     <button
                       type="button"
-                      onClick={() => setShowDocumentAccess(true)}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      onClick={() => setSelectedFile(null)}
+                      className="text-sm text-red-600 hover:text-red-700 font-semibold underline underline-offset-2"
                     >
-                      Manage Access
+                      Remove file
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleOpenDocument}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Open Document
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAssignReviewer(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Submit for Review
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    disabled={uploading}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  {canManageAccess && (
-                    <button
-                      type="button"
-                      onClick={() => setShowDocumentAccess(true)}
-                      disabled={uploading}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      Manage Access
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleUpload}
-                    disabled={!selectedFile || uploading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {uploading ? 'Uploading...' : 'Upload File'}
-                  </button>
-                </>
-              )}
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-12 h-12 text-ink-soft mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-sm font-semibold text-ink mb-1">Drop files here</p>
+                    <p className="text-xs text-ink-muted mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
+                    <p className="text-xs text-ink-soft mb-4">OR</p>
+                    <label className="cursor-pointer">
+                      <span className="text-sm text-brand hover:text-brand-hover font-semibold underline underline-offset-2">
+                        Browse files
+                      </span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept={getAcceptString()}
+                        onChange={handleFileSelect}
+                      />
+                    </label>
+                  </>
+                )}
+              </AppSurface>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </ModalBody>
+
+        <ModalFooter className="flex-wrap justify-end">
+          {uploadComplete ? (
+            <>
+              <Button type="button" variant="secondary" onClick={handleClose}>
+                Close
+              </Button>
+              {canManageAccess && (
+                <Button type="button" variant="secondary" onClick={() => setShowDocumentAccess(true)}>
+                  Manage Access
+                </Button>
+              )}
+              <Button type="button" variant="secondary" onClick={handleOpenDocument}>
+                Open Document
+              </Button>
+              <Button type="button" onClick={() => setShowAssignReviewer(true)}>
+                Submit for Review
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="secondary" onClick={handleClose} disabled={uploading}>
+                Cancel
+              </Button>
+              {canManageAccess && (
+                <Button type="button" variant="secondary" onClick={() => setShowDocumentAccess(true)} disabled={uploading}>
+                  Manage Access
+                </Button>
+              )}
+              <Button type="button" onClick={handleUpload} disabled={!selectedFile || uploading}>
+                {uploading ? <><InlineSpinner className="h-4 w-4 border-2 border-white/40 border-t-white" /><span>Uploading...</span></> : 'Upload File'}
+              </Button>
+            </>
+          )}
+        </ModalFooter>
+      </Modal>
     </>
   )
 }

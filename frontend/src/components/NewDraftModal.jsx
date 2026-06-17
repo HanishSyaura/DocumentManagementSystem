@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
 import { usePreferences } from '../contexts/PreferencesContext'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import SelectField from './ui/SelectField'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
   // Use dynamic file upload settings
@@ -277,39 +284,20 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" data-tour-id="new-draft-modal">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{t('new_draft_doc')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('modal_draft_desc')}
-              </p>
-            </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+    <Modal onClose={handleClose} closeOnBackdrop size="md" className="overflow-hidden" data-tour-id="new-draft-modal">
+      <ModalHeader
+        title={t('new_draft_doc')}
+        subtitle={t('modal_draft_desc')}
+        onClose={handleClose}
+      />
 
-          {/* Body */}
-          <div className="px-6 py-4 space-y-4">
+      <ModalBody className="space-y-4">
             {/* File Code */}
             <div className="relative file-code-search">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('file_code')} <span className="text-red-500">*</span>
               </label>
-              <input
+              <TextInput
                 type="text"
                 required
                 value={searchFileCode}
@@ -324,68 +312,65 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                 }}
                 onFocus={() => setShowFileCodeDropdown(true)}
                 placeholder={t('search_file_codes')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 disabled={!formData.documentType}
               />
               {!formData.documentType && (
-                <p className="text-xs text-amber-600 mt-1">{t('select_doc_type_first')}</p>
+                <p className="text-xs text-amber-700 mt-1">{t('select_doc_type_first')}</p>
               )}
               
               {/* Dropdown for available documents */}
               {showFileCodeDropdown && formData.documentType && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <AppSurface padding="none" className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-2xl">
                   {loadingAcknowledgedDocs ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">{t('loading_ellipsis')}</div>
+                    <div className="px-3 py-2 text-sm text-ink-muted">{t('loading_ellipsis')}</div>
                   ) : filteredAcknowledgedDocs.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-gray-500">{t('no_file_codes_found')}</div>
+                    <div className="px-3 py-2 text-sm text-ink-muted">{t('no_file_codes_found')}</div>
                   ) : (
                     filteredAcknowledgedDocs.map((doc) => (
                       <button
                         key={doc.id}
                         type="button"
                         onClick={() => handleFileCodeSelect(doc)}
-                        className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                        className="w-full text-left px-3 py-2 hover:bg-surface-muted transition-colors border-b border-border/70 last:border-0"
                       >
-                        <div className="text-sm font-medium text-gray-900">{doc.fileCode}</div>
-                        <div className="text-xs text-gray-600">{doc.title}</div>
+                        <div className="text-sm font-semibold text-ink">{doc.fileCode}</div>
+                        <div className="text-xs text-ink-muted">{doc.title}</div>
                         {doc.projectCategory && (
-                          <div className="text-xs text-blue-600 mt-0.5">
+                          <div className="text-xs text-brand mt-0.5">
                             {t('project_cat_label')} {doc.projectCategory.name}
                           </div>
                         )}
-                        <div className="text-xs text-gray-500">{t('version_label')} {doc.version}</div>
+                        <div className="text-xs text-ink-soft">{t('version_label')} {doc.version}</div>
                       </button>
                     ))
                   )}
-                </div>
+                </AppSurface>
               )}
             </div>
 
             {/* Document Title & Version */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   {t('document_title_col')} <span className="text-red-500">*</span>
                 </label>
-                <input
+                <TextInput
                   type="text"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder={t('input_text')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   {t('version_revision')}
                 </label>
-                <input
+                <TextInput
                   type="text"
                   value={formData.versionNo}
                   onChange={(e) => setFormData({ ...formData, versionNo: e.target.value })}
                   placeholder={t('input_text')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
             </div>
@@ -393,15 +378,14 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
             {/* Document Type & Comments */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   {t('doc_type')} <span className="text-red-500">*</span>
                 </label>
-                <select
+                <SelectField
                   required
                   value={formData.documentType}
                   onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
                   data-tour-id="new-draft-doc-type"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                   disabled={loadingDocTypes}
                 >
                   <option value="">{loadingDocTypes ? t('loading_ellipsis') : t('select_doc_type')}</option>
@@ -410,64 +394,68 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                       {type.name}
                     </option>
                   ))}
-                </select>
+                </SelectField>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   {t('comments_notes')}
                 </label>
-                <textarea
+                <TextArea
                   value={formData.comments}
                   onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
                   placeholder={t('input_text')}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  className="resize-none"
                 />
               </div>
             </div>
 
             {/* Upload Draft Document */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('upload_draft_doc')}
               </label>
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 bg-gray-50'
-                }`}
+                className="rounded-[18px]"
                 data-tour-id="new-draft-upload"
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
               >
+                <AppSurface
+                  variant="muted"
+                  padding="lg"
+                  className={[
+                    'border-2 border-dashed text-center transition-colors',
+                    dragActive ? 'border-brand bg-blue-50/40' : 'border-border'
+                  ].join(' ')}
+                >
                 {selectedFile ? (
                   <div className="space-y-2">
                     <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    <p className="text-sm font-semibold text-ink">{selectedFile.name}</p>
+                    <p className="text-xs text-ink-muted">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                     <button
                       type="button"
                       onClick={() => setSelectedFile(null)}
-                      className="text-sm text-red-600 hover:text-red-700 font-medium"
+                      className="text-sm text-red-600 hover:text-red-700 font-semibold underline underline-offset-2"
                     >
                       {t('remove_file')}
                     </button>
                   </div>
                 ) : (
                   <>
-                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-ink-soft mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className="text-sm font-medium text-gray-700 mb-1">{t('drop_files_here')}</p>
-                    <p className="text-xs text-gray-500 mb-4">{t('supported_formats')} {getAllowedTypesDisplay()}</p>
-                    <p className="text-xs text-gray-400 mb-4">{t('or_text')}</p>
+                    <p className="text-sm font-semibold text-ink mb-1">{t('drop_files_here')}</p>
+                    <p className="text-xs text-ink-muted mb-4">{t('supported_formats')} {getAllowedTypesDisplay()}</p>
+                    <p className="text-xs text-ink-soft mb-4">{t('or_text')}</p>
                     <label className="cursor-pointer">
-                      <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                      <span className="text-sm text-brand hover:text-brand-hover font-semibold underline underline-offset-2">
                         {t('browse_files')}
                       </span>
                       <input
@@ -479,28 +467,32 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                     </label>
                   </>
                 )}
+                </AppSurface>
               </div>
             </div>
 
             {/* Assign Reviewer */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('assign_reviewer_label')} <span className="text-red-500">*</span>
               </label>
-              <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto" data-tour-id="new-draft-assign-reviewer">
+              <AppSurface variant="muted" padding="md" className="max-h-48 overflow-y-auto" data-tour-id="new-draft-assign-reviewer">
                 {loadingReviewers ? (
-                  <div className="text-sm text-gray-500">{t('loading_reviewers')}</div>
+                  <div className="flex items-center gap-2 text-sm text-ink-muted">
+                    <InlineSpinner className="h-4 w-4 border-2" />
+                    <span>{t('loading_reviewers')}</span>
+                  </div>
                 ) : availableReviewers.length === 0 ? (
-                  <div className="text-sm text-gray-500">{t('no_reviewers')}</div>
+                  <div className="text-sm text-ink-muted">{t('no_reviewers')}</div>
                 ) : (
                   <div className="space-y-2">
                     {availableReviewers.map((reviewer) => (
                       <label
                         key={reviewer.id}
-                        className={`flex items-start space-x-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                        className={`flex items-start space-x-3 p-2 rounded-2xl cursor-pointer transition-colors ${
                           formData.reviewerId === reviewer.id 
-                            ? 'bg-blue-50 border border-blue-200' 
-                            : 'hover:bg-gray-50'
+                            ? 'bg-white border border-brand/20 shadow-dms-soft' 
+                            : 'hover:bg-white/70'
                         }`}
                       >
                         <input
@@ -508,62 +500,53 @@ export default function NewDraftModal({ isOpen, onClose, onSubmit }) {
                           name="reviewer"
                           checked={formData.reviewerId === reviewer.id}
                           onChange={() => handleReviewerSelect(reviewer.id)}
-                          className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          className="mt-1 h-4 w-4 text-brand border-border focus-visible:ring-2 focus-visible:ring-brand/30"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-semibold text-ink">
                             {reviewer.firstName && reviewer.lastName
                               ? `${reviewer.firstName} ${reviewer.lastName}`
                               : reviewer.email}
                           </div>
                           {reviewer.position && (
-                            <div className="text-xs text-gray-500">{reviewer.position}</div>
+                            <div className="text-xs text-ink-muted">{reviewer.position}</div>
                           )}
                           {reviewer.department && (
-                            <div className="text-xs text-gray-500">{reviewer.department}</div>
+                            <div className="text-xs text-ink-muted">{reviewer.department}</div>
                           )}
                         </div>
                       </label>
                     ))}
                   </div>
                 )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
+              </AppSurface>
+              <p className="text-xs text-ink-muted mt-1">
                 {formData.reviewerId ? t('reviewer_selected') : t('select_reviewer')}
               </p>
             </div>
-          </div>
+      </ModalBody>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAsDraft}
-              disabled={loading || !formData.fileCode || !formData.title || !formData.documentType}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              {t('save_as_draft')}
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmitForReview}
-              disabled={loading || !formData.fileCode || !formData.title || !formData.documentType || !selectedFile || !formData.reviewerId}
-              data-tour-id="new-draft-submit-review"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? t('submitting') : t('submit_for_review')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <ModalFooter className="flex-wrap justify-end">
+        <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+          {t('cancel')}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleSaveAsDraft}
+          disabled={loading || !formData.fileCode || !formData.title || !formData.documentType}
+        >
+          {t('save_as_draft')}
+        </Button>
+        <Button
+          type="button"
+          onClick={handleSubmitForReview}
+          disabled={loading || !formData.fileCode || !formData.title || !formData.documentType || !selectedFile || !formData.reviewerId}
+          data-tour-id="new-draft-submit-review"
+        >
+          {loading ? t('submitting') : t('submit_for_review')}
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 }

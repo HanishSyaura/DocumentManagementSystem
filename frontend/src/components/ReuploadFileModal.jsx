@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import { AlertModal } from './ConfirmModal'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess }) {
   // Use dynamic file upload settings
@@ -163,7 +169,7 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <>
       <AlertModal
         show={alertModal.show}
         title={alertModal.title}
@@ -171,51 +177,36 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
       />
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Reupload Revised Document</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Upload the revised version and resubmit for review
-              </p>
-            </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+      <Modal onClose={handleClose} closeOnBackdrop size="md">
+        <ModalHeader
+          title="Reupload Revised Document"
+          subtitle="Upload the revised version and resubmit for review"
+          onClose={handleClose}
+        />
 
-          {/* Body */}
-          {loadingDocument ? (
-            <div className="px-6 py-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading document details...</p>
+        {loadingDocument ? (
+          <ModalBody className="py-12 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <InlineSpinner className="h-10 w-10 border-2" />
+              <p className="text-sm text-ink-muted">Loading document details...</p>
             </div>
-          ) : (
-            <div className="px-6 py-4 space-y-4">
+          </ModalBody>
+        ) : (
+          <>
+            <ModalBody className="space-y-4">
               {/* File Code - Read Only */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   File Code
                 </label>
-                <input
+                <TextInput
                   type="text"
                   value={formData.fileCode}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="bg-surface-muted text-ink-muted cursor-not-allowed"
                 />
                 {formData.projectCategory && (
-                  <p className="text-xs text-blue-600 mt-1">
+                  <p className="text-xs text-brand mt-1">
                     Project Category: {formData.projectCategory}
                   </p>
                 )}
@@ -224,27 +215,26 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
               {/* Document Title & Version */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-secondary mb-2">
                     Document Title <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <TextInput
                     type="text"
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Input text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-secondary mb-2">
                     Version / Revision No.
                   </label>
-                  <input
+                  <TextInput
                     type="text"
                     value={formData.versionNo}
                     disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                    className="bg-surface-muted text-ink-muted cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -252,71 +242,75 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
               {/* Document Type & Comments */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-secondary mb-2">
                     Document Type
                   </label>
-                  <input
+                  <TextInput
                     type="text"
                     value={formData.documentType}
                     disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                    className="bg-surface-muted text-ink-muted cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-secondary mb-2">
                     Comments / Notes
                   </label>
-                  <textarea
+                  <TextArea
                     value={formData.comments}
                     onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
                     placeholder="Input text"
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                    className="resize-none"
                   />
                 </div>
               </div>
 
               {/* Upload Revised Document */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   Upload Revised Document <span className="text-red-500">*</span>
                 </label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    dragActive
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50'
-                  }`}
+                  className="rounded-[18px]"
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                 >
+                  <AppSurface
+                    variant="muted"
+                    padding="lg"
+                    className={[
+                      'border-2 border-dashed text-center transition-colors',
+                      dragActive ? 'border-brand bg-blue-50/40' : 'border-border'
+                    ].join(' ')}
+                  >
                   {selectedFile ? (
                     <div className="space-y-2">
                       <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                      <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <p className="text-sm font-semibold text-ink">{selectedFile.name}</p>
+                      <p className="text-xs text-ink-muted">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                       <button
                         type="button"
                         onClick={() => setSelectedFile(null)}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        className="text-sm text-red-600 hover:text-red-700 font-semibold underline underline-offset-2"
                       >
                         Remove file
                       </button>
                     </div>
                   ) : (
                     <>
-                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-12 h-12 text-ink-soft mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Drop files here</p>
-                      <p className="text-xs text-gray-500 mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
-                      <p className="text-xs text-gray-400 mb-4">OR</p>
+                      <p className="text-sm font-semibold text-ink mb-1">Drop files here</p>
+                      <p className="text-xs text-ink-muted mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
+                      <p className="text-xs text-ink-soft mb-4">OR</p>
                       <label className="cursor-pointer">
-                        <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <span className="text-sm text-brand hover:text-brand-hover font-semibold underline underline-offset-2">
                           Browse files
                         </span>
                         <input
@@ -328,11 +322,12 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
                       </label>
                     </>
                   )}
+                  </AppSurface>
                 </div>
               </div>
 
               {/* Info Message */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
                 <div className="flex gap-3">
                   <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -347,30 +342,19 @@ export default function ReuploadFileModal({ isOpen, onClose, document, onSuccess
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            </ModalBody>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleReuploadAndResubmit}
-              disabled={loading || !selectedFile || !formData.title || loadingDocument}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Resubmitting...' : 'Reupload & Resubmit'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            <ModalFooter className="flex-wrap justify-end">
+              <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleReuploadAndResubmit} disabled={loading || !selectedFile || !formData.title || loadingDocument}>
+                {loading ? <><InlineSpinner className="h-4 w-4 border-2 border-white/40 border-t-white" /><span>Resubmitting...</span></> : 'Reupload & Resubmit'}
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </Modal>
+    </>
   )
 }

@@ -2,6 +2,10 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../contexts/NotificationContext'
 import { usePreferences } from '../contexts/PreferencesContext'
+import AppSurface from './ui/AppSurface'
+import EmptyPanelState from './ui/EmptyPanelState'
+import SectionHeader from './ui/SectionHeader'
+import AppRightPanelToggle from './layout/AppRightPanelToggle'
 
 // Notification icon components
 const WarningIcon = () => (
@@ -25,31 +29,6 @@ const ErrorIcon = () => (
 const SuccessIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-  </svg>
-)
-
-// Quick Access icon components
-const PlusIcon = () => (
-  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-  </svg>
-)
-
-const DocumentIcon = () => (
-  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-)
-
-const SearchIcon = () => (
-  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-)
-
-const CheckIcon = () => (
-  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 )
 
@@ -87,27 +66,11 @@ function NotificationItem({ type = 'info', title, message, time, unread }) {
   )
 }
 
-function QuickAccessButton({ icon: Icon, label, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors group"
-    >
-      <div className="text-gray-600 group-hover:text-blue-600 transition-colors">
-        <Icon />
-      </div>
-      <span className="text-xs font-medium text-gray-700 mt-2 text-center leading-tight">
-        {label}
-      </span>
-    </button>
-  )
-}
-
 export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(isCollapsed)
   const [isNotificationsCollapsed, setIsNotificationsCollapsed] = useState(false)
   const [showUnreadOnly, setShowUnreadOnly] = useState(false)
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications()
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications()
   const { t } = usePreferences()
   const navigate = useNavigate()
 
@@ -175,109 +138,104 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
 
   return (
     <>
-      {/* Collapse/Expand Button */}
-      <button
+      <AppRightPanelToggle
+        collapsed={isPanelCollapsed}
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-        className="fixed right-0 top-20 bg-white shadow-lg rounded-l-lg p-2 z-30 hover:bg-gray-50 transition-colors"
-        style={{ transform: isPanelCollapsed ? 'translateX(0)' : 'translateX(-320px)' }}
-      >
-        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
-      </button>
+      />
 
-      <aside className={`app-rightpanel w-80 p-4 h-full overflow-y-auto transition-transform duration-300 ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}>
-        {/* System Notifications */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            {t('system_notifications')}
-            {unreadCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </h3>
-          <div className="flex items-center gap-2">
-            {notifications.length > 0 && unreadCount > 0 && (
-              <button
-                onClick={() => markAllAsRead()}
-                className="text-xs text-gray-700 hover:text-gray-900 font-medium"
-              >
-                {t('mark_all_read')}
-              </button>
-            )}
-            {notifications.length > 0 && (
-              <button
-                onClick={() => setShowUnreadOnly(v => !v)}
-                className={`text-xs font-medium ${showUnreadOnly ? 'text-blue-600 hover:text-blue-700' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                {showUnreadOnly ? t('show_all') : t('show_unread')}
-              </button>
-            )}
-            {notifications.length > 0 && (
-              <button 
-                onClick={handleClearAll}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                {t('clear_all')}
-              </button>
-            )}
-            <button 
-              onClick={() => setIsNotificationsCollapsed(!isNotificationsCollapsed)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-5 h-5 transition-transform" style={{ transform: isNotificationsCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        {!isNotificationsCollapsed && (
-          <>
-            <p className="text-xs text-gray-500 mb-3">{t('important_alerts')}</p>
-            
-            {visibleNotifications.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {(['today', 'yesterday', 'earlier']).filter(k => (grouped[k] || []).length > 0).map((k) => (
-                  <div key={k}>
-                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      {k === 'today' ? t('notif_today') : k === 'yesterday' ? t('notif_yesterday') : t('notif_earlier')}
-                    </div>
-                    <div className="space-y-3">
-                      {(grouped[k] || []).map(notification => (
-                        <div
-                          key={notification.id}
-                          onClick={() => handleNotificationClick(notification)}
-                          className={`cursor-pointer ${!notification.read ? 'opacity-100' : 'opacity-70'}`}
-                        >
-                          <NotificationItem
-                            type={notification.severity || 'info'}
-                            title={notification.title}
-                            message={notification.message || notification.title}
-                            unread={!notification.read}
-                            time={getTimeAgo(notification.timestamp || notification.createdAt)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <svg className="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <p className="text-sm text-gray-500 font-medium">{t('no_notifications')}</p>
-                <p className="text-xs text-gray-400 mt-1">{t('all_caught_up')}</p>
+      <aside className={`app-rightpanel dms-scrollbar hidden h-full w-rightpanel overflow-y-auto border-l border-border bg-surface-muted p-4 transition-transform duration-300 xl:block ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}>
+        <AppSurface padding="md" className="space-y-4">
+          <SectionHeader
+            title={t('system_notifications')}
+            subtitle={t('important_alerts')}
+            actions={(
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    {unreadCount}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationsCollapsed(!isNotificationsCollapsed)}
+                  className="rounded-lg p-1 text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
+                >
+                  <svg className="h-5 w-5 transition-transform" style={{ transform: isNotificationsCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
               </div>
             )}
-          </>
-        )}
-      </div>
-    </aside>
+          />
+
+          {!isNotificationsCollapsed && (
+            <>
+              {notifications.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => markAllAsRead()}
+                      className="text-ink-secondary transition-colors hover:text-ink"
+                    >
+                      {t('mark_all_read')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowUnreadOnly(v => !v)}
+                    className={`transition-colors ${showUnreadOnly ? 'text-brand' : 'text-ink-muted hover:text-ink-secondary'}`}
+                  >
+                    {showUnreadOnly ? t('show_all') : t('show_unread')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="text-brand transition-colors hover:text-brand-hover"
+                  >
+                    {t('clear_all')}
+                  </button>
+                </div>
+              )}
+
+              {visibleNotifications.length > 0 ? (
+                <div className="dms-scrollbar max-h-[calc(100vh-14rem)] space-y-4 overflow-y-auto pr-1">
+                  {(['today', 'yesterday', 'earlier']).filter(k => (grouped[k] || []).length > 0).map((k) => (
+                    <div key={k}>
+                      <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                        {k === 'today' ? t('notif_today') : k === 'yesterday' ? t('notif_yesterday') : t('notif_earlier')}
+                      </div>
+                      <div className="space-y-3">
+                        {(grouped[k] || []).map(notification => (
+                          <div
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`cursor-pointer transition-opacity ${!notification.read ? 'opacity-100' : 'opacity-75'}`}
+                          >
+                            <NotificationItem
+                              type={notification.severity || 'info'}
+                              title={notification.title}
+                              message={notification.message || notification.title}
+                              unread={!notification.read}
+                              time={getTimeAgo(notification.timestamp || notification.createdAt)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyPanelState
+                  icon={<InfoIcon />}
+                  title={t('no_notifications')}
+                  description={t('all_caught_up')}
+                />
+              )}
+            </>
+          )}
+        </AppSurface>
+      </aside>
     </>
   )
 }

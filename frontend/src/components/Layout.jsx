@@ -9,6 +9,9 @@ import GettingStartedModal from './GettingStartedModal'
 import { isAdmin } from '../utils/permissions'
 import GuidedTour from './GuidedTour'
 import UploadProgressBar from './UploadProgressBar'
+import AppShell from './layout/AppShell'
+import PageContainer from './ui/PageContainer'
+import IconButton from './ui/IconButton'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -165,26 +168,27 @@ export default function Layout({ children }) {
   const footerCopyright = footerConfig?.copyrightText
 
   return (
-    <div className="h-screen flex flex-col">
+    <>
       <UploadProgressBar />
-      <Topbar
-        onMenu={() => setSidebarOpen(true)}
-        onGettingStarted={() => {
-          setGettingStartedOpen(true)
-          setShowGettingStartedHint(false)
-        }}
-        showGettingStartedHint={showGettingStartedHint}
-      />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {sidebarPosition === 'left' && (
+      <AppShell
+        topbar={(
+          <Topbar
+            onMenu={() => setSidebarOpen(true)}
+            onGettingStarted={() => {
+              setGettingStartedOpen(true)
+              setShowGettingStartedHint(false)
+            }}
+            showGettingStartedHint={showGettingStartedHint}
+          />
+        )}
+        leftSidebar={sidebarPosition === 'left' ? (
           <div className="relative">
             <Sidebar
               isOpen={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
               isCollapsed={sidebarCollapsed}
             />
-            <button
-              type="button"
+            <IconButton
               onClick={() => {
                 setSidebarCollapsed((prev) => {
                   const next = !prev
@@ -195,86 +199,24 @@ export default function Layout({ children }) {
                   return next
                 })
               }}
-              className="hidden md:flex items-center justify-center absolute -right-3 bottom-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              size="sm"
+              className="absolute -right-4 bottom-20 z-30 hidden rounded-full md:flex"
               aria-label="Toggle sidebar"
             >
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarCollapsed ? 'M13 5l7 7-7 7M4 5h2v14H4z' : 'M11 19l-7-7 7-7M20 5h-2v14h2z'} />
               </svg>
-            </button>
+            </IconButton>
           </div>
-        )}
-        <main className="flex-1 min-h-0 app-main-content overflow-y-auto">
-          <div className="p-3 sm:p-4 lg:p-6">
-            <GettingStartedModal
-              open={gettingStartedOpen}
-              showAdminGuide={showAdminGuide}
-              onStartTour={startTour}
-              onClose={() => {
-                try {
-                  const raw = localStorage.getItem('user')
-                  const user = raw ? JSON.parse(raw) : null
-                  const key = `dms_getting_started_seen_${user?.id || 'anon'}`
-                  localStorage.setItem(key, '1')
-                } catch {
-                }
-                setGettingStartedOpen(false)
-                setShowGettingStartedHint(false)
-              }}
-            />
-            <GuidedTour
-              open={tourOpen}
-              tourId={tourId}
-              onClose={({ completed } = {}) => {
-                if (completed) {
-                  try {
-                    const raw = localStorage.getItem('user')
-                    const user = raw ? JSON.parse(raw) : null
-                    const key = `dms_getting_started_tour_done_${user?.id || 'anon'}_${tourId}`
-                    localStorage.setItem(key, '1')
-                  } catch {
-                  }
-                }
-                setTourOpen(false)
-              }}
-            />
-            {children}
-          </div>
-          {/* Footer */}
-          <footer className="dms-footer border-t border-gray-200 mt-8">
-            <div className="text-center py-4">
-              <p className="text-xs text-gray-500">
-                {footerCopyright || `© 2025 CLB Groups. ${t('rights_reserved')}`}
-              </p>
-              {footerLinks.length > 0 && (
-                <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs">
-                  {footerLinks.map((link, idx) => (
-                    <React.Fragment key={idx}>
-                      {idx > 0 && <span className="text-gray-400 hidden sm:inline">|</span>}
-                      <button
-                        type="button"
-                        onClick={() => { if (link?.pdf) window.open(link.pdf, '_blank', 'noopener,noreferrer') }}
-                        className="text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline"
-                        disabled={!link?.pdf}
-                      >
-                        {link?.label || ''}
-                      </button>
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
-            </div>
-          </footer>
-        </main>
-        {sidebarPosition === 'right' && (
+        ) : null}
+        rightSidebar={sidebarPosition === 'right' ? (
           <div className="relative">
             <Sidebar
               isOpen={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
               isCollapsed={sidebarCollapsed}
             />
-            <button
-              type="button"
+            <IconButton
               onClick={() => {
                 setSidebarCollapsed((prev) => {
                   const next = !prev
@@ -285,23 +227,87 @@ export default function Layout({ children }) {
                   return next
                 })
               }}
-              className="hidden md:flex items-center justify-center absolute -left-3 bottom-20 bg-white shadow-lg rounded-full w-7 h-7 z-30 hover:bg-gray-50 transition-colors"
+              size="sm"
+              className="absolute -left-4 bottom-20 z-30 hidden rounded-full md:flex"
               aria-label="Toggle sidebar"
             >
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarCollapsed ? 'M11 19l-7-7 7-7M20 5h-2v14h2z' : 'M13 5l7 7-7 7M4 5h2v14H4z'} />
               </svg>
-            </button>
+            </IconButton>
           </div>
-        )}
-        {/* Right Panel - Always available on all pages */}
-        <div className={`hidden xl:block transition-all duration-300 ${isRightPanelCollapsed ? 'w-0' : 'w-64 xl:w-72 2xl:w-80'}`}>
-          <RightPanel 
+        ) : null}
+        rightPanel={(
+          <RightPanel
             onCollapseChange={setIsRightPanelCollapsed}
             isCollapsed={isRightPanelCollapsed}
           />
-        </div>
-      </div>
-    </div>
+        )}
+        footer={(
+          <footer className="dms-footer mt-8 border-t border-border">
+            <PageContainer className="pb-4 pt-4">
+              <div className="text-center">
+                <p className="text-xs text-ink-muted">
+                  {footerCopyright || `© 2025 CLB Groups. ${t('rights_reserved')}`}
+                </p>
+                {footerLinks.length > 0 && (
+                  <div className="mt-2 flex flex-col items-center justify-center gap-2 text-xs sm:flex-row sm:flex-wrap">
+                    {footerLinks.map((link, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <span className="hidden text-ink-soft sm:inline">|</span>}
+                        <button
+                          type="button"
+                          onClick={() => { if (link?.pdf) window.open(link.pdf, '_blank', 'noopener,noreferrer') }}
+                          className="text-brand transition-colors hover:underline disabled:text-ink-soft disabled:hover:no-underline"
+                          disabled={!link?.pdf}
+                        >
+                          {link?.label || ''}
+                        </button>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </PageContainer>
+          </footer>
+        )}
+      >
+        <PageContainer size={location.pathname === '/dashboard' ? 'dashboard' : 'default'}>
+          <GettingStartedModal
+            open={gettingStartedOpen}
+            showAdminGuide={showAdminGuide}
+            onStartTour={startTour}
+            onClose={() => {
+              try {
+                const raw = localStorage.getItem('user')
+                const user = raw ? JSON.parse(raw) : null
+                const key = `dms_getting_started_seen_${user?.id || 'anon'}`
+                localStorage.setItem(key, '1')
+              } catch {
+              }
+              setGettingStartedOpen(false)
+              setShowGettingStartedHint(false)
+            }}
+          />
+          <GuidedTour
+            open={tourOpen}
+            tourId={tourId}
+            onClose={({ completed } = {}) => {
+              if (completed) {
+                try {
+                  const raw = localStorage.getItem('user')
+                  const user = raw ? JSON.parse(raw) : null
+                  const key = `dms_getting_started_tour_done_${user?.id || 'anon'}_${tourId}`
+                  localStorage.setItem(key, '1')
+                } catch {
+                }
+              }
+              setTourOpen(false)
+            }}
+          />
+          {children}
+        </PageContainer>
+      </AppShell>
+    </>
   )
 }

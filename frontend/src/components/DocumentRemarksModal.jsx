@@ -1,6 +1,10 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function DocumentRemarksModal({ isOpen, document, remarks, loading, onClose, onViewReviewedFile, onDownloadReviewedFile }) {
   const { t, formatDateTime } = usePreferences()
@@ -11,90 +15,79 @@ export default function DocumentRemarksModal({ isOpen, document, remarks, loadin
   const items = Array.isArray(remarks) ? remarks : []
 
   const modal = (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{t('return_remarks_title')}</h2>
-            {docTitle ? <p className="text-sm text-gray-600 mt-1">{docTitle}</p> : null}
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label={t('close')}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Modal onClose={onClose} closeOnBackdrop size="lg">
+      <ModalHeader
+        title={t('return_remarks_title')}
+        subtitle={docTitle || undefined}
+        onClose={onClose}
+      />
 
-        <div className="px-6 py-4">
+      <ModalBody>
           {loading ? (
-            <div className="text-center py-10 text-gray-500">
-              <div className="inline-flex items-center gap-2">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div className="text-center py-10">
+              <div className="inline-flex items-center gap-2 text-ink-muted">
+                <InlineSpinner className="h-5 w-5 border-2" />
                 <span>{t('loading')}</span>
               </div>
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">{t('no_remarks_found')}</div>
+            <div className="text-center py-10 text-ink-muted">{t('no_remarks_found')}</div>
           ) : (
             <div className="space-y-4">
               {document?.latestReturnFileVersionId ? (
-                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="border border-blue-200 rounded-2xl p-4 bg-blue-50">
                   <div className="text-sm font-medium text-blue-900">{t('reviewed_file_available')}</div>
                   <div className="text-xs text-blue-800 mt-1">{document?.latestReturnFileName || '-'}</div>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {typeof onViewReviewedFile === 'function' ? (
-                      <button
+                      <Button
                         onClick={() => onViewReviewedFile(document)}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        size="sm"
+                        variant="secondary"
+                        className="border-blue-300 text-blue-700 hover:text-blue-800"
                       >
                         {t('view_reviewed_file')}
-                      </button>
+                      </Button>
                     ) : null}
                     {typeof onDownloadReviewedFile === 'function' ? (
-                      <button
+                      <Button
                         onClick={() => onDownloadReviewedFile(document)}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                        size="sm"
+                        variant="secondary"
+                        className="border-blue-300 text-blue-700 hover:text-blue-800"
                       >
                         {t('download_reviewed_file')}
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                 </div>
               ) : null}
               {items.map((r) => (
-                <div key={r.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <AppSurface key={r.id} variant="muted" padding="md" className="space-y-2">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-semibold text-ink">
                       {t('returned_by')}: {r?.user?.name || '-'}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-ink-muted">
                       {t('returned_at')}: {formatDateTime(r?.createdAt)}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-xs text-ink-muted">
                     {t('stage')}: {String(r?.stage || '-')}
                   </div>
-                  <div className="mt-3 whitespace-pre-wrap text-sm text-gray-800">{r?.comments || '-'}</div>
-                </div>
+                  <div className="whitespace-pre-wrap text-sm text-ink-secondary">{r?.comments || '-'}</div>
+                </AppSurface>
               ))}
             </div>
           )}
-        </div>
+      </ModalBody>
 
-        <div className="px-6 py-4 bg-gray-50 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-          >
-            {t('close')}
-          </button>
-        </div>
-      </div>
-    </div>
+      <ModalFooter>
+        <Button variant="secondary" onClick={onClose}>
+          {t('close')}
+        </Button>
+      </ModalFooter>
+    </Modal>
   )
 
   return typeof window !== 'undefined' && window.document?.body ? createPortal(modal, window.document.body) : modal

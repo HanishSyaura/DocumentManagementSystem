@@ -7,6 +7,15 @@ import { hasPermission, isAdmin } from '../utils/permissions'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { useNavigate } from 'react-router-dom'
+import PageHeader from './ui/PageHeader'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import SelectField from './ui/SelectField'
+import IconButton from './ui/IconButton'
+import InlineSpinner from './ui/InlineSpinner'
+import { Table, TableContainer, Td, Th, Tr } from './ui/Table'
 
 // Calendar icon
 const CalendarIcon = () => (
@@ -19,11 +28,10 @@ const CalendarIcon = () => (
 function DatePicker({ value, onChange, placeholder = "Select date" }) {
   return (
     <div className="relative">
-      <input
+      <TextInput
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
       />
     </div>
   )
@@ -686,7 +694,7 @@ export default function NewDocumentRequest() {
   }
 
   return (
-    <div className="p-6 space-y-6" data-tour-id="ndr-page">
+    <div className="space-y-6" data-tour-id="ndr-page">
       {/* Confirmation Modal */}
       <ConfirmModal
         show={confirmModal.show}
@@ -707,28 +715,29 @@ export default function NewDocumentRequest() {
       />
 
       {templatePicker.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <AppSurface padding="none" className="max-w-lg w-full overflow-hidden rounded-[18px]">
+            <div className="px-6 py-4 border-b border-border bg-surface-muted flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Select Template</h3>
-                <p className="text-sm text-gray-600 mt-1">{templatePicker.documentTypeName}</p>
+                <h3 className="text-lg font-semibold text-ink">{t('select_template')}</h3>
+                <p className="text-sm text-ink-muted mt-1">{templatePicker.documentTypeName}</p>
               </div>
-              <button
+              <IconButton
                 type="button"
+                size="sm"
                 onClick={() => setTemplatePicker({ show: false, templates: [], selectedId: '', documentTypeName: '' })}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label={t('close')}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </IconButton>
             </div>
 
             <div className="px-6 py-4">
-              <div className="space-y-3 max-h-72 overflow-auto">
+              <div className="dms-scrollbar space-y-3 max-h-72 overflow-auto pr-1">
                 {templatePicker.templates.map((tpl) => (
-                  <label key={tpl.id} className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                  <label key={tpl.id} className="flex items-start gap-3 p-3 border border-border rounded-2xl cursor-pointer bg-surface hover:bg-surface-muted transition-colors">
                     <input
                       type="radio"
                       name="selectedTemplate"
@@ -737,10 +746,10 @@ export default function NewDocumentRequest() {
                       onChange={() => setTemplatePicker((prev) => ({ ...prev, selectedId: String(tpl.id) }))}
                     />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{tpl.templateName}</div>
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="text-sm font-semibold text-ink truncate">{tpl.templateName}</div>
+                      <div className="text-xs text-ink-muted mt-1">
                         <span className="font-mono">v{tpl.version}</span>
-                        {tpl.fileName ? <span className="ml-2 text-gray-500 truncate">({tpl.fileName})</span> : null}
+                        {tpl.fileName ? <span className="ml-2 text-ink-soft truncate">({tpl.fileName})</span> : null}
                       </div>
                     </div>
                   </label>
@@ -748,72 +757,67 @@ export default function NewDocumentRequest() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-3 bg-surface">
+              <Button
                 type="button"
                 onClick={() => setTemplatePicker({ show: false, templates: [], selectedId: '', documentTypeName: '' })}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                variant="secondary"
               >
-                Cancel
-              </button>
-              <button
+                {t('cancel')}
+              </Button>
+              <Button
                 type="button"
                 onClick={handleDownloadSelectedTemplate}
                 disabled={!templatePicker.selectedId}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Download
-              </button>
+                {t('download')}
+              </Button>
             </div>
-          </div>
+          </AppSurface>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="card p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('ndr_title')}</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {t('ndr_desc')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('ndr_title')}
+        subtitle={t('ndr_desc')}
+      />
 
       {/* NDR Form - Only visible to users with create permission */}
       <PermissionGate module="newDocumentRequest" action="create">
-        <div className="card p-6" data-tour-id="ndr-form-card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('ndr_title')}</h2>
-          <p className="text-sm text-gray-600 mb-6">
+        <AppSurface padding="lg" data-tour-id="ndr-form-card">
+          <h2 className="text-lg font-semibold text-ink mb-4">{t('ndr_title')}</h2>
+          <p className="text-sm text-ink-muted mb-6">
             {t('ndr_form_desc')}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
           {/* Document Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-ink-secondary mb-2">
               {t('document_title_label')} <span className="text-red-500">*</span>
             </label>
-            <input
+            <TextInput
               type="text"
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder={t('input_text')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
 
           {/* Document Type & Project Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('document_type')} <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
-                <select
+                <SelectField
                   required
                   data-tour-id="ndr-field-document-type"
                   value={formData.documentType}
                   onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-                  className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  className="flex-1"
                   disabled={loadingMasterData}
                 >
                   <option value="">{loadingMasterData ? t('loading') : t('select_document_type')}</option>
@@ -822,23 +826,22 @@ export default function NewDocumentRequest() {
                       {type.name}
                     </option>
                   ))}
-                </select>
-                <button
+                </SelectField>
+                <IconButton
                   type="button"
                   onClick={handleAddDocumentType}
                   title={t('mdm_add_doc_type')}
                   aria-label={t('mdm_add_doc_type')}
-                  className="shrink-0 w-10 h-10 inline-flex items-center justify-center border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                </button>
+                </IconButton>
               </div>
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink-secondary mb-2">
                 <span>
                   {t('project_category')} <span className="text-red-500">*</span>
                 </span>
@@ -861,11 +864,11 @@ export default function NewDocumentRequest() {
                 </span>
               </label>
               <div className="flex gap-2">
-                <select
+                <SelectField
                   required
                   value={formData.projectCategory}
                   onChange={(e) => setFormData({ ...formData, projectCategory: e.target.value })}
-                  className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  className="flex-1"
                   disabled={loadingMasterData}
                 >
                   <option value="">{loadingMasterData ? t('loading') : t('select_project_category')}</option>
@@ -874,18 +877,17 @@ export default function NewDocumentRequest() {
                       {category.name}
                     </option>
                   ))}
-                </select>
-                <button
+                </SelectField>
+                <IconButton
                   type="button"
                   onClick={handleAddProjectCategory}
                   title={t('mdm_add_project_cat')}
                   aria-label={t('mdm_add_project_cat')}
-                  className="shrink-0 w-10 h-10 inline-flex items-center justify-center border border-gray-300 rounded-lg bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                </button>
+                </IconButton>
               </div>
             </div>
           </div>
@@ -893,7 +895,7 @@ export default function NewDocumentRequest() {
           {/* Date of Event & Remarks */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink-secondary mb-2">
                 <span>
                   {t('date_of_document')} <span className="text-red-500">*</span>
                 </span>
@@ -923,45 +925,43 @@ export default function NewDocumentRequest() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('remarks')}
               </label>
-              <textarea
+              <TextArea
                 value={formData.remarks}
                 onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                 placeholder={t('input_text')}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
               />
             </div>
           </div>
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={handleCancel}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              variant="secondary"
             >
               {t('cancel')}
-            </button>
+            </Button>
             <PermissionGate module="newDocumentRequest" action="create">
-              <button
+              <Button
                 type="submit"
                 data-tour-id="ndr-btn-submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? t('sending') : t('send_request')}
-              </button>
+              </Button>
             </PermissionGate>
           </div>
           </form>
-        </div>
+        </AppSurface>
       </PermissionGate>
 
       {/* Document Request List */}
-      <div className="card p-6" data-tour-id="ndr-request-list-card">
+      <AppSurface padding="lg" data-tour-id="ndr-request-list-card">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{t('document_request_list')}</h2>
@@ -974,15 +974,15 @@ export default function NewDocumentRequest() {
               </div>
             )}
             <PermissionGate module="newDocumentRequest" action="create">
-              <button
+              <Button
                 onClick={() => setShowVersionModal(true)}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 {t('new_version_request')}
-              </button>
+              </Button>
             </PermissionGate>
           </div>
         </div>
@@ -990,8 +990,8 @@ export default function NewDocumentRequest() {
         {/* Loading State */}
         {loadingRequests ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">{t('loading_requests')}</p>
+            <InlineSpinner className="h-10 w-10 border-2 border-slate-200 border-t-brand mb-4" />
+            <p className="text-sm text-ink-muted">{t('loading_requests')}</p>
           </div>
         ) : requests.length === 0 ? (
           /* Empty State */
@@ -1007,13 +1007,14 @@ export default function NewDocumentRequest() {
         ) : (
           <>
             {/* Desktop Table */}
-            <div className="hidden lg:block overflow-x-auto" onClick={() => setAdminPurgeMenuRequestId(null)}>
-              <table className="w-full text-sm">
+            <div className="hidden lg:block" onClick={() => setAdminPurgeMenuRequestId(null)}>
+              <TableContainer>
+              <Table>
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('request_type')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('document_title_label')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">
+                  <tr className="bg-surface-muted">
+                    <Th>{t('request_type')}</Th>
+                    <Th>{t('document_title_label')}</Th>
+                    <Th>
                       <span className="inline-flex items-center gap-2">
                         <span>{t('document_type')}</span>
                         <span className="relative inline-flex group">
@@ -1034,69 +1035,67 @@ export default function NewDocumentRequest() {
                           </span>
                         </span>
                       </span>
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('project_category')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('date_of_document')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('request_date')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('requested_by')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('remarks')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
+                    </Th>
+                    <Th>{t('project_category')}</Th>
+                    <Th>{t('date_of_document')}</Th>
+                    <Th>{t('request_date')}</Th>
+                    <Th>{t('requested_by')}</Th>
+                    <Th>{t('remarks')}</Th>
+                    <Th>{t('file_code')}</Th>
+                    <Th>{t('status')}</Th>
                     {canAcknowledge && (
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('actions')}</th>
+                      <Th>{t('actions')}</Th>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {requests.map((req) => (
-                    <tr key={req.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-4">
+                    <Tr key={req.id}>
+                      <Td>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                           req.requestType === 'NVR' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                         }`}>
                           {req.requestType || 'NDR'}
                         </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-gray-900 font-medium">{req.title}</span>
-                      </td>
-                      <td className="py-4 px-4">
+                      </Td>
+                      <Td className="text-ink font-medium">{req.title}</Td>
+                      <Td>
                         <button
                           onClick={() => handleDownloadTemplate(req)}
                           disabled={req.status !== 'Acknowledged' && req.status !== 'ACKNOWLEDGED'}
                           data-tour-id="ndr-btn-download-template"
                           className={`text-left font-medium ${
                             req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED'
-                              ? 'text-blue-600 hover:text-blue-700 hover:underline cursor-pointer'
-                              : 'text-gray-700 cursor-default'
+                              ? 'text-brand hover:text-brand-hover hover:underline cursor-pointer'
+                              : 'text-ink-secondary cursor-default'
                           }`}
                           title={req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED' ? 'Click to download template for this document type' : 'Template download available after acknowledgment'}
                         >
                           {req.documentType}
                         </button>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                      </Td>
+                      <Td>
+                        <span className="px-2.5 py-1 bg-surface-muted text-ink-secondary rounded-full text-xs font-medium border border-border">
                           {req.projectCategory}
                         </span>
-                      </td>
-                      <td className="py-4 px-4 text-gray-700">{req.dateOfDocument}</td>
-                      <td className="py-4 px-4 text-gray-700">{req.requestDate}</td>
-                      <td className="py-4 px-4 text-gray-700 font-medium">{req.requestedBy}</td>
-                      <td className="py-4 px-4 text-gray-600 text-xs max-w-xs truncate" title={req.remarks}>{req.remarks}</td>
-                      <td className="py-4 px-4">
+                      </Td>
+                      <Td>{req.dateOfDocument}</Td>
+                      <Td>{req.requestDate}</Td>
+                      <Td className="font-medium text-ink-secondary">{req.requestedBy}</Td>
+                      <Td className="text-xs text-ink-muted max-w-xs truncate" title={req.remarks}>{req.remarks}</Td>
+                      <Td>
                         {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
                           <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
                             <button
                               type="button"
                               onClick={() => setAdminPurgeMenuRequestId((prev) => (prev === req.id ? null : req.id))}
-                              className="font-mono text-xs text-gray-700 hover:text-gray-900"
+                              className="font-mono text-xs text-ink-secondary hover:text-ink"
                               title="Click for options"
                             >
                               {req.fileCode}
                             </button>
                             {adminPurgeMenuRequestId === req.id && (
-                              <div className="absolute z-20 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg p-1">
+                              <div className="absolute z-20 mt-2 w-44 bg-surface border border-border rounded-2xl shadow-dms-lg p-1">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1118,58 +1117,62 @@ export default function NewDocumentRequest() {
                             )}
                           </div>
                         ) : (
-                          <span className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-700'}`}>
+                          <span className={`font-mono text-xs ${req.fileCode === '-' ? 'text-ink-soft' : 'text-ink-secondary'}`}>
                             {req.fileCode}
                           </span>
                         )}
-                      </td>
-                      <td className="py-4 px-4">
+                      </Td>
+                      <Td className="py-3">
                         {renderRequestStatus(req)}
-                      </td>
+                      </Td>
                       {canAcknowledge && (
-                        <td className="py-4 px-4">
+                        <Td className="py-3">
                           {canAcknowledgeRequest(req) && req.requestType !== 'NVR' ? (
                             <div className="flex gap-2">
-                              <button
+                              <Button
                                 onClick={() => handleAcknowledge(req)}
                                 disabled={acknowledgingId === req.id}
-                                className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700"
                               >
                                 {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => openRejectModal(req)}
                                 disabled={acknowledgingId === req.id}
-                                className="px-4 py-2 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                size="sm"
+                                variant="danger"
                               >
                                 {t('reject_btn')}
-                              </button>
+                              </Button>
                             </div>
                           ) : canAcknowledgeRequest(req) && req.requestType === 'NVR' ? (
-                            <button
+                            <Button
                               onClick={() => handleAcknowledge(req)}
                               disabled={acknowledgingId === req.id}
-                              className="px-4 py-2 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700"
                             >
                               {acknowledgingId === req.id ? t('processing') : t('acknowledge_btn')}
-                            </button>
+                            </Button>
                           ) : req.status === 'Pending Acknowledgment' && !canAcknowledgeRequest(req) ? (
                             <span className="text-amber-600 text-xs italic" title="You cannot acknowledge your own request">{t('own_request')}</span>
                           ) : (
                             <span className="text-gray-400 text-xs">-</span>
                           )}
-                        </td>
+                        </Td>
                       )}
-                    </tr>
+                    </Tr>
                   ))}
                 </tbody>
-              </table>
+              </Table>
+              </TableContainer>
             </div>
 
             {/* Mobile Cards */}
             <div className="lg:hidden space-y-4" onClick={() => setAdminPurgeMenuRequestId(null)}>
               {requests.map((req) => (
-                <div key={req.id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow">
+                <AppSurface key={req.id} variant="muted" padding="md" className="space-y-3 transition-shadow hover:shadow-dms-soft">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex items-center gap-2 flex-1">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
@@ -1177,13 +1180,13 @@ export default function NewDocumentRequest() {
                       }`}>
                         {req.requestType || 'NDR'}
                       </span>
-                      <span className="text-gray-900 font-medium">{req.title}</span>
+                      <span className="text-ink font-medium">{req.title}</span>
                     </div>
                     {renderRequestStatus(req)}
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-500 text-xs">Type:</span>
+                      <span className="text-ink-muted text-xs">Type:</span>
                       <div>
                         <button
                           onClick={() => handleDownloadTemplate(req)}
@@ -1191,8 +1194,8 @@ export default function NewDocumentRequest() {
                           data-tour-id="ndr-btn-download-template"
                           className={`text-left font-medium ${
                             req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED'
-                              ? 'text-blue-600 hover:text-blue-700 hover:underline cursor-pointer'
-                              : 'text-gray-900 cursor-default'
+                              ? 'text-brand hover:text-brand-hover hover:underline cursor-pointer'
+                              : 'text-ink cursor-default'
                           }`}
                           title={req.status === 'Acknowledged' || req.status === 'ACKNOWLEDGED' ? 'Click to download template' : 'Template available after acknowledgment'}
                         >
@@ -1201,39 +1204,39 @@ export default function NewDocumentRequest() {
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-xs">Category:</span>
+                      <span className="text-ink-muted text-xs">Category:</span>
                       <div>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                        <span className="px-2 py-0.5 bg-surface text-ink-secondary rounded-full text-xs font-medium border border-border">
                           {req.projectCategory}
                         </span>
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-xs">{t('date_of_document')}:</span>
-                      <div className="text-gray-900">{req.dateOfDocument}</div>
+                      <span className="text-ink-muted text-xs">{t('date_of_document')}:</span>
+                      <div className="text-ink">{req.dateOfDocument}</div>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-xs">Request Date:</span>
-                      <div className="text-gray-900">{req.requestDate}</div>
+                      <span className="text-ink-muted text-xs">Request Date:</span>
+                      <div className="text-ink">{req.requestDate}</div>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-xs">Requested By:</span>
-                      <div className="text-gray-900 font-medium">{req.requestedBy}</div>
+                      <span className="text-ink-muted text-xs">Requested By:</span>
+                      <div className="text-ink font-medium">{req.requestedBy}</div>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-xs">File Code:</span>
+                      <span className="text-ink-muted text-xs">File Code:</span>
                       {isAdmin() && req.fileCode && req.fileCode !== '-' && req.status !== 'Pending Acknowledgment' ? (
                         <div className="relative inline-block" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             onClick={() => setAdminPurgeMenuRequestId((prev) => (prev === req.id ? null : req.id))}
-                            className="font-mono text-xs text-gray-900"
+                            className="font-mono text-xs text-ink"
                             title="Click for options"
                           >
                             {req.fileCode}
                           </button>
                           {adminPurgeMenuRequestId === req.id && (
-                            <div className="absolute z-20 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg p-1">
+                            <div className="absolute z-20 mt-2 w-44 bg-surface border border-border rounded-2xl shadow-dms-lg p-1">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1255,37 +1258,38 @@ export default function NewDocumentRequest() {
                           )}
                         </div>
                       ) : (
-                        <div className={`font-mono text-xs ${req.fileCode === '-' ? 'text-gray-400' : 'text-gray-900'}`}>
+                        <div className={`font-mono text-xs ${req.fileCode === '-' ? 'text-ink-soft' : 'text-ink'}`}>
                           {req.fileCode}
                         </div>
                       )}
                     </div>
                   </div>
                   {req.remarks && (
-                    <div className="pt-2 border-t border-gray-100">
-                      <span className="text-xs text-gray-500">Remarks:</span>
-                      <p className="text-sm text-gray-600 mt-1">{req.remarks}</p>
+                    <div className="pt-2 border-t border-border/70">
+                      <span className="text-xs text-ink-muted">Remarks:</span>
+                      <p className="text-sm text-ink-secondary mt-1">{req.remarks}</p>
                     </div>
                   )}
                   {canAcknowledge && req.status === 'Pending Acknowledgment' && (
-                    <div className="pt-3 border-t border-gray-100">
+                    <div className="pt-3 border-t border-border/70">
                       {canAcknowledgeRequest(req) ? (
                         <div className="flex gap-2">
-                          <button
+                          <Button
                             onClick={() => handleAcknowledge(req)}
                             disabled={acknowledgingId === req.id}
-                            className="flex-1 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                           >
                             {acknowledgingId === req.id ? 'Processing...' : 'Acknowledge'}
-                          </button>
+                          </Button>
                           {req.requestType !== 'NVR' && (
-                            <button
+                            <Button
                               onClick={() => openRejectModal(req)}
                               disabled={acknowledgingId === req.id}
-                              className="flex-1 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              variant="danger"
+                              className="flex-1"
                             >
                               Reject
-                            </button>
+                            </Button>
                           )}
                         </div>
                       ) : (
@@ -1293,58 +1297,54 @@ export default function NewDocumentRequest() {
                       )}
                     </div>
                   )}
-                </div>
+                </AppSurface>
               ))}
             </div>
 
             {/* Pagination */}
             {requests.length > itemsPerPage && (
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-border">
+                <p className="text-sm text-ink-muted">
                   Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
                   <span className="font-medium">{Math.min(currentPage * itemsPerPage, requests.length)}</span> of{' '}
                   <span className="font-medium">{requests.length}</span> results
                 </p>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <IconButton
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                  </button>
+                  </IconButton>
                   
                   {[...Array(Math.ceil(requests.length / itemsPerPage))].map((_, idx) => (
-                    <button 
+                    <Button
                       key={idx + 1}
                       onClick={() => setCurrentPage(idx + 1)}
-                      className={`w-8 h-8 rounded transition-colors ${
-                        currentPage === idx + 1 
-                          ? 'bg-blue-600 text-white' 
-                          : 'hover:bg-gray-100 text-gray-700'
-                      }`}
+                      size="sm"
+                      variant={currentPage === idx + 1 ? 'primary' : 'secondary'}
+                      className="w-9 px-0"
                     >
                       {idx + 1}
-                    </button>
+                    </Button>
                   ))}
                   
-                  <button 
+                  <IconButton
                     onClick={() => setCurrentPage(prev => Math.min(Math.ceil(requests.length / itemsPerPage), prev + 1))}
                     disabled={currentPage === Math.ceil(requests.length / itemsPerPage)}
-                    className="p-2 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             )}
           </>
         )}
-      </div>
+      </AppSurface>
 
       {/* New Version Request Modal */}
       {showVersionModal && (
@@ -1379,17 +1379,18 @@ export default function NewDocumentRequest() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   Rejection Reason <span className="text-red-500">*</span>
                 </label>
-                <textarea
+                <TextArea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   placeholder="e.g., Duplicate title, Invalid information, Redundant request..."
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none"
+                  className="resize-none focus-visible:ring-red-200/80"
+                  invalid={!rejectReason.trim()}
                 />
-                <p className="text-xs text-gray-500 mt-1">Please provide a clear reason for rejecting this request.</p>
+                <p className="text-xs text-ink-muted mt-1">Please provide a clear reason for rejecting this request.</p>
               </div>
 
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -1405,21 +1406,23 @@ export default function NewDocumentRequest() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex gap-3 p-6 border-t border-gray-200">
-              <button
+            <div className="flex gap-3 p-6 border-t border-border bg-surface">
+              <Button
                 onClick={closeRejectModal}
                 disabled={acknowledgingId === rejectingRequest.id}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="secondary"
+                className="flex-1"
               >
-                Cancel
-              </button>
-              <button
+                {t('cancel')}
+              </Button>
+              <Button
                 onClick={handleReject}
                 disabled={acknowledgingId === rejectingRequest.id || !rejectReason.trim()}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="danger"
+                className="flex-1"
               >
                 {acknowledgingId === rejectingRequest.id ? 'Rejecting...' : 'Reject Request'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -3,6 +3,10 @@ import api from '../api/axios'
 import mammoth from 'mammoth'
 import { usePreferences } from '../contexts/PreferencesContext'
 import useDocxFitToWidth from '../hooks/useDocxFitToWidth'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import IconButton from './ui/IconButton'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function DocumentViewerModal({ document, onClose }) {
   const { t } = usePreferences()
@@ -203,79 +207,75 @@ export default function DocumentViewerModal({ document, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl w-[95vw] max-w-[1400px] h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <AppSurface padding="none" className="w-[95vw] max-w-[1400px] h-[95vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-muted">
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-semibold text-gray-900 truncate">
+            <h3 className="text-xl font-semibold text-ink truncate">
               {t('document_preview')}
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-ink-muted mt-1">
               {document.fileCode} • {document.title} • {t('version')} {document.version}
             </p>
           </div>
           <div className="flex items-center gap-2 ml-4">
             {contentType === 'docx' && (
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  type="button"
                   onClick={() => setDocxZoomMode('fit')}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    docxZoomMode === 'fit'
-                      ? 'text-blue-700 bg-blue-100'
-                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                  }`}
+                  size="sm"
+                  variant={docxZoomMode === 'fit' ? 'primary' : 'secondary'}
                   title={t('fit_to_width')}
                 >
                   {t('fit_to_width')}
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={() => setDocxZoomMode('actual')}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    docxZoomMode === 'actual'
-                      ? 'text-blue-700 bg-blue-100'
-                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                  }`}
+                  size="sm"
+                  variant={docxZoomMode === 'actual' ? 'primary' : 'secondary'}
                   title={t('actual_size')}
                 >
                   {t('actual_size')}
-                </button>
+                </Button>
                 {docxZoomMode === 'fit' && docxScale < 0.999 && (
-                  <span className="text-xs text-gray-500 tabular-nums">
+                  <span className="text-xs text-ink-muted tabular-nums">
                     {Math.round(docxScale * 100)}%
                   </span>
                 )}
               </div>
             )}
             {document.canDownload !== false && (
-              <button
+              <Button
+                type="button"
                 onClick={handleDownload}
-                className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                variant="secondary"
+                size="sm"
+                className="border-brand text-brand hover:text-brand-hover"
                 title={t('download')}
               >
                 <svg className="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {t('download')}
-              </button>
+              </Button>
             )}
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <IconButton onClick={onClose} aria-label={t('close')}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </IconButton>
           </div>
         </div>
 
         {/* Document Viewer Content */}
-        <div className="flex-1 overflow-hidden bg-gray-100">
+        <div className="flex-1 overflow-hidden bg-surface-muted">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">{t('loading_document')}</p>
+              <InlineSpinner className="h-10 w-10 border-2 mb-4" />
+              <p className="text-ink-muted">{t('loading_document')}</p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full">
@@ -284,30 +284,24 @@ export default function DocumentViewerModal({ document, onClose }) {
               </svg>
               <p className="text-red-600 mb-4">{error === 'Failed to load document' ? t('failed_load_doc') : error}</p>
               {document.canDownload !== false && (
-                <button
-                  onClick={handleDownload}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors mb-2"
-                >
+                <Button onClick={handleDownload} className="mb-2">
                   {t('download')}
-                </button>
+                </Button>
               )}
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-              >
+              <Button variant="secondary" onClick={onClose}>
                 {t('close')}
-              </button>
+              </Button>
             </div>
           ) : contentType === 'docx' && docxBuffer ? (
-            <div ref={docxViewportRef} className="h-full overflow-auto bg-gray-100">
+            <div ref={docxViewportRef} className="h-full overflow-auto bg-surface-muted">
               <div className="min-h-full py-8 px-4">
-                <div className="w-fit mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="w-fit mx-auto bg-surface rounded-2xl shadow-dms-soft border border-border">
                   <div ref={docxContainerRef} className="p-6" />
                 </div>
               </div>
             </div>
           ) : contentType === 'html' && htmlContent ? (
-            <div className="h-full overflow-auto p-8 bg-white">
+            <div className="h-full overflow-auto p-8 bg-surface">
               <div 
                 className="prose prose-sm max-w-none"
                 dangerouslySetInnerHTML={{ __html: htmlContent }}
@@ -325,7 +319,7 @@ export default function DocumentViewerModal({ document, onClose }) {
               title="Document Preview"
             />
           ) : contentType === 'image' && fileUrl ? (
-            <div className="h-full overflow-auto p-8 bg-gray-100 flex items-center justify-center">
+            <div className="h-full overflow-auto p-8 bg-surface-muted flex items-center justify-center">
               <img src={fileUrl} alt="Document" className="max-w-full max-h-full object-contain" />
             </div>
           ) : fileUrl ? (
@@ -333,34 +327,28 @@ export default function DocumentViewerModal({ document, onClose }) {
               <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-600 mb-4">{t('preview_not_available')}</p>
+              <p className="text-ink-muted mb-4">{t('preview_not_available')}</p>
               {document.canDownload !== false && (
-                <button
-                  onClick={handleDownload}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
+                <Button onClick={handleDownload}>
                   {t('download_to_view')}
-                </button>
+                </Button>
               )}
             </div>
           ) : null}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="px-6 py-4 border-t border-border bg-surface">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-ink-muted">
               {t('readonly_preview_notice')}
             </p>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
+            <Button variant="secondary" onClick={onClose}>
               {t('close')}
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </AppSurface>
     </div>
   )
 }

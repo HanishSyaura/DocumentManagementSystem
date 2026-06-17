@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { hasAnyPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
+import AppNavItem from './layout/AppNavItem'
+import AppTopbarBrand from './layout/AppTopbarBrand'
 
 const menuItems = [
   { 
@@ -108,37 +110,6 @@ const menuItems = [
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
   }
 ]
-
-function NavItem({ item, isActive, isTourTarget, onClick, isCollapsed }) {
-  const activeClass = isCollapsed
-    ? 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg'
-    : 'bg-white/20 backdrop-blur-sm font-semibold shadow-lg border-l-4 border-blue-400'
-  const hoverClass = isCollapsed
-    ? 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium'
-    : 'hover:bg-white/10 hover:backdrop-blur-sm hover:font-medium hover:border-l-4 hover:border-white/30'
-  return (
-    <Link
-      to={item.path}
-      onClick={onClick}
-      data-tour-id={item.tourId}
-      title={isCollapsed ? item.name : undefined}
-      className={`relative group flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} text-sm py-3 rounded-lg transition-all duration-200 ${
-        isActive ? activeClass : hoverClass
-      } ${isTourTarget ? 'ring-2 ring-yellow-300 animate-pulse' : ''}`}
-      style={{
-        color: isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.85)'
-      }}
-    >
-      <span className={`transition-all ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
-      {!isCollapsed && <span className="transition-all">{item.name}</span>}
-      {isCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md bg-slate-900/95 text-white text-xs px-2 py-1 opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 transition-all duration-150 z-50 shadow-lg">
-          {item.name}
-        </span>
-      )}
-    </Link>
-  )
-}
 
 export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   const { t } = usePreferences()
@@ -330,15 +301,25 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`app-sidebar hidden md:block ${isCollapsed ? 'md:w-16 p-2' : 'md:w-56 lg:w-64 xl:w-72 p-4'} h-full overflow-y-auto overflow-x-hidden transition-all duration-200`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-        <nav className="space-y-1">
+      <aside className={`app-sidebar dms-scrollbar hidden h-full overflow-y-auto overflow-x-hidden transition-all duration-200 md:block ${isCollapsed ? 'md:w-sidebar-collapsed p-2' : 'md:w-sidebar lg:w-sidebar-lg p-3 lg:p-4'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+        {!isCollapsed && (
+          <div className="mb-4 px-2 py-1">
+            <AppTopbarBrand
+              logo={logo}
+              companyName={companyName}
+              appLabel={t('dms_label')}
+              compact={false}
+            />
+          </div>
+        )}
+        <nav className="space-y-1.5">
           {visibleMenuItems.map((item) => (
-            <NavItem
+            <AppNavItem
               key={item.path}
               item={{...item, name: t(item.translationKey), tourId: pathToTourId(item.path)}}
-              isActive={location.pathname === item.path}
+              active={location.pathname === item.path}
               isTourTarget={tourTargetPath === item.path}
-              isCollapsed={Boolean(isCollapsed)}
+              collapsed={Boolean(isCollapsed)}
             />
           ))}
         </nav>
@@ -347,30 +328,29 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
       {/* Mobile overlay sidebar */}
       <div className={`fixed inset-0 z-40 md:hidden ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
         <div className={`absolute inset-0 bg-black/40 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
-        <div className={`absolute left-0 top-0 h-full w-[min(18rem,85vw)] p-4 overflow-y-auto overflow-x-hidden transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-          <div className="flex justify-between items-center mb-4">
-            {logo ? (
-              <div className="h-10 flex items-center bg-white rounded-lg px-2 shadow-sm">
-                <img src={logo} alt="Company Logo" className="max-h-8 max-w-[150px] object-contain" />
-              </div>
-            ) : (
-              <div className="font-semibold text-lg text-white">{companyName}</div>
-            )}
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded text-white">
+        <div className={`dms-scrollbar absolute left-0 top-0 h-full w-[min(18rem,85vw)] overflow-y-auto overflow-x-hidden p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <AppTopbarBrand
+              logo={logo}
+              companyName={companyName}
+              appLabel={t('dms_label')}
+              compact
+            />
+            <button onClick={onClose} className="rounded-xl p-2 text-white transition-colors hover:bg-white/10">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {visibleMenuItems.map((item) => (
-              <NavItem
+              <AppNavItem
                 key={item.path}
                 item={{...item, name: t(item.translationKey), tourId: pathToTourId(item.path)}}
-                isActive={location.pathname === item.path}
+                active={location.pathname === item.path}
                 isTourTarget={tourTargetPath === item.path}
                 onClick={onClose}
-                isCollapsed={false}
+                collapsed={false}
               />
             ))}
           </nav>

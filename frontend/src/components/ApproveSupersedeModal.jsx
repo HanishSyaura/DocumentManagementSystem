@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import api from '../api/axios'
 import DocumentViewerModal from './DocumentViewerModal'
 import ConfirmModal, { AlertModal } from './ConfirmModal'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import Button from './ui/Button'
 
 export default function ApproveSupersedeModal({ document, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -78,7 +80,7 @@ export default function ApproveSupersedeModal({ document, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <>
       <ConfirmModal
         show={confirmModal.show}
         title={confirmModal.title}
@@ -94,27 +96,14 @@ export default function ApproveSupersedeModal({ document, onClose, onSubmit }) {
         type={alertModal.type}
         onClose={() => setAlertModal({ show: false })}
       />
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-900">Approval for Supersede / Obsolete Document</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Please make sure a replacement file is available before requesting to supersede, and ensure it goes through the review and approval process.
-          </p>
-        </div>
+      <Modal onClose={onClose} closeOnBackdrop size="lg">
+        <ModalHeader
+          title="Approval for Supersede / Obsolete Document"
+          subtitle="Please make sure a replacement file is available before requesting to supersede, and ensure it goes through the review and approval process."
+          onClose={onClose}
+        />
 
-        {/* Form Content */}
-        <div className="px-6 py-4 space-y-4">
+        <ModalBody className="space-y-4">
           {/* File Code and Document Action Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -245,32 +234,22 @@ export default function ApproveSupersedeModal({ document, onClose, onSubmit }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
             />
           </div>
-        </div>
+        </ModalBody>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-wrap justify-between gap-3 sticky bottom-0">
-          <button
-            onClick={handleViewDocument}
-            className="px-5 py-2 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition-colors"
-          >
+        <ModalFooter className="flex-wrap justify-between">
+          <Button type="button" variant="secondary" onClick={handleViewDocument}>
             View Document
-          </button>
+          </Button>
           <div className="flex gap-3">
-            <button
-              onClick={handleReject}
-              className="px-5 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-            >
+            <Button type="button" variant="danger" onClick={handleReject}>
               Reject
-            </button>
-            <button
-              onClick={handleApprove}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-            >
+            </Button>
+            <Button type="button" onClick={handleApprove}>
               Approved
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </ModalFooter>
+      </Modal>
 
       {/* Document Viewer Modal */}
       {showViewModal && document && (
@@ -279,6 +258,6 @@ export default function ApproveSupersedeModal({ document, onClose, onSubmit }) {
           onClose={() => setShowViewModal(false)}
         />
       )}
-    </div>
+    </>
   )
 }

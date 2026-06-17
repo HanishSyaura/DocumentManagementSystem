@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import { usePreferences } from '../contexts/PreferencesContext'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import SelectField from './ui/SelectField'
+import AppSurface from './ui/AppSurface'
+import InlineSpinner from './ui/InlineSpinner'
 
 export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
   const { t } = usePreferences()
@@ -165,33 +172,25 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <form onSubmit={handleSubmit}>
-          {/* Modal Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {isFirstApproval ? t('first_approval') : isSecondApproval ? t('second_approval_title') : t('approve_document')}
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {isFirstApproval ? t('first_approval_desc') : 
-               isSecondApproval ? t('second_approval_desc') :
-               t('approve_pub_desc')}
-            </p>
-          </div>
+    <Modal onClose={onClose} size="lg">
+      <form onSubmit={handleSubmit}>
+        <ModalHeader
+          title={isFirstApproval ? t('first_approval') : isSecondApproval ? t('second_approval_title') : t('approve_document')}
+          subtitle={isFirstApproval ? t('first_approval_desc') : isSecondApproval ? t('second_approval_desc') : t('approve_pub_desc')}
+          onClose={onClose}
+        />
 
-          {/* Modal Body */}
-          <div className="px-6 py-4 space-y-4">
+        <ModalBody className="space-y-4">
             {/* File Code */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-secondary mb-1">
                 {t('file_code')}
               </label>
-              <input
+              <TextInput
                 type="text"
                 name="fileCode"
                 value={formData.fileCode}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                className="bg-surface-muted text-ink-secondary"
                 readOnly
               />
             </div>
@@ -199,26 +198,26 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
             {/* Document Title & Version */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-secondary mb-1">
                   {t('document_title_col')}
                 </label>
-                <input
+                <TextInput
                   type="text"
                   name="documentTitle"
                   value={formData.documentTitle}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                  className="bg-surface-muted text-ink-secondary"
                   readOnly
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-secondary mb-1">
                   {t('version_revision')}
                 </label>
-                <input
+                <TextInput
                   type="text"
                   name="versionNo"
                   value={formData.versionNo}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                  className="bg-surface-muted text-ink-secondary"
                   readOnly
                 />
               </div>
@@ -226,37 +225,41 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
 
             {/* Document Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-secondary mb-1">
                 {t('doc_type')}
               </label>
-              <input
+              <TextInput
                 type="text"
                 name="documentType"
                 value={formData.documentType}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
+                className="bg-surface-muted text-ink-secondary"
                 readOnly
               />
             </div>
 
             {/* Upload Approved Document */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('upload_approved_doc')}
               </label>
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragging
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 bg-gray-50'
-                }`}
+                className="rounded-[18px]"
               >
-                <div className="flex flex-col items-center">
+                <AppSurface
+                  variant="muted"
+                  padding="lg"
+                  className={[
+                    'border-2 border-dashed text-center transition-colors',
+                    isDragging ? 'border-brand bg-blue-50/40' : 'border-border'
+                  ].join(' ')}
+                >
+                  <div className="flex flex-col items-center">
                   <svg
-                    className="w-12 h-12 text-gray-400 mb-3"
+                    className="w-12 h-12 text-ink-soft mb-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -268,11 +271,11 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
                       d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
                   </svg>
-                  <p className="text-gray-700 font-medium mb-1">{t('drop_files_here')}</p>
-                  <p className="text-xs text-gray-500 mb-3">{t('supported_format_docx')}</p>
-                  <p className="text-xs text-gray-400 mb-2">{t('or_text')}</p>
+                  <p className="text-ink font-medium mb-1">{t('drop_files_here')}</p>
+                  <p className="text-xs text-ink-muted mb-3">{t('supported_format_docx')}</p>
+                  <p className="text-xs text-ink-soft mb-2">{t('or_text')}</p>
                   <label className="cursor-pointer">
-                    <span className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    <span className="text-brand hover:text-brand-hover text-sm font-semibold underline underline-offset-2">
                       {t('browse_files')}
                     </span>
                     <input
@@ -283,17 +286,18 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
                     />
                   </label>
                   {formData.approvedFile && (
-                    <div className="mt-3 text-sm text-gray-700">
+                    <div className="mt-3 text-sm text-ink-secondary">
                       {t('selected_colon')} <span className="font-medium">{formData.approvedFile.name}</span>
                     </div>
                   )}
                 </div>
+                </AppSurface>
               </div>
             </div>
 
             {/* Approval Decision */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-secondary mb-2">
                 {t('approval_decision')} <span className="text-red-500">*</span>
               </label>
               <div className="space-y-2">
@@ -303,9 +307,9 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
                     value="approved"
                     checked={formData.approvalDecision === 'approved'}
                     onChange={handleCheckboxChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-border text-brand focus-visible:ring-2 focus-visible:ring-brand/30"
                   />
-                  <span className="ml-2 text-sm text-gray-700">{t('approve_document')}</span>
+                  <span className="ml-2 text-sm text-ink-secondary">{t('approve_document')}</span>
                 </label>
                 <label className="flex items-center">
                   <input
@@ -313,41 +317,41 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
                     value="amendments"
                     checked={formData.approvalDecision === 'amendments'}
                     onChange={handleCheckboxChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-border text-brand focus-visible:ring-2 focus-visible:ring-brand/30"
                   />
-                  <span className="ml-2 text-sm text-gray-700">{t('return_amendments')}</span>
+                  <span className="ml-2 text-sm text-ink-secondary">{t('return_amendments')}</span>
                 </label>
               </div>
             </div>
 
             {/* Comments / Approval Notes - Always visible, but required for amendments */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-secondary mb-1">
                 {t('comments_approval_notes')}
                 {formData.approvalDecision === 'amendments' && <span className="text-red-500"> *</span>}
               </label>
-              <textarea
+              <TextArea
                 name="comments"
                 value={formData.comments}
                 onChange={handleInputChange}
                 placeholder={formData.approvalDecision === 'amendments' ? t('provide_reasons') : t('add_comments_optional')}
                 rows="4"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-vertical"
+                className="resize-vertical"
+                invalid={formData.approvalDecision === 'amendments' && !formData.comments.trim()}
               />
             </div>
 
             {/* Assign Second Approver (Optional) - Only show for first approval */}
             {isFirstApproval && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-secondary mb-2">
                   {t('assign_second_approver')}
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-ink-muted mb-2">
                   {t('second_approver_note')}
                 </p>
-                <div className="relative">
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none text-gray-700"
+                <div className="flex items-center gap-3">
+                  <SelectField
                     value={formData.assignedSecondApprover || ''}
                     onChange={(e) => handleSecondApproverSelect(e.target.value)}
                     disabled={loadingApprovers}
@@ -360,33 +364,22 @@ export default function ApproveDocumentModal({ document, onClose, onSubmit }) {
                         {approver.name}
                       </option>
                     ))}
-                  </select>
-                  <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  </SelectField>
+                  {loadingApprovers ? <InlineSpinner className="h-4 w-4 border-2" /> : null}
                 </div>
               </div>
             )}
-          </div>
+        </ModalBody>
 
-          {/* Modal Footer */}
-          <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              {t('cancel')}
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('submit')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('cancel')}
+          </Button>
+          <Button type="submit">
+            {t('submit')}
+          </Button>
+        </ModalFooter>
+      </form>
+    </Modal>
   )
 }

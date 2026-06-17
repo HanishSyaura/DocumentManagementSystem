@@ -12,6 +12,13 @@ import Pagination from './Pagination'
 import { PermissionGate } from './PermissionGate'
 import { hasPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
+import PageHeader from './ui/PageHeader'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import SelectField from './ui/SelectField'
+import InlineSpinner from './ui/InlineSpinner'
+import { Table, TableContainer, Td, Th, Tr } from './ui/Table'
 
 export default function SupersededObsolete() {
   const { itemsPerPage, t } = usePreferences()
@@ -362,35 +369,28 @@ export default function SupersededObsolete() {
         />
       )}
 
-      <div className="p-6 space-y-6">
-      {/* Page Header */}
-      <div className="card p-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('superseded_title')}</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {t('superseded_desc')}
-        </p>
-      </div>
+      <div className="space-y-6">
+      <PageHeader title={t('superseded_title')} subtitle={t('superseded_desc')} />
 
       {/* Document List */}
-      <div className="card p-6" data-tour-id="so-list-card">
+      <AppSurface padding="lg" data-tour-id="so-list-card">
         <div className="mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{t('superseded_list')}</h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <h2 className="text-lg font-semibold text-ink">{t('superseded_list')}</h2>
+              <p className="text-sm text-ink-muted mt-1">
                 {t('superseded_list_desc')}
               </p>
             </div>
             
             {/* Actions */}
             <PermissionGate module="documents.superseded" action="create">
-              <button 
+              <Button
                 onClick={handleRequestSupersede}
                 data-tour-id="so-btn-request"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 {t('request_supersede')}
-              </button>
+              </Button>
             </PermissionGate>
           </div>
 
@@ -401,12 +401,12 @@ export default function SupersededObsolete() {
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <input
+              <TextInput
                 type="text"
                 placeholder="Search by file code, title, or requester..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="pl-10 pr-10"
               />
               {searchQuery && (
                 <button
@@ -421,51 +421,50 @@ export default function SupersededObsolete() {
             </div>
 
             {/* Action Type Filter */}
-            <select
+            <SelectField
               value={actionTypeFilter}
               onChange={(e) => setActionTypeFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
             >
               {allActionTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
-            </select>
+            </SelectField>
 
             {/* Status Filter */}
-            <select
+            <SelectField
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
             >
               {allStatuses.map(status => (
                 <option key={status} value={status}>{status}</option>
               ))}
-            </select>
+            </SelectField>
           </div>
         </div>
 
         {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('file_code')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('doc_title')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action_type')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('replaced_by')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('requested_by')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('status')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('archive_status')}</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wide">{t('action')}</th>
+        <div className="hidden md:block">
+          <TableContainer>
+          <Table>
+            <thead className="bg-surface-muted">
+              <tr>
+                <Th>{t('file_code')}</Th>
+                <Th>{t('doc_title')}</Th>
+                <Th>{t('action_type')}</Th>
+                <Th>{t('replaced_by')}</Th>
+                <Th>{t('requested_by')}</Th>
+                <Th>{t('status')}</Th>
+                <Th>{t('archive_status')}</Th>
+                <Th>{t('action')}</Th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-8 text-gray-500">
+                  <td colSpan="8" className="py-10">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span>{t('loading_docs')}</span>
+                      <InlineSpinner className="h-8 w-8 border-2" />
+                      <span className="text-sm text-ink-muted">{t('loading_docs')}</span>
                     </div>
                   </td>
                 </tr>
@@ -482,41 +481,41 @@ export default function SupersededObsolete() {
                 </tr>
               ) : (
                 currentDocuments.map((doc) => (
-                  <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <a href="#" className="text-gray-900 font-medium hover:text-blue-600">
+                  <Tr key={doc.id}>
+                    <Td>
+                      <a href="#" className="font-medium text-ink hover:text-brand">
                         {doc.fileCode}
                       </a>
-                    </td>
-                    <td className="py-4 px-4">
-                      <a href="#" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
+                    </Td>
+                    <Td>
+                      <a href="#" className="font-medium text-brand hover:text-brand-hover hover:underline">
                         {doc.title}
                       </a>
-                    </td>
-                    <td className="py-4 px-4 text-gray-700">{doc.actionType}</td>
-                    <td className="py-4 px-4 text-gray-700">
+                    </Td>
+                    <Td>{doc.actionType}</Td>
+                    <Td>
                       <span className="text-sm" title={doc.replacedBy}>
                         {doc.replacedBy === '-' ? '-' : (
-                          <span className="text-blue-600">{doc.replacedBy}</span>
+                          <span className="text-brand">{doc.replacedBy}</span>
                         )}
                       </span>
-                    </td>
-                    <td className="py-4 px-4 text-gray-700">{doc.requestedBy}</td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td>{doc.requestedBy}</Td>
+                    <Td className="py-3">
                       <StatusBadge status={doc.status} />
-                    </td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td className="py-3">
                       {doc.isArchived ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           {t('archived')}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-ink-secondary border border-border">
                           {t('not_archived')}
                         </span>
                       )}
-                    </td>
-                    <td className="py-4 px-4">
+                    </Td>
+                    <Td className="py-3">
                       <ActionMenu
                         actions={[
                           ...(hasPermission('documents.superseded', 'view')
@@ -537,21 +536,22 @@ export default function SupersededObsolete() {
                           )
                         ]}
                       />
-                    </td>
-                  </tr>
+                    </Td>
+                  </Tr>
                 ))
               )}
             </tbody>
-          </table>
+          </Table>
+          </TableContainer>
         </div>
 
         {/* Mobile Cards */}
         <div className="md:hidden space-y-4">
           {loading ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-10">
               <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span>{t('loading_docs')}</span>
+                <InlineSpinner className="h-8 w-8 border-2" />
+                <span className="text-sm text-ink-muted">{t('loading_docs')}</span>
               </div>
             </div>
           ) : currentDocuments.length === 0 ? (
@@ -563,13 +563,13 @@ export default function SupersededObsolete() {
             />
           ) : (
             currentDocuments.map((doc) => (
-              <div key={doc.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <AppSurface key={doc.id} variant="muted" padding="md" className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <a href="#" className="text-gray-900 font-semibold hover:text-blue-600">
+                    <a href="#" className="text-ink font-semibold hover:text-brand">
                       {doc.fileCode}
                     </a>
-                    <div className="text-sm text-gray-600 mt-1">{doc.title}</div>
+                    <div className="text-sm text-ink-secondary mt-1">{doc.title}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -577,74 +577,62 @@ export default function SupersededObsolete() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-500">{t('action_type')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.actionType}</div>
+                    <span className="text-ink-muted">{t('action_type')}:</span>
+                    <div className="text-ink font-medium">{doc.actionType}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('replaced_by')}:</span>
-                    <div className="text-gray-900 font-medium text-xs">
+                    <span className="text-ink-muted">{t('replaced_by')}:</span>
+                    <div className="text-ink font-medium text-xs">
                       {doc.replacedBy === '-' ? '-' : (
-                        <span className="text-blue-600">{doc.replacedBy}</span>
+                        <span className="text-brand">{doc.replacedBy}</span>
                       )}
                     </div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('requested_by')}:</span>
-                    <div className="text-gray-900 font-medium">{doc.requestedBy}</div>
+                    <span className="text-ink-muted">{t('requested_by')}:</span>
+                    <div className="text-ink font-medium">{doc.requestedBy}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">{t('archive_status')}:</span>
-                    <div className="text-gray-900 font-medium">
+                    <span className="text-ink-muted">{t('archive_status')}:</span>
+                    <div className="text-ink font-medium">
                       {doc.isArchived ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           {t('archived')}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-ink-secondary border border-border">
                           {t('not_archived')}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-2 border-t border-gray-200">
-                  <button
-                    onClick={() => handleView(doc)}
-                    className="flex-1 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
+                <div className="flex flex-wrap gap-2 pt-3 border-t border-border/70">
+                  <Button onClick={() => handleView(doc)} size="sm" variant="secondary" className="flex-1">
                     {t('view')}
-                  </button>
+                  </Button>
                   {doc.status === 'Pending Review' && (
-                    <button
-                      onClick={() => handleReview(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                    >
+                    <Button onClick={() => handleReview(doc)} size="sm" className="flex-1">
                       {t('review_action')}
-                    </button>
+                    </Button>
                   )}
                   {doc.status === 'Pending Approval' && (
-                    <button
-                      onClick={() => handleApproved(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                    >
+                    <Button onClick={() => handleApproved(doc)} size="sm" className="flex-1">
                       {t('approve_action')}
-                    </button>
+                    </Button>
                   )}
                   {doc.status === 'Completed' && !doc.isArchived && (
-                    <button
-                      onClick={() => handleArchive(doc)}
-                      className="flex-1 px-3 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700"
-                    >
+                    <Button onClick={() => handleArchive(doc)} size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">
                       {t('archive_action')}
-                    </button>
+                    </Button>
                   )}
                 </div>
-              </div>
+              </AppSurface>
             ))
           )}
         </div>
 
-      </div>
+      </AppSurface>
 
       {/* Pagination */}
       {!loading && filteredDocuments.length > 0 && (
