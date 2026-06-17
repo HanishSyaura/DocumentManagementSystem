@@ -4,6 +4,21 @@ const projectTrackingService = require('../services/projectTrackingService');
 const confidentialAccessService = require('../services/confidentialAccessService')
 const { ValidationError } = require('../utils/errors');
 
+const normalizeOptionalText = (value) => {
+  if (value === undefined || value === null) return null
+  const text = String(value).trim()
+  return text || null
+}
+
+const normalizeOptionalDate = (value, fieldName) => {
+  if (value === undefined || value === null || value === '') return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    throw new ValidationError(`${fieldName} must be a valid date`)
+  }
+  return date
+}
+
 exports.listProjects = asyncHandler(async (req, res) => {
   const projectCategoryId = req.query.projectCategoryId ? Number(req.query.projectCategoryId) : undefined;
   const search = req.query.search ? String(req.query.search) : undefined;
@@ -17,7 +32,22 @@ exports.listProjects = asyncHandler(async (req, res) => {
 });
 
 exports.createProject = asyncHandler(async (req, res) => {
-  const { code, name, description, projectCategoryId, managerId } = req.body;
+  const {
+    code,
+    name,
+    description,
+    clientName,
+    clientPic,
+    teamMembers,
+    startDate,
+    plannedCompletionDate,
+    actualCompletionDate,
+    scope,
+    objective,
+    deliverables,
+    projectCategoryId,
+    managerId
+  } = req.body;
 
   if (!code || !name || !projectCategoryId || !managerId) {
     throw new ValidationError('code, name, projectCategoryId and managerId are required');
@@ -26,7 +56,16 @@ exports.createProject = asyncHandler(async (req, res) => {
   const project = await projectTrackingService.createProject({
     code: String(code).trim(),
     name: String(name).trim(),
-    description: description ? String(description) : null,
+    description: normalizeOptionalText(description),
+    clientName: normalizeOptionalText(clientName),
+    clientPic: normalizeOptionalText(clientPic),
+    teamMembers: normalizeOptionalText(teamMembers),
+    startDate: normalizeOptionalDate(startDate, 'startDate'),
+    plannedCompletionDate: normalizeOptionalDate(plannedCompletionDate, 'plannedCompletionDate'),
+    actualCompletionDate: normalizeOptionalDate(actualCompletionDate, 'actualCompletionDate'),
+    scope: normalizeOptionalText(scope),
+    objective: normalizeOptionalText(objective),
+    deliverables: normalizeOptionalText(deliverables),
     projectCategoryId: Number(projectCategoryId),
     managerId: Number(managerId),
     createdById: req.user.id
@@ -39,15 +78,61 @@ exports.updateProject = asyncHandler(async (req, res) => {
   const projectId = Number(req.params.projectId);
   if (!projectId) throw new ValidationError('Invalid projectId');
 
-  const { name, description, managerId } = req.body || {};
-  if (!name || !managerId) {
-    throw new ValidationError('name and managerId are required');
+  const {
+    name,
+    description,
+    clientName,
+    clientPic,
+    teamMembers,
+    startDate,
+    plannedCompletionDate,
+    actualCompletionDate,
+    scope,
+    objective,
+    deliverables,
+    managerId,
+    status
+  } = req.body || {};
+  if (
+    name === undefined &&
+    description === undefined &&
+    clientName === undefined &&
+    clientPic === undefined &&
+    teamMembers === undefined &&
+    startDate === undefined &&
+    plannedCompletionDate === undefined &&
+    actualCompletionDate === undefined &&
+    scope === undefined &&
+    objective === undefined &&
+    deliverables === undefined &&
+    managerId === undefined &&
+    status === undefined
+  ) {
+    throw new ValidationError('At least one project field must be provided');
+  }
+
+  if (name !== undefined && !String(name).trim()) {
+    throw new ValidationError('name is required');
+  }
+
+  if (managerId !== undefined && !Number(managerId)) {
+    throw new ValidationError('managerId must be a valid number');
   }
 
   const project = await projectTrackingService.updateProject(projectId, {
-    name: String(name).trim(),
-    description: description ? String(description) : null,
-    managerId: Number(managerId),
+    name: name !== undefined ? String(name).trim() : undefined,
+    description: description !== undefined ? normalizeOptionalText(description) : undefined,
+    clientName: clientName !== undefined ? normalizeOptionalText(clientName) : undefined,
+    clientPic: clientPic !== undefined ? normalizeOptionalText(clientPic) : undefined,
+    teamMembers: teamMembers !== undefined ? normalizeOptionalText(teamMembers) : undefined,
+    startDate: startDate !== undefined ? normalizeOptionalDate(startDate, 'startDate') : undefined,
+    plannedCompletionDate: plannedCompletionDate !== undefined ? normalizeOptionalDate(plannedCompletionDate, 'plannedCompletionDate') : undefined,
+    actualCompletionDate: actualCompletionDate !== undefined ? normalizeOptionalDate(actualCompletionDate, 'actualCompletionDate') : undefined,
+    scope: scope !== undefined ? normalizeOptionalText(scope) : undefined,
+    objective: objective !== undefined ? normalizeOptionalText(objective) : undefined,
+    deliverables: deliverables !== undefined ? normalizeOptionalText(deliverables) : undefined,
+    managerId: managerId !== undefined ? Number(managerId) : undefined,
+    status: status !== undefined ? String(status) : undefined,
     updatedById: req.user.id
   });
 

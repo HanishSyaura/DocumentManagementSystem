@@ -15,15 +15,15 @@ function ItemStatusBadge({ status }) {
   return <span className={`${base} bg-yellow-100 text-yellow-800`}>Pending</span>
 }
 
-function ModalShell({ title, children, onClose }) {
+function ModalShell({ title, children, onClose, maxWidthClass = 'max-w-xl' }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-xl">
+      <div className={`bg-white rounded-lg shadow-xl w-full ${maxWidthClass}`}>
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">×</button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="max-h-[85vh] overflow-y-auto p-6">{children}</div>
       </div>
     </div>
   )
@@ -33,6 +33,194 @@ function getPhaseTitle(phase, fallback = 'Project Phase') {
   if (!phase) return fallback
   const prefix = phase.iterationNo ? `Phase ${phase.iterationNo}` : 'Phase'
   return phase.name ? `${prefix} - ${phase.name}` : prefix
+}
+
+const formatLifecycleStatus = (status) => {
+  const normalized = String(status || 'ACTIVE')
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+  return normalized || 'Active'
+}
+
+const toDateInputValue = (value) => {
+  if (!value) return ''
+  const raw = String(value)
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (directMatch) return directMatch[1]
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+
+  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
+function ProjectField({ label, children, fullWidth = false }) {
+  return (
+    <div className={fullWidth ? 'md:col-span-2' : ''}>
+      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function ProjectFormFields({
+  form,
+  setForm,
+  users,
+  showCategory = false,
+  projectCategories = [],
+  stageStatusLabel = 'Will follow workflow stage after creation',
+  showLifecycleStatus = false
+}) {
+  const inputClass = 'w-full rounded-md border border-gray-300 px-3 py-2'
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <ProjectField label="Project Code / Reference Number">
+        <input
+          value={form.code}
+          onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+          className={inputClass}
+          required
+        />
+      </ProjectField>
+
+      <ProjectField label="Project Name">
+        <input
+          value={form.name}
+          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+          className={inputClass}
+          required
+        />
+      </ProjectField>
+
+      <ProjectField label="Client Name">
+        <input
+          value={form.clientName}
+          onChange={(e) => setForm((p) => ({ ...p, clientName: e.target.value }))}
+          className={inputClass}
+        />
+      </ProjectField>
+
+      <ProjectField label="Client PIC">
+        <input
+          value={form.clientPic}
+          onChange={(e) => setForm((p) => ({ ...p, clientPic: e.target.value }))}
+          className={inputClass}
+        />
+      </ProjectField>
+
+      {showCategory && (
+        <ProjectField label="Project Category">
+          <select
+            value={form.projectCategoryId}
+            onChange={(e) => setForm((p) => ({ ...p, projectCategoryId: e.target.value }))}
+            className={inputClass}
+            required
+          >
+            <option value="">Select</option>
+            {projectCategories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </ProjectField>
+      )}
+
+      <ProjectField label="Internal Project Manager">
+        <select
+          value={form.managerId}
+          onChange={(e) => setForm((p) => ({ ...p, managerId: e.target.value }))}
+          className={inputClass}
+          required
+        >
+          <option value="">Select</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}
+            </option>
+          ))}
+        </select>
+      </ProjectField>
+
+      <ProjectField label="Project Start Date">
+        <input
+          type="date"
+          value={form.startDate}
+          onChange={(e) => setForm((p) => ({ ...p, startDate: e.target.value }))}
+          className={inputClass}
+        />
+      </ProjectField>
+
+      <ProjectField label="Planned Completion Date">
+        <input
+          type="date"
+          value={form.plannedCompletionDate}
+          onChange={(e) => setForm((p) => ({ ...p, plannedCompletionDate: e.target.value }))}
+          className={inputClass}
+        />
+      </ProjectField>
+
+      <ProjectField label="Actual Completion Date">
+        <input
+          type="date"
+          value={form.actualCompletionDate}
+          onChange={(e) => setForm((p) => ({ ...p, actualCompletionDate: e.target.value }))}
+          className={inputClass}
+        />
+      </ProjectField>
+
+      <ProjectField label="Project Status (based on stage)">
+        <input value={stageStatusLabel} className={`${inputClass} bg-gray-50 text-gray-500`} readOnly />
+      </ProjectField>
+
+      {showLifecycleStatus && (
+        <ProjectField label="Lifecycle Status">
+          <input value={formatLifecycleStatus(form.status)} className={`${inputClass} bg-gray-50 text-gray-500`} readOnly />
+        </ProjectField>
+      )}
+
+      <ProjectField label="Project Team Members" fullWidth>
+        <textarea
+          value={form.teamMembers}
+          onChange={(e) => setForm((p) => ({ ...p, teamMembers: e.target.value }))}
+          className={inputClass}
+          rows={3}
+          placeholder="List names, departments, or roles"
+        />
+      </ProjectField>
+
+      <ProjectField label="Project Scope" fullWidth>
+        <textarea
+          value={form.scope}
+          onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value }))}
+          className={inputClass}
+          rows={3}
+        />
+      </ProjectField>
+
+      <ProjectField label="Project Objective" fullWidth>
+        <textarea
+          value={form.objective}
+          onChange={(e) => setForm((p) => ({ ...p, objective: e.target.value }))}
+          className={inputClass}
+          rows={3}
+        />
+      </ProjectField>
+
+      <ProjectField label="Deliverables" fullWidth>
+        <textarea
+          value={form.deliverables}
+          onChange={(e) => setForm((p) => ({ ...p, deliverables: e.target.value }))}
+          className={inputClass}
+          rows={3}
+        />
+      </ProjectField>
+    </div>
+  )
 }
 
 function DocumentStatusBadge({ status }) {
@@ -47,6 +235,20 @@ function DocumentStatusBadge({ status }) {
 function ConfidentialBadge({ isConfidential }) {
   if (!isConfidential) return null
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700">Confidential</span>
+}
+
+function ProjectStatusBadge({ status }) {
+  const value = String(status || 'ACTIVE').toUpperCase()
+  const config =
+    value === 'CLOSED'
+      ? { label: 'Closed', className: 'bg-rose-100 text-rose-700' }
+      : value === 'ON_HOLD'
+        ? { label: 'On Hold', className: 'bg-amber-100 text-amber-700' }
+        : value === 'ARCHIVED'
+          ? { label: 'Archived', className: 'bg-slate-200 text-slate-700' }
+          : { label: 'Active', className: 'bg-emerald-100 text-emerald-700' }
+
+  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${config.className}`}>{config.label}</span>
 }
 
 function getDocumentCodeLabel(document) {
@@ -287,19 +489,21 @@ function ActivityModal({ projectId, onClose }) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
-    <ModalShell title="Project Activity" onClose={onClose}>
+    <ModalShell title="Project Activity Logs" onClose={onClose}>
       {loading ? (
-        <div className="text-sm text-gray-500">Loading activity...</div>
+        <div className="text-sm text-gray-500">Loading project activity logs...</div>
       ) : logs.length === 0 ? (
-        <div className="text-sm text-gray-500">No activity recorded for this project yet.</div>
+        <div className="text-sm text-gray-500">No project activity logs recorded yet.</div>
       ) : (
         <div className="space-y-3">
+          <div className="text-sm text-gray-500">This view only shows logs recorded for this specific project and its phases.</div>
           <div className="overflow-x-auto border border-gray-200 rounded-md">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scope</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 </tr>
@@ -309,6 +513,7 @@ function ActivityModal({ projectId, onClose }) {
                   <tr key={l.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
                     <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.user}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.entity === 'ProjectIteration' ? 'Phase' : 'Project'}</td>
                     <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.action}</td>
                     <td className="px-4 py-2 text-sm text-gray-700">{l.description}</td>
                   </tr>
@@ -706,7 +911,6 @@ function StageCreateDocumentModal({ iterationId, phase, stage, stageItems = [], 
 }
 
 function CreateProjectModal({ onClose, onCreated }) {
-  const { t } = usePreferences()
   const [loading, setLoading] = useState(false)
   const [projectCategories, setProjectCategories] = useState([])
   const [users, setUsers] = useState([])
@@ -715,6 +919,15 @@ function CreateProjectModal({ onClose, onCreated }) {
     code: '',
     name: '',
     description: '',
+    clientName: '',
+    clientPic: '',
+    teamMembers: '',
+    startDate: '',
+    plannedCompletionDate: '',
+    actualCompletionDate: '',
+    scope: '',
+    objective: '',
+    deliverables: '',
     projectCategoryId: '',
     managerId: ''
   })
@@ -739,6 +952,15 @@ function CreateProjectModal({ onClose, onCreated }) {
         code: form.code,
         name: form.name,
         description: form.description || null,
+        clientName: form.clientName || null,
+        clientPic: form.clientPic || null,
+        teamMembers: form.teamMembers || null,
+        startDate: form.startDate || null,
+        plannedCompletionDate: form.plannedCompletionDate || null,
+        actualCompletionDate: form.actualCompletionDate || null,
+        scope: form.scope || null,
+        objective: form.objective || null,
+        deliverables: form.deliverables || null,
         projectCategoryId: Number(form.projectCategoryId),
         managerId: Number(form.managerId)
       }
@@ -751,65 +973,19 @@ function CreateProjectModal({ onClose, onCreated }) {
   }
 
   return (
-    <ModalShell title="Create Project" onClose={onClose}>
+    <ModalShell title="Create Project" onClose={onClose} maxWidthClass="max-w-5xl">
       <form onSubmit={submit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Code</label>
-          <input
-            value={form.code}
-            onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Capture the core project brief here. `Project Category` is kept because it drives the workflow stages and document checklist templates.
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-          <input
-            value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Category</label>
-          <select
-            value={form.projectCategoryId}
-            onChange={(e) => setForm((p) => ({ ...p, projectCategoryId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">Select</option>
-            {projectCategories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Manager</label>
-          <select
-            value={form.managerId}
-            onChange={(e) => setForm((p) => ({ ...p, managerId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          >
-            <option value="">Select</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            rows={3}
-          />
-        </div>
+        <ProjectFormFields
+          form={form}
+          setForm={setForm}
+          users={users}
+          showCategory
+          projectCategories={projectCategories}
+          stageStatusLabel="Will follow the initial workflow stage after creation"
+        />
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
             Cancel
@@ -1095,6 +1271,7 @@ function ProjectsList({ onOpenProject }) {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest Phase</th>
@@ -1105,6 +1282,7 @@ function ProjectsList({ onOpenProject }) {
                   <tr key={p.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onOpenProject(p.id)}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{p.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{p.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"><ProjectStatusBadge status={p.status} /></td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{p.projectCategory?.name || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {`${p.manager?.firstName || ''} ${p.manager?.lastName || ''}`.trim() || p.manager?.email || '-'}
@@ -1146,7 +1324,7 @@ function ProjectsList({ onOpenProject }) {
 
 function ProjectDetail({ projectId }) {
   const navigate = useNavigate()
-  const uiVersionStamp = 'PT-20260617-R2'
+  const uiVersionStamp = 'PT-20260617-R3'
   const consolidatedTabId = '__consolidated__'
   const canCreate = hasPermission('projectTracking', 'create')
   const canLink = hasPermission('projectTracking', 'linkDocument')
@@ -1258,17 +1436,21 @@ function ProjectDetail({ projectId }) {
   }, [items, project?.enabledStages, selectedPhase?.currentStage, stageDocuments])
 
   useEffect(() => {
+    setActiveStageTab(consolidatedTabId)
+  }, [selectedIterationId])
+
+  useEffect(() => {
     if (!stages.length) {
       setActiveStageTab(consolidatedTabId)
       return
     }
 
     setActiveStageTab((prev) => {
+      if (prev === consolidatedTabId) return consolidatedTabId
       if (prev && stages.some((s) => s.id === prev)) return prev
-      if (selectedPhase?.currentStage?.id && stages.some((s) => s.id === selectedPhase.currentStage.id)) return selectedPhase.currentStage.id
-      return stages[0].id
+      return consolidatedTabId
     })
-  }, [stages, selectedPhase?.currentStage?.id, selectedIterationId])
+  }, [stages])
 
   const stageDocumentsByStage = useMemo(() => {
     const grouped = new Map()
@@ -1443,8 +1625,44 @@ function ProjectDetail({ projectId }) {
     return { total, complete, pending, waived, pct }
   }, [items])
 
+  const projectStatus = String(project?.status || 'ACTIVE').toUpperCase()
+  const isProjectActive = projectStatus === 'ACTIVE'
+  const isProjectOnHold = projectStatus === 'ON_HOLD'
+  const isProjectClosed = projectStatus === 'CLOSED'
+  const isProjectFrozen = !isProjectActive
+  const progressLockMessage = isProjectClosed
+    ? 'This project is closed. Linked documents stay available, but no further progress actions are needed.'
+    : isProjectOnHold
+      ? 'This project is on hold. Progress actions are paused until the project is resumed.'
+      : 'Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.'
+
   if (loading) return <div className="p-6 bg-white rounded-lg shadow">Loading...</div>
   if (!project) return <EmptyState title="Project not found" message="The project may have been deleted." />
+
+  const updateProjectStatus = async (nextStatus) => {
+    try {
+      await saveProject({
+        name: project.name,
+        description: project.description || null,
+        managerId: project.manager?.id,
+        status: nextStatus
+      })
+      setAlertModal({
+        show: true,
+        title: 'Success',
+        message:
+          nextStatus === 'ON_HOLD'
+            ? 'Project is now on hold.'
+            : nextStatus === 'CLOSED'
+              ? 'Project has been closed. Documents remain available, but progress is now stopped.'
+              : 'Project is active again.',
+        type: 'success'
+      })
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to update project status'
+      setAlertModal({ show: true, title: 'Unable to update project status', message: msg, type: 'warning' })
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-6">
@@ -1458,6 +1676,7 @@ function ProjectDetail({ projectId }) {
             </div>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-4xl">{project.name}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-blue-50/90">
+              <ProjectStatusBadge status={project.status} />
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{project.projectCategory?.name || '-'}</span>
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Manager: ${`${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.trim() || project.manager?.email || '-'}`}</span>
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
@@ -1472,8 +1691,68 @@ function ProjectDetail({ projectId }) {
               onClick={() => setShowActivity(true)}
               className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
             >
-              Activity
+              Activity Logs
             </button>
+            {canEdit && isProjectActive && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Put Project On Hold',
+                    message: 'Pause project progress for now? Existing documents stay available and you can resume later.',
+                    onConfirm: () => updateProjectStatus('ON_HOLD')
+                  })
+                }
+                className="rounded-lg border border-amber-300 bg-amber-400/90 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-300"
+              >
+                Put On Hold
+              </button>
+            )}
+            {canEdit && isProjectOnHold && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Resume Project',
+                    message: 'Resume this project and allow progress actions again?',
+                    onConfirm: () => updateProjectStatus('ACTIVE')
+                  })
+                }
+                className="rounded-lg border border-emerald-300 bg-emerald-400/90 px-4 py-2 text-sm font-medium text-emerald-950 hover:bg-emerald-300"
+              >
+                Resume Project
+              </button>
+            )}
+            {canEdit && isProjectClosed && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Reopen Project',
+                    message: 'Reopen this closed project and allow progress actions again?',
+                    onConfirm: () => updateProjectStatus('ACTIVE')
+                  })
+                }
+                className="rounded-lg border border-emerald-300 bg-emerald-400/90 px-4 py-2 text-sm font-medium text-emerald-950 hover:bg-emerald-300"
+              >
+                Reopen Project
+              </button>
+            )}
+            {canEdit && !isProjectClosed && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Close Project',
+                    message: 'Close this project? Linked documents will remain available, but no further progress actions will be required.',
+                    onConfirm: () => updateProjectStatus('CLOSED')
+                  })
+                }
+                className="rounded-lg border border-rose-300 bg-rose-400/90 px-4 py-2 text-sm font-medium text-rose-950 hover:bg-rose-300"
+              >
+                Close Project
+              </button>
+            )}
             {canEdit && (
               <button
                 onClick={() => setShowEditProject(true)}
@@ -1483,7 +1762,11 @@ function ProjectDetail({ projectId }) {
               </button>
             )}
             {canCreate && (
-              <button onClick={() => setShowCreatePhase(true)} className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400">
+              <button
+                onClick={() => setShowCreatePhase(true)}
+                disabled={!isProjectActive}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-blue-900/60 disabled:text-blue-100/70"
+              >
                 Add Next Phase
               </button>
             )}
@@ -1497,7 +1780,7 @@ function ProjectDetail({ projectId }) {
                     onConfirm: advanceStage
                   })
                 }
-                disabled={advancing || !selectedIterationId}
+                disabled={advancing || !selectedIterationId || !isProjectActive}
                 className="rounded-lg border border-white/15 bg-slate-950/40 px-4 py-2 text-sm font-medium text-white hover:bg-slate-950/60 disabled:opacity-50"
               >
                 {advancing ? 'Moving...' : 'Move To Next Stage'}
@@ -1560,8 +1843,14 @@ function ProjectDetail({ projectId }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <div className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-          Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.
+        <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+          isProjectClosed
+            ? 'bg-rose-50 text-rose-700'
+            : isProjectOnHold
+              ? 'bg-amber-50 text-amber-700'
+              : 'bg-blue-50 text-blue-700'
+        }`}>
+          {progressLockMessage}
         </div>
       </div>
 
@@ -1607,13 +1896,36 @@ function ProjectDetail({ projectId }) {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900">Stage Flow</div>
-            <div className="mt-1 text-sm text-slate-500">Use the stage tabs below to keep each stage isolated. Consolidated Documents shows every linked document in this project phase with its stage label.</div>
+            <div className="mt-1 text-sm text-slate-500">Use the stage tabs below to keep each stage isolated. Overall Project Documents shows every linked document in this project phase with its stage label.</div>
           </div>
           <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
             {selectedPhase ? getPhaseTitle(selectedPhase, '') : ''}
           </div>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2">
+          <button
+            type="button"
+            onClick={() => setActiveStageTab(consolidatedTabId)}
+            className={`min-w-[240px] rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+              activeStageTab === consolidatedTabId
+                ? 'border-slate-900 bg-gradient-to-br from-slate-900 to-slate-700 text-white shadow-sm'
+                : 'border-slate-200 bg-white'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className={`text-base font-semibold ${activeStageTab === consolidatedTabId ? 'text-white' : 'text-slate-900'}`}>Overall Project Documents</div>
+              <span className={`rounded-full px-2 py-1 text-xs font-medium ${activeStageTab === consolidatedTabId ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {`${consolidatedDocuments.length} docs`}
+              </span>
+            </div>
+            <div className={`mt-4 text-sm ${activeStageTab === consolidatedTabId ? 'text-slate-200' : 'text-slate-600'}`}>
+              Cross-stage view of all required and extra documents linked in this project phase.
+            </div>
+            <div className={`mt-4 inline-flex items-center gap-1 text-xs font-medium ${activeStageTab === consolidatedTabId ? 'text-slate-100' : 'text-slate-500'}`}>
+              <span>{activeStageTab === consolidatedTabId ? 'Viewing overall project documents' : 'Open overall project documents'}</span>
+              <span aria-hidden="true">→</span>
+            </div>
+          </button>
           {stageFlow.map((stage) => {
             const isActiveTab = activeStageTab === stage.id
             const tone =
@@ -1660,29 +1972,6 @@ function ProjectDetail({ projectId }) {
               </button>
             )
           })}
-          <button
-            type="button"
-            onClick={() => setActiveStageTab(consolidatedTabId)}
-            className={`min-w-[240px] rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
-              activeStageTab === consolidatedTabId
-                ? 'border-slate-900 bg-gradient-to-br from-slate-900 to-slate-700 text-white shadow-sm'
-                : 'border-slate-200 bg-white'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className={`text-base font-semibold ${activeStageTab === consolidatedTabId ? 'text-white' : 'text-slate-900'}`}>Consolidated Documents</div>
-              <span className={`rounded-full px-2 py-1 text-xs font-medium ${activeStageTab === consolidatedTabId ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                {`${consolidatedDocuments.length} docs`}
-              </span>
-            </div>
-            <div className={`mt-4 text-sm ${activeStageTab === consolidatedTabId ? 'text-slate-200' : 'text-slate-600'}`}>
-              Cross-stage view of all required and extra documents linked in this project phase.
-            </div>
-            <div className={`mt-4 inline-flex items-center gap-1 text-xs font-medium ${activeStageTab === consolidatedTabId ? 'text-slate-100' : 'text-slate-500'}`}>
-              <span>{activeStageTab === consolidatedTabId ? 'Viewing consolidated tab' : 'Open consolidated tab'}</span>
-              <span aria-hidden="true">→</span>
-            </div>
-          </button>
         </div>
       </div>
 
@@ -1693,7 +1982,7 @@ function ProjectDetail({ projectId }) {
       ) : activeStageTab === consolidatedTabId ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
-            <div className="text-lg font-semibold text-slate-900">Consolidated Documents</div>
+            <div className="text-lg font-semibold text-slate-900">Overall Project Documents</div>
             <div className="mt-1 text-sm text-slate-500">All linked documents for this project phase, grouped in one list with stage and checklist context.</div>
           </div>
           {consolidatedDocuments.length === 0 ? (
@@ -1789,7 +2078,7 @@ function ProjectDetail({ projectId }) {
                         <div className="mt-1 text-sm text-slate-500">Add extra stage documents here even if they are not listed in the required checklist. Matching document types still route into checklist rows automatically.</div>
                       </div>
                       <div className="flex gap-2">
-                        {canLink && (
+                        {canLink && isProjectActive && (
                           <button
                             onClick={() => setShowStageLink(st)}
                             className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
@@ -1797,7 +2086,7 @@ function ProjectDetail({ projectId }) {
                             Attach Existing
                           </button>
                         )}
-                        {canCreate && (
+                        {canCreate && isProjectActive && (
                           <button
                             onClick={() => setShowStageCreate(st)}
                             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -1833,7 +2122,7 @@ function ProjectDetail({ projectId }) {
                                   >
                                     {String(l.document.status || '').toUpperCase() === 'DRAFT' ? 'Continue Draft' : 'Open Workflow'}
                                   </button>
-                                  {canLink && (
+                                  {canLink && isProjectActive && (
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -1902,7 +2191,7 @@ function ProjectDetail({ projectId }) {
                                         >
                                           {String(l.document.status || '').toUpperCase() === 'DRAFT' ? 'Continue Draft' : 'Open Workflow'}
                                         </button>
-                                        {canLink && (
+                                        {canLink && isProjectActive && (
                                           <button
                                             type="button"
                                             onClick={() =>
@@ -1935,7 +2224,7 @@ function ProjectDetail({ projectId }) {
                                 )}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                {canLink ? (
+                                {canLink && isProjectActive ? (
                                   <div className="flex items-center justify-end gap-3">
                                     <button onClick={() => setShowLink(it)} className="text-blue-600 hover:underline">
                                       Attach Existing
@@ -2063,7 +2352,7 @@ function ProjectDetail({ projectId }) {
       )}
 
       {showEditProject && (
-        <ModalShell title="Edit Project" onClose={() => setShowEditProject(false)}>
+        <ModalShell title="Edit Project" onClose={() => setShowEditProject(false)} maxWidthClass="max-w-5xl">
           <EditProjectForm
             project={project}
             usersEndpoint="/users"
@@ -2105,9 +2394,22 @@ function ProjectDetail({ projectId }) {
 function EditProjectForm({ project, usersEndpoint, onCancel, onSave }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
-  const [name, setName] = useState(project?.name || '')
-  const [description, setDescription] = useState(project?.description || '')
-  const [managerId, setManagerId] = useState(project?.manager?.id ? String(project.manager.id) : '')
+  const [form, setForm] = useState({
+    code: project?.code || '',
+    name: project?.name || '',
+    description: project?.description || '',
+    clientName: project?.clientName || '',
+    clientPic: project?.clientPic || '',
+    teamMembers: project?.teamMembers || '',
+    startDate: toDateInputValue(project?.startDate),
+    plannedCompletionDate: toDateInputValue(project?.plannedCompletionDate),
+    actualCompletionDate: toDateInputValue(project?.actualCompletionDate),
+    scope: project?.scope || '',
+    objective: project?.objective || '',
+    deliverables: project?.deliverables || '',
+    managerId: project?.manager?.id ? String(project.manager.id) : '',
+    status: project?.status || 'ACTIVE'
+  })
 
   useEffect(() => {
     const load = async () => {
@@ -2125,7 +2427,20 @@ function EditProjectForm({ project, usersEndpoint, onCancel, onSave }) {
     e.preventDefault()
     setLoading(true)
     try {
-      await onSave({ name, description: description || null, managerId: Number(managerId) })
+      await onSave({
+        name: form.name,
+        description: form.description || null,
+        clientName: form.clientName || null,
+        clientPic: form.clientPic || null,
+        teamMembers: form.teamMembers || null,
+        startDate: form.startDate || null,
+        plannedCompletionDate: form.plannedCompletionDate || null,
+        actualCompletionDate: form.actualCompletionDate || null,
+        scope: form.scope || null,
+        objective: form.objective || null,
+        deliverables: form.deliverables || null,
+        managerId: Number(form.managerId)
+      })
     } finally {
       setLoading(false)
     }
@@ -2133,25 +2448,13 @@ function EditProjectForm({ project, usersEndpoint, onCancel, onSave }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-        <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Project Manager</label>
-        <select value={managerId} onChange={(e) => setManagerId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" required>
-          <option value="">Select</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" rows={3} />
-      </div>
+      <ProjectFormFields
+        form={form}
+        setForm={setForm}
+        users={users}
+        stageStatusLabel={project?.iterations?.[0]?.currentStage?.name || 'No active stage'}
+        showLifecycleStatus
+      />
       <div className="flex justify-end gap-2 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
           Cancel

@@ -439,6 +439,15 @@ model Project {
   code              String        @unique
   name              String
   description       String?       @db.Text
+  clientName        String?
+  clientPic         String?
+  teamMembers       String?       @db.Text
+  startDate         DateTime?
+  plannedCompletionDate DateTime?
+  actualCompletionDate  DateTime?
+  scope             String?       @db.Text
+  objective         String?       @db.Text
+  deliverables      String?       @db.Text
   projectCategoryId Int
   managerId         Int
   createdById       Int

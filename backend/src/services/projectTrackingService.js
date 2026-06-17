@@ -5,6 +5,28 @@ const documentAssignmentService = require('./documentAssignmentService')
 const folderPermissionService = require('./folderPermissionService')
 const confidentialAccessService = require('./confidentialAccessService')
 
+const PROJECT_STATUSES = new Set(['ACTIVE', 'ON_HOLD', 'CLOSED', 'ARCHIVED'])
+
+const normalizeProjectStatus = (value) => {
+  const normalized = String(value || '').trim().toUpperCase()
+  return PROJECT_STATUSES.has(normalized) ? normalized : null
+}
+
+const assertProjectCanProgress = (project, actionLabel) => {
+  const status = normalizeProjectStatus(project?.status) || 'ACTIVE'
+  if (status === 'ACTIVE') return
+
+  if (status === 'ON_HOLD') {
+    throw new ValidationError(`This project is currently on hold. Resume the project before you can ${actionLabel}.`)
+  }
+
+  if (status === 'CLOSED') {
+    throw new ValidationError(`This project is closed. Reopen the project before you can ${actionLabel}.`)
+  }
+
+  throw new ValidationError(`This project is ${status.toLowerCase()}. Update the project status before you can ${actionLabel}.`)
+}
+
 const getActiveStageDefinitions = async () => {
   return prisma.projectStageDefinition.findMany({
     where: { isActive: true },
@@ -133,20 +155,115 @@ exports.listProjects = async ({ projectCategoryId, search }) => {
   });
 };
 
-exports.updateProject = async (projectId, { name, description, managerId, updatedById }) => {
+exports.updateProject = async (
+  projectId,
+  {
+    name,
+    description,
+    clientName,
+    clientPic,
+    teamMembers,
+    startDate,
+    plannedCompletionDate,
+    actualCompletionDate,
+    scope,
+    objective,
+    deliverables,
+    managerId,
+    status,
+    updatedById
+  }
+) => {
   const existing = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true }
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      clientName: true,
+      clientPic: true,
+      teamMembers: true,
+      startDate: true,
+      plannedCompletionDate: true,
+      actualCompletionDate: true,
+      scope: true,
+      objective: true,
+      deliverables: true,
+      managerId: true,
+      status: true,
+      code: true
+    }
   })
   if (!existing) throw new NotFoundError('Project')
 
+  const nextData = {}
+  if (name !== undefined) {
+    const trimmedName = String(name || '').trim()
+    if (!trimmedName) {
+      throw new ValidationError('Project name is required', [{ field: 'name', message: 'Project name is required' }])
+    }
+    nextData.name = trimmedName
+  }
+
+  if (description !== undefined) {
+    nextData.description = description ? String(description) : null
+  }
+
+  if (clientName !== undefined) {
+    nextData.clientName = clientName ? String(clientName) : null
+  }
+
+  if (clientPic !== undefined) {
+    nextData.clientPic = clientPic ? String(clientPic) : null
+  }
+
+  if (teamMembers !== undefined) {
+    nextData.teamMembers = teamMembers ? String(teamMembers) : null
+  }
+
+  if (startDate !== undefined) {
+    nextData.startDate = startDate || null
+  }
+
+  if (plannedCompletionDate !== undefined) {
+    nextData.plannedCompletionDate = plannedCompletionDate || null
+  }
+
+  if (actualCompletionDate !== undefined) {
+    nextData.actualCompletionDate = actualCompletionDate || null
+  }
+
+  if (scope !== undefined) {
+    nextData.scope = scope ? String(scope) : null
+  }
+
+  if (objective !== undefined) {
+    nextData.objective = objective ? String(objective) : null
+  }
+
+  if (deliverables !== undefined) {
+    nextData.deliverables = deliverables ? String(deliverables) : null
+  }
+
+  if (managerId !== undefined) {
+    nextData.managerId = managerId
+  }
+
+  if (status !== undefined) {
+    const normalizedStatus = normalizeProjectStatus(status)
+    if (!normalizedStatus) {
+      throw new ValidationError('Invalid project status', [{ field: 'status', message: 'Invalid project status' }])
+    }
+    nextData.status = normalizedStatus
+  }
+
+  if (Object.keys(nextData).length === 0) {
+    throw new ValidationError('At least one project field must be provided')
+  }
+
   const project = await prisma.project.update({
     where: { id: projectId },
-    data: {
-      name,
-      description,
-      managerId
-    },
+    data: nextData,
     include: {
       projectCategory: true,
       manager: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -161,7 +278,17 @@ exports.updateProject = async (projectId, { name, description, managerId, update
       action: 'UPDATE',
       entity: 'Project',
       entityId: projectId,
-      metadata: { projectId }
+      description:
+        nextData.status && existing.status !== nextData.status
+          ? `projectId=${projectId} changed project status from ${existing.status} to ${nextData.status}`
+          : `projectId=${projectId} updated project details for ${existing.code}`,
+      metadata: {
+        projectId,
+        code: existing.code,
+        previousStatus: existing.status,
+        nextStatus: project.status,
+        changedFields: Object.keys(nextData)
+      }
     }
   })
 
@@ -183,12 +310,29 @@ exports.deleteProject = async (projectId, { deletedById }) => {
       action: 'DELETE',
       entity: 'Project',
       entityId: projectId,
+      description: `projectId=${projectId} deleted project ${existing.code}`,
       metadata: { projectId, code: existing.code }
     }
   })
 }
 
-exports.createProject = async ({ code, name, description, projectCategoryId, managerId, createdById }) => {
+exports.createProject = async ({
+  code,
+  name,
+  description,
+  clientName,
+  clientPic,
+  teamMembers,
+  startDate,
+  plannedCompletionDate,
+  actualCompletionDate,
+  scope,
+  objective,
+  deliverables,
+  projectCategoryId,
+  managerId,
+  createdById
+}) => {
   const existing = await prisma.project.findUnique({ where: { code }, select: { id: true } });
   if (existing) throw new ConflictError('Project code already exists');
 
@@ -204,6 +348,15 @@ exports.createProject = async ({ code, name, description, projectCategoryId, man
         code,
         name,
         description,
+        clientName,
+        clientPic,
+        teamMembers,
+        startDate,
+        plannedCompletionDate,
+        actualCompletionDate,
+        scope,
+        objective,
+        deliverables,
         projectCategoryId,
         managerId,
         createdById
@@ -220,6 +373,17 @@ exports.createProject = async ({ code, name, description, projectCategoryId, man
     });
 
     await createChecklistItemsFromRequirements(projectCategoryId, iteration.id, tx);
+
+    await tx.auditLog.create({
+      data: {
+        userId: createdById,
+        action: 'CREATE',
+        entity: 'Project',
+        entityId: project.id,
+        description: `projectId=${project.id} created project ${code}`,
+        metadata: { projectId: project.id, code, status: 'ACTIVE' }
+      }
+    })
 
     return tx.project.findUnique({
       where: { id: project.id },
@@ -287,9 +451,10 @@ exports.getProject = async (projectId, { canViewConfidential }) => {
 exports.createIteration = async (projectId, { name, createdById }) => {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { id: true, projectCategoryId: true }
+    select: { id: true, projectCategoryId: true, status: true }
   });
   if (!project) throw new NotFoundError('Project');
+  assertProjectCanProgress(project, 'add a new phase')
 
   const last = await prisma.projectIteration.findFirst({
     where: { projectId },
@@ -420,9 +585,18 @@ exports.linkDocumentToItem = async (itemId, { documentId, linkedById }) => {
   return prisma.$transaction(async (tx) => {
     const item = await tx.projectIterationDocumentItem.findUnique({
       where: { id: itemId },
-      include: { iteration: true }
+      include: {
+        iteration: {
+          include: {
+            project: {
+              select: { id: true, status: true }
+            }
+          }
+        }
+      }
     });
     if (!item) throw new NotFoundError('Project item');
+    assertProjectCanProgress(item.iteration.project, 'link documents to this project')
 
     const doc = await tx.document.findUnique({
       where: { id: documentId },
@@ -466,9 +640,18 @@ exports.unlinkDocumentFromItem = async (itemId, linkId) => {
   return prisma.$transaction(async (tx) => {
     const item = await tx.projectIterationDocumentItem.findUnique({
       where: { id: itemId },
-      select: { id: true, status: true }
+      include: {
+        iteration: {
+          include: {
+            project: {
+              select: { id: true, status: true }
+            }
+          }
+        }
+      }
     })
     if (!item) throw new NotFoundError('Project item')
+    assertProjectCanProgress(item.iteration.project, 'remove linked documents from this project')
 
     const link = await tx.projectDocumentLink.findFirst({
       where: {
@@ -493,7 +676,7 @@ exports.unlinkDocumentFromItem = async (itemId, linkId) => {
       }
     })
 
-    let updatedItem = item
+    let updatedItem = { id: item.id, status: item.status }
     if (remainingPublished === 0 && item.status === 'COMPLETE') {
       updatedItem = await tx.projectIterationDocumentItem.update({
         where: { id: itemId },
@@ -563,9 +746,14 @@ exports.linkDocumentToStage = async (iterationId, stageId, { documentId, linkedB
   return prisma.$transaction(async (tx) => {
     const iteration = await tx.projectIteration.findUnique({
       where: { id: iterationId },
-      select: { id: true }
+      include: {
+        project: {
+          select: { id: true, status: true }
+        }
+      }
     })
     if (!iteration) throw new NotFoundError('Project iteration')
+    assertProjectCanProgress(iteration.project, 'link documents to this project')
 
     const stage = await tx.projectStageDefinition.findUnique({ where: { id: stageId }, select: { id: true } })
     if (!stage) throw new NotFoundError('Project stage')
@@ -598,6 +786,17 @@ exports.linkDocumentToStage = async (iterationId, stageId, { documentId, linkedB
 }
 
 exports.unlinkDocumentFromStage = async (iterationId, stageId, linkId) => {
+  const iteration = await prisma.projectIteration.findUnique({
+    where: { id: iterationId },
+    include: {
+      project: {
+        select: { id: true, status: true }
+      }
+    }
+  })
+  if (!iteration) throw new NotFoundError('Project iteration')
+  assertProjectCanProgress(iteration.project, 'remove linked documents from this project')
+
   const link = await prisma.projectDocumentLink.findFirst({
     where: {
       id: linkId,
@@ -617,12 +816,17 @@ exports.createDocumentFromItem = async (itemId, { title, description, createdByI
   const item = await prisma.projectIterationDocumentItem.findUnique({
     where: { id: itemId },
     include: {
-      iteration: { include: { project: true } },
+      iteration: {
+        include: {
+          project: true
+        }
+      },
       stage: true,
       documentType: true
     }
   })
   if (!item) throw new NotFoundError('Project item')
+  assertProjectCanProgress(item.iteration.project, 'create new documents for this project')
 
   const projectCategoryId = item.iteration.project.projectCategoryId
 
@@ -669,6 +873,7 @@ exports.createDocumentForStage = async (iterationId, stageId, { documentTypeId, 
     include: { project: true }
   })
   if (!iteration) throw new NotFoundError('Project iteration')
+  assertProjectCanProgress(iteration.project, 'create new documents for this project')
 
   const stage = await prisma.projectStageDefinition.findUnique({ where: { id: stageId }, select: { id: true } })
   if (!stage) throw new NotFoundError('Project stage')
@@ -726,6 +931,7 @@ exports.advanceIterationStage = async (iterationId, { advancedById }) => {
     }
   })
   if (!iteration) throw new NotFoundError('Project iteration')
+  assertProjectCanProgress(iteration.project, 'move this phase to the next stage')
 
   const enabledStages = await getEnabledStagesForCategory(iteration.project.projectCategoryId)
   if (enabledStages.length === 0) throw new ValidationError('No enabled stages configured for this project category')
@@ -813,7 +1019,15 @@ exports.getProjectActivityLogs = async (projectId, { page = 1, limit = 20 } = {}
 
   const needle = `projectId=${pid}`
   const where = {
-    description: { contains: needle }
+    OR: [
+      {
+        entity: 'Project',
+        entityId: pid
+      },
+      {
+        description: { contains: needle }
+      }
+    ]
   }
 
   const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10)
@@ -841,7 +1055,12 @@ exports.getProjectActivityLogs = async (projectId, { page = 1, limit = 20 } = {}
     action: log.action,
     entity: log.entity,
     description: log.description || `${log.action} ${log.entity}`,
-    metadata: log.metadata ? JSON.parse(log.metadata) : null
+    metadata:
+      log.metadata == null
+        ? null
+        : typeof log.metadata === 'string'
+          ? JSON.parse(log.metadata)
+          : log.metadata
   }))
 
   return { logs: items, total, page: parseInt(page, 10), limit: take }
