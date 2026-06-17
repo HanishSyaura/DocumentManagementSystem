@@ -4,7 +4,6 @@ import { hasAnyPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
 import AppNavItem from './layout/AppNavItem'
-import AppTopbarBrand from './layout/AppTopbarBrand'
 
 const menuItems = [
   { 
@@ -121,26 +120,6 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
     const slug = cleaned ? cleaned.replace(/\//g, '-') : 'dashboard'
     return `nav-${slug}`
   }
-  const [logo, setLogo] = useState(() => {
-    try {
-      const savedTheme = localStorage.getItem('dms_theme_settings')
-      if (!savedTheme) return null
-      const theme = JSON.parse(savedTheme)
-      return theme.mainLogo || null
-    } catch {
-      return null
-    }
-  })
-  const [companyName, setCompanyName] = useState(() => {
-    try {
-      const savedCompanyInfo = localStorage.getItem('dms_company_info')
-      if (!savedCompanyInfo) return 'FileNix'
-      const companyInfo = JSON.parse(savedCompanyInfo)
-      return companyInfo.companyName || 'FileNix'
-    } catch {
-      return 'FileNix'
-    }
-  })
   const [permissionTrigger, setPermissionTrigger] = useState(0)
   const [rfidRegistryEnabled, setRfidRegistryEnabled] = useState(() => {
     try {
@@ -253,65 +232,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
     }
   }, [location.pathname])
 
-  useEffect(() => {
-    // Load logo from theme settings
-    const loadLogo = () => {
-      const savedTheme = localStorage.getItem('dms_theme_settings')
-      if (savedTheme) {
-        try {
-          const theme = JSON.parse(savedTheme)
-          if (theme.mainLogo) {
-            setLogo(theme.mainLogo)
-          } else {
-            setLogo(null)
-          }
-        } catch (e) {
-          console.error('Failed to parse theme settings', e)
-        }
-      } else {
-        setLogo(null)
-      }
-
-      // Load company name from company info
-      const savedCompanyInfo = localStorage.getItem('dms_company_info')
-      if (savedCompanyInfo) {
-        try {
-          const companyInfo = JSON.parse(savedCompanyInfo)
-          if (companyInfo.companyName) {
-            setCompanyName(companyInfo.companyName)
-          }
-        } catch (e) {
-          console.error('Failed to parse company info', e)
-        }
-      }
-    }
-
-    loadLogo()
-
-    // Listen for storage events (theme/company changes)
-    window.addEventListener('storage', loadLogo)
-    window.addEventListener('brandingUpdated', loadLogo)
-    
-    return () => {
-      window.removeEventListener('storage', loadLogo)
-      window.removeEventListener('brandingUpdated', loadLogo)
-    }
-  }, [])
-
   return (
     <>
       {/* Desktop sidebar */}
       <aside className={`app-sidebar dms-scrollbar hidden h-full overflow-y-auto overflow-x-hidden transition-all duration-200 md:block ${isCollapsed ? 'md:w-sidebar-collapsed p-2' : 'md:w-sidebar lg:w-sidebar-lg p-3 lg:p-4'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-        {!isCollapsed && (
-          <div className="mb-4 px-2 py-1">
-            <AppTopbarBrand
-              logo={logo}
-              companyName={companyName}
-              appLabel={t('dms_label')}
-              compact={false}
-            />
-          </div>
-        )}
         <nav className="space-y-1.5">
           {visibleMenuItems.map((item) => (
             <AppNavItem
@@ -329,13 +253,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
       <div className={`fixed inset-0 z-40 md:hidden ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
         <div className={`absolute inset-0 bg-black/40 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
         <div className={`dms-scrollbar absolute left-0 top-0 h-full w-[min(18rem,85vw)] overflow-y-auto overflow-x-hidden p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <AppTopbarBrand
-              logo={logo}
-              companyName={companyName}
-              appLabel={t('dms_label')}
-              compact
-            />
+          <div className="mb-4 flex items-center justify-end">
             <button onClick={onClose} className="rounded-xl p-2 text-white transition-colors hover:bg-white/10">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

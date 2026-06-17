@@ -45,7 +45,7 @@ export default function DashboardQuickActions() {
           <Link
             key={action.key}
             to={action.to}
-            className="rounded-2xl border border-border bg-surface-muted p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:bg-white hover:shadow-dms-soft"
+            className="rounded-2xl border border-border bg-surface-muted p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:bg-surface hover:shadow-dms-soft"
           >
             <div className="text-sm font-semibold text-ink">{t(action.labelKey)}</div>
             <p className="mt-2 text-xs leading-5 text-ink-muted">{t(action.descriptionKey)}</p>

@@ -13,7 +13,7 @@ function Avatar({ name, profileImage }) {
     : safeName.substring(0, 2).toUpperCase()
 
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 to-brand text-sm font-semibold text-white shadow-dms-soft">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-secondary to-brand text-sm font-semibold text-white shadow-dms-soft">
       {profileImage ? (
         <img src={normalizeAppPath(profileImage)} alt={safeName} className="h-full w-full object-cover" />
       ) : (
@@ -51,7 +51,7 @@ export default function DashboardActivityTable({
               </thead>
               <tbody>
                 {recent.map((item, index) => (
-                  <tr key={index} className="border-b border-border/70 transition-colors hover:bg-slate-50/70">
+                  <tr key={index} className="border-b border-border/70 transition-colors hover:bg-surface-muted">
                     <td className="px-2 py-3.5">
                       <div className="flex items-center gap-3">
                         <Avatar name={item.user} profileImage={item.profileImage} />

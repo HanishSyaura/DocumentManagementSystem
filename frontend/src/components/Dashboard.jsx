@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import api from '../api/axios'
 import { usePreferences } from '../contexts/PreferencesContext'
-import PageHeader from './ui/PageHeader'
 import AppSurface from './ui/AppSurface'
+import DashboardHeader from './dashboard/DashboardHeader'
 import DashboardMetricCard from './dashboard/DashboardMetricCard'
 import DashboardQuickActions from './dashboard/DashboardQuickActions'
 import DashboardActivityTable from './dashboard/DashboardActivityTable'
@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <DashboardHeader
         title={t('dashboard_overview')}
         subtitle={t('dashboard_welcome')}
         className="mb-1"
@@ -111,7 +111,10 @@ export default function Dashboard() {
       )}
 
       {!loading && !metrics && (
-        <AppSurface padding="lg" className="border-red-100 bg-red-50 text-red-700">
+        <AppSurface
+          padding="lg"
+          className="border-[var(--dms-color-border-default)] bg-[var(--dms-color-danger-soft)] text-[var(--dms-color-danger-ink)]"
+        >
           Failed to load dashboard.
         </AppSurface>
       )}

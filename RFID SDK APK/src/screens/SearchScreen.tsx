@@ -45,6 +45,8 @@ export default function SearchScreen() {
 
   const rfidSubRef = useRef<{ remove: () => void } | null>(null);
   const barcodeSubRef = useRef<{ remove: () => void } | null>(null);
+  const triggerScanRef = useRef(false);
+  const triggerSeenRef = useRef<Set<string>>(new Set());
 
   const [isLocating, setIsLocating] = useState(false);
   const [locateTargetEpc, setLocateTargetEpc] = useState<string | null>(null);
@@ -244,7 +246,74 @@ export default function SearchScreen() {
     setExpandedId(filtered.length === 1 ? filtered[0].id : null);
   };
 
+  const resolveScannedRecord = (epc: string): DocumentRecord => {
+    const normalized = normalizeHex(epc);
+    const found = dataSource.find(d => normalizeHex(d.epc) === normalized);
+    if (found) return found;
+    return {
+      id: `scan-${normalized}`,
+      fileCode: 'UNREGISTERED',
+      title: 'Unknown Tag (Not in system)',
+      epc: normalized,
+      projectCategory: '-',
+      version: '-',
+      lastUpdated: '-',
+      documentStatus: 'Not Found',
+      trackingStatus: 'Unregistered',
+    };
+  };
+
+  const scanRfidNearby = async () => {
+    setScanBusy(true);
+    setScanError(null);
+    resetScanSubscriptions();
+    setExpandedId(null);
+
+    const seen = new Set<string>();
+
+    const finish = (err: string | null) => {
+      setScanBusy(false);
+      setScanError(err);
+      setScanModalVisible(false);
+      resetScanSubscriptions();
+      try {
+        RfidBackend.stopInventory();
+      } catch {}
+    };
+
+    const timeoutId = setTimeout(() => {
+      if (seen.size === 0) {
+        finish('No RFID tag detected');
+        return;
+      }
+      finish(null);
+    }, 5000);
+
+    rfidSubRef.current = RfidBackend.onTags(tags => {
+      let changed = false;
+      tags.forEach(t => {
+        const epc = t?.epc ? normalizeHex(t.epc) : '';
+        if (!epc) return;
+        if (seen.has(epc)) return;
+        seen.add(epc);
+        changed = true;
+      });
+      if (!changed) return;
+      setResults(Array.from(seen).map(resolveScannedRecord));
+    });
+
+    try {
+      RfidBackend.startInventory({ scanMode: 'continue' });
+    } catch {
+      clearTimeout(timeoutId);
+      finish('RFID scan failed');
+    }
+  };
+
   const scanRfidOnce = async () => {
+    if (!query.trim()) {
+      return scanRfidNearby();
+    }
     setScanBusy(true);
     setScanError(null);
     resetScanSubscriptions();
@@ -253,6 +322,9 @@ export default function SearchScreen() {
       setScanBusy(false);
       setScanError('RFID scan timeout');
       resetScanSubscriptions();
+      try {
+        RfidBackend.stopInventory();
+      } catch {}
     }, 6000);
 
     rfidSubRef.current = RfidBackend.onTags(tags => {
@@ -263,6 +335,9 @@ export default function SearchScreen() {
       setScanBusy(false);
       setScanModalVisible(false);
       resetScanSubscriptions();
+      try {
+        RfidBackend.stopInventory();
+      } catch {}
     });
 
     try {
@@ -272,6 +347,9 @@ export default function SearchScreen() {
       setScanBusy(false);
       setScanError('RFID scan failed');
       resetScanSubscriptions();
+      try {
+        RfidBackend.stopInventory();
+      } catch {}
     }
   };
 
@@ -319,7 +397,71 @@ export default function SearchScreen() {
     try {
       BarcodeService.stopScan();
     } catch {}
+    try {
+      RfidBackend.stopInventory();
+    } catch {}
   };
+
+  useEffect(() => {
+    const sub = RfidBackend.onTrigger(state => {
+      if (isLocating) return;
+      const behavior = RfidBackend.getGlobal().triggerBehavior;
+
+      const startTriggerScan = () => {
+        if (triggerScanRef.current) return;
+        triggerScanRef.current = true;
+        triggerSeenRef.current = new Set();
+        setScanError(null);
+        resetScanSubscriptions();
+
+        rfidSubRef.current = RfidBackend.onTags(tags => {
+          let changed = false;
+          tags.forEach(t => {
+            const epc = t?.epc ? normalizeHex(t.epc) : '';
+            if (!epc) return;
+            if (triggerSeenRef.current.has(epc)) return;
+            triggerSeenRef.current.add(epc);
+            changed = true;
+          });
+          if (!changed) return;
+          setResults(Array.from(triggerSeenRef.current).map(resolveScannedRecord));
+        });
+
+        try {
+          RfidBackend.startInventory({ scanMode: 'continue' });
+        } catch {
+          triggerScanRef.current = false;
+          setScanError('RFID scan failed');
+          resetScanSubscriptions();
+        }
+      };
+
+      const stopTriggerScan = () => {
+        if (!triggerScanRef.current) return;
+        triggerScanRef.current = false;
+        resetScanSubscriptions();
+        try {
+          RfidBackend.stopInventory();
+        } catch {}
+      };
+
+      if (behavior === 'toggle') {
+        if (state === 'DOWN') {
+          if (triggerScanRef.current) stopTriggerScan();
+          else startTriggerScan();
+        }
+        return;
+      }
+
+      if (state === 'DOWN') startTriggerScan();
+      else if (state === 'UP') stopTriggerScan();
+    });
+
+    return () => {
+      sub.remove();
+      triggerScanRef.current = false;
+    };
+  }, [isLocating, dataSource]);
 
   return (
     <View style={styles.container}>

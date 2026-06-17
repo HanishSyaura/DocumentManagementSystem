@@ -56,7 +56,7 @@ public class ScanKeyHelper {
                 public void onKeyDown(int keyCode) throws RemoteException {
                     Log.d(TAG, "onKeyDown: keyCode=" + keyCode);
                     
-                    if (keyCode == KEY_RFID_TRIGGER) {
+                    if (keyCode == KEY_RFID_TRIGGER || keyCode == KEY_BARCODE_SCAN) {
                         Log.i(TAG, "RFID Trigger DOWN (key 250)");
                         sendEvent("onTrigger", "DOWN");
                         // #region debug-point rfid-led-desync-trigger
@@ -82,7 +82,7 @@ public class ScanKeyHelper {
                 public void onKeyUp(int keyCode) throws RemoteException {
                     Log.d(TAG, "onKeyUp: keyCode=" + keyCode);
                     
-                    if (keyCode == KEY_RFID_TRIGGER) {
+                    if (keyCode == KEY_RFID_TRIGGER || keyCode == KEY_BARCODE_SCAN) {
                         Log.i(TAG, "RFID Trigger UP (key 250)");
                         sendEvent("onTrigger", "UP");
                         // #region debug-point rfid-led-desync-trigger

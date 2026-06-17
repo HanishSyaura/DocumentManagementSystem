@@ -2,10 +2,10 @@ import React from 'react'
 import AppSurface from '../ui/AppSurface'
 
 const toneMap = {
-  indigo: 'bg-indigo-50 text-indigo-600',
-  warning: 'bg-amber-50 text-amber-600',
-  success: 'bg-emerald-50 text-emerald-600',
-  neutral: 'bg-slate-100 text-slate-600'
+  indigo: 'bg-[var(--dms-color-info-soft)] text-[var(--dms-color-info-ink)]',
+  warning: 'bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)]',
+  success: 'bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)]',
+  neutral: 'bg-surface-muted text-ink-muted'
 }
 
 export default function DashboardMetricCard({

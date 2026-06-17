@@ -34,10 +34,10 @@ const SuccessIcon = () => (
 
 function NotificationItem({ type = 'info', title, message, time, unread }) {
   const styles = {
-    warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
-    error: 'bg-red-50 text-red-800 border-red-200',
-    success: 'bg-green-50 text-green-800 border-green-200'
+    warning: 'bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)] border-[var(--dms-color-border-default)]',
+    info: 'bg-[var(--dms-color-info-soft)] text-[var(--dms-color-info-ink)] border-[var(--dms-color-border-default)]',
+    error: 'bg-[var(--dms-color-danger-soft)] text-[var(--dms-color-danger-ink)] border-[var(--dms-color-border-default)]',
+    success: 'bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] border-[var(--dms-color-border-default)]'
   }
 
   const icons = {
@@ -58,7 +58,7 @@ function NotificationItem({ type = 'info', title, message, time, unread }) {
             {title && <p className="text-sm font-semibold leading-snug truncate">{title}</p>}
             <p className={`text-sm leading-snug ${title ? 'mt-0.5 font-medium' : 'font-medium'}`}>{message}</p>
           </div>
-          {unread && <span className="w-2.5 h-2.5 bg-blue-600 rounded-full flex-shrink-0 mt-1" />}
+          {unread && <span className="w-2.5 h-2.5 bg-brand rounded-full flex-shrink-0 mt-1" />}
         </div>
         <p className="text-xs mt-1 opacity-75">{time}</p>
       </div>
@@ -143,7 +143,10 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
       />
 
-      <aside className={`app-rightpanel dms-scrollbar hidden h-full w-rightpanel overflow-y-auto border-l border-border bg-surface-muted p-4 transition-transform duration-300 xl:block ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}>
+      <aside
+        className={`app-rightpanel dms-scrollbar hidden h-full flex-none bg-surface-muted transition-all duration-300 xl:block ${isPanelCollapsed ? 'w-0 overflow-hidden p-0' : 'w-rightpanel overflow-y-auto p-4'} ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}
+        style={{ borderLeft: isPanelCollapsed ? 'none' : undefined }}
+      >
         <AppSurface padding="md" className="space-y-4">
           <SectionHeader
             title={t('system_notifications')}
@@ -151,7 +154,7 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
             actions={(
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
-                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                  <span className="rounded-full border border-[var(--dms-color-border-default)] bg-[var(--dms-color-info-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--dms-color-info-ink)]">
                     {unreadCount}
                   </span>
                 )}

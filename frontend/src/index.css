@@ -20,7 +20,7 @@ body {
   border-right: 1px solid rgba(0,0,0,0.08); 
   box-shadow: 2px 0 8px rgba(0,0,0,0.04);
 }
-.app-rightpanel { background-color: var(--dms-sidebar-bg); border-left: 1px solid rgba(0,0,0,0.04); }
+.app-rightpanel { background-color: var(--dms-color-bg-surface-muted); border-left: 1px solid var(--dms-color-border-default); }
 .app-main-content { 
   background: transparent;
   min-height: 100%;
@@ -61,9 +61,13 @@ body {
   --dms-color-brand-secondary: var(--dms-secondary);
   --dms-color-accent: var(--dms-accent);
   --dms-color-success-soft: #ecfdf5;
+  --dms-color-success-ink: #047857;
   --dms-color-warning-soft: #fef3c7;
+  --dms-color-warning-ink: #b45309;
   --dms-color-danger-soft: #fee2e2;
+  --dms-color-danger-ink: #b91c1c;
   --dms-color-info-soft: #dbeafe;
+  --dms-color-info-ink: var(--dms-color-brand-secondary);
   --dms-space-1: 4px;
   --dms-space-2: 8px;
   --dms-space-3: 12px;
@@ -157,16 +161,16 @@ body {
 
 /* Metric card tweaks */
 .metric-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; }
-.metric-title { color: var(--dms-muted); font-size: 0.875rem }
+.metric-title { color: var(--dms-color-text-muted); font-size: 0.875rem }
 .metric-value { font-size: 1.5rem; font-weight: 600 }
 
 /* Table tweaks */
-.recent-table th { font-weight: 600; color: #6b7280; }
+.recent-table th { font-weight: 600; color: var(--dms-color-text-muted); }
 .recent-table td { vertical-align: middle }
 .recent-avatar { width: 36px; height: 36px; border-radius: 9999px; object-fit: cover }
 
 /* Footer style */
-.dms-footer { text-align:center; font-size: 12px; color: #9ca3af; padding: 16px 0 }
+.dms-footer { text-align:center; font-size: 12px; color: var(--dms-color-text-soft); padding: 16px 0 }
 
 /* Progress Tracker Arrow Styles */
 .clip-arrow-right {
@@ -215,7 +219,7 @@ html {
 a:focus-visible,
 button:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid rgba(59, 130, 246, 0.9);
+  outline: 2px solid var(--dms-color-brand-secondary);
   outline-offset: 2px;
 }
 

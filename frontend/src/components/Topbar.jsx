@@ -161,7 +161,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
             type="button"
             onClick={() => onGettingStarted?.()}
             className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-white transition-colors hover:bg-white/15 ${
-              showGettingStartedHint ? 'ring-2 ring-yellow-300 animate-pulse' : ''
+              showGettingStartedHint ? 'animate-pulse ring-2 ring-[var(--dms-color-accent)]' : ''
             }`}
             aria-label={t('getting_started')}
           >
