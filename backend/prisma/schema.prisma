@@ -77,6 +77,8 @@ model User {
   epcTrackingUpdates        DocumentEpcRegistryRecord[] @relation("EpcTrackingUpdatedBy")
   documentConfidentialAccessEntries DocumentConfidentialAccess[]
   requirementConfidentialAccessEntries ProjectCategoryDocumentRequirementConfidentialAccess[]
+  projectSetupRequirementDefaultAccessEntries ProjectSetupDocumentRequirementDefaultConfidentialAccess[]
+  projectSetupRequirementOverrideAccessEntries ProjectSetupDocumentRequirementOverrideConfidentialAccess[]
 
   @@index([email])
   @@index([employeeId])
@@ -122,6 +124,8 @@ model Role {
   folderPermissions FolderPermission[]
   documentConfidentialAccessEntries DocumentConfidentialAccess[]
   requirementConfidentialAccessEntries ProjectCategoryDocumentRequirementConfidentialAccess[]
+  projectSetupRequirementDefaultAccessEntries ProjectSetupDocumentRequirementDefaultConfidentialAccess[]
+  projectSetupRequirementOverrideAccessEntries ProjectSetupDocumentRequirementOverrideConfidentialAccess[]
 }
 
 model UserRole {
@@ -215,6 +219,8 @@ model DocumentType {
   codeRegistries   CodeRegistry[]
   projectRequirements ProjectCategoryDocumentRequirement[]
   projectItems        ProjectIterationDocumentItem[]
+  projectSetupDefaultRequirements ProjectSetupDocumentRequirementDefault[]
+  projectSetupOverrideRequirements ProjectSetupDocumentRequirementOverride[]
 }
 
 model ProjectCategory {
@@ -459,6 +465,8 @@ model Project {
   manager         User             @relation("ProjectManager", fields: [managerId], references: [id], onDelete: Restrict)
   createdBy       User             @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Restrict)
   iterations      ProjectIteration[]
+  setupStageOverrides ProjectSetupStageOverride[]
+  setupRequirementOverrides ProjectSetupDocumentRequirementOverride[]
 
   @@index([projectCategoryId])
   @@index([managerId])
@@ -509,6 +517,10 @@ model ProjectStageDefinition {
   categoryStages      ProjectCategoryStage[]
   currentForIterations ProjectIteration[] @relation("IterationCurrentStage")
   requirements        ProjectCategoryDocumentRequirement[]
+  setupStageDefaults  ProjectSetupStageDefault[]
+  setupStageOverrides ProjectSetupStageOverride[]
+  setupDefaultRequirements ProjectSetupDocumentRequirementDefault[]
+  setupOverrideRequirements ProjectSetupDocumentRequirementOverride[]
   items               ProjectIterationDocumentItem[]
   links               ProjectDocumentLink[]
 
@@ -588,7 +600,7 @@ model ProjectSetupStageDefault {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  stage ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stage ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade, map: "pssd_stage_fkey")
 
   @@unique([stageId])
   @@index([stageId])
@@ -605,8 +617,8 @@ model ProjectSetupStageOverride {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage   ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  project Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "psso_project_fkey")
+  stage   ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade, map: "psso_stage_fkey")
 
   @@unique([projectId, stageId])
   @@index([projectId])
@@ -623,8 +635,8 @@ model ProjectSetupDocumentRequirementDefault {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  stage        ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  documentType DocumentType           @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  stage        ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade, map: "psdrd_stage_fkey")
+  documentType DocumentType           @relation(fields: [documentTypeId], references: [id], onDelete: Cascade, map: "psdrd_doctype_fkey")
   confidentialAccess ProjectSetupDocumentRequirementDefaultConfidentialAccess[]
 
   @@unique([stageId, documentTypeId], map: "PSDRD_sid_dtid_key")
@@ -644,9 +656,9 @@ model ProjectSetupDocumentRequirementOverride {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage       ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  documentType DocumentType          @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  project     Project                @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "psdro_project_fkey")
+  stage       ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade, map: "psdro_stage_fkey")
+  documentType DocumentType          @relation(fields: [documentTypeId], references: [id], onDelete: Cascade, map: "psdro_doctype_fkey")
   confidentialAccess ProjectSetupDocumentRequirementOverrideConfidentialAccess[]
 
   @@unique([projectId, stageId, documentTypeId], map: "PSDRO_pid_sid_dtid_key")
@@ -667,9 +679,9 @@ model ProjectSetupDocumentRequirementDefaultConfidentialAccess {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  requirement ProjectSetupDocumentRequirementDefault @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role?               @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  requirement ProjectSetupDocumentRequirementDefault @relation(fields: [requirementId], references: [id], onDelete: Cascade, map: "psdrdca_req_fkey")
+  user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade, map: "psdrdca_user_fkey")
+  role        Role?                @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "psdrdca_role_fkey")
 
   @@unique([requirementId, userId], map: "PSDRDCA_reqid_userid_key")
   @@unique([requirementId, roleId], map: "PSDRDCA_reqid_roleid_key")
@@ -689,9 +701,9 @@ model ProjectSetupDocumentRequirementOverrideConfidentialAccess {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  requirement ProjectSetupDocumentRequirementOverride @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role?               @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  requirement ProjectSetupDocumentRequirementOverride @relation(fields: [requirementId], references: [id], onDelete: Cascade, map: "psdroca_req_fkey")
+  user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade, map: "psdroca_user_fkey")
+  role        Role?                @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "psdroca_role_fkey")
 
   @@unique([requirementId, userId], map: "PSDROCA_reqid_userid_key")
   @@unique([requirementId, roleId], map: "PSDROCA_reqid_roleid_key")

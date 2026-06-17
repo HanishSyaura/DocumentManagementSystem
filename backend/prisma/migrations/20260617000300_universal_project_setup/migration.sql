@@ -111,44 +111,43 @@ CREATE TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupStageDefault` ADD CONSTRAINT `ProjectSetupStageDefault_stageId_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupStageDefault` ADD CONSTRAINT `pssd_stage_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupStageOverride` ADD CONSTRAINT `ProjectSetupStageOverride_projectId_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupStageOverride` ADD CONSTRAINT `psso_project_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupStageOverride` ADD CONSTRAINT `ProjectSetupStageOverride_stageId_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupStageOverride` ADD CONSTRAINT `psso_stage_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementDefault` ADD CONSTRAINT `ProjectSetupDocumentRequirementDefault_stageId_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementDefault` ADD CONSTRAINT `psdrd_stage_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementDefault` ADD CONSTRAINT `ProjectSetupDocumentRequirementDefault_documentTypeId_fkey` FOREIGN KEY (`documentTypeId`) REFERENCES `DocumentType`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementDefault` ADD CONSTRAINT `psdrd_doctype_fkey` FOREIGN KEY (`documentTypeId`) REFERENCES `DocumentType`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverride_projectId_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `psdro_project_fkey` FOREIGN KEY (`projectId`) REFERENCES `Project`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverride_stageId_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `psdro_stage_fkey` FOREIGN KEY (`stageId`) REFERENCES `ProjectStageDefinition`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverride_documentTypeId_fkey` FOREIGN KEY (`documentTypeId`) REFERENCES `DocumentType`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementOverride` ADD CONSTRAINT `psdro_doctype_fkey` FOREIGN KEY (`documentTypeId`) REFERENCES `DocumentType`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementDefaultConfidentialAccess_requirementId_fkey` FOREIGN KEY (`requirementId`) REFERENCES `ProjectSetupDocumentRequirementDefault`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `psdrdca_req_fkey` FOREIGN KEY (`requirementId`) REFERENCES `ProjectSetupDocumentRequirementDefault`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementDefaultConfidentialAccess_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `psdrdca_user_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementDefaultConfidentialAccess_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementDefaultConfidentialAccess` ADD CONSTRAINT `psdrdca_role_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverrideConfidentialAccess_requirementId_fkey` FOREIGN KEY (`requirementId`) REFERENCES `ProjectSetupDocumentRequirementOverride`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `psdroca_req_fkey` FOREIGN KEY (`requirementId`) REFERENCES `ProjectSetupDocumentRequirementOverride`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverrideConfidentialAccess_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `psdroca_user_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `ProjectSetupDocumentRequirementOverrideConfidentialAccess_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
+ALTER TABLE `ProjectSetupDocumentRequirementOverrideConfidentialAccess` ADD CONSTRAINT `psdroca_role_fkey` FOREIGN KEY (`roleId`) REFERENCES `Role`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
