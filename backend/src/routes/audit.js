@@ -8,6 +8,7 @@ const router = express.Router();
 
 // All routes require authentication
 router.use(authenticate);
+router.use(authorize('admin', 'Admin', 'Administrator', 'ADMIN'));
 
 const formatDuration = (durationMs, isActive) => {
   const safe = Math.max(0, Number(durationMs) || 0)

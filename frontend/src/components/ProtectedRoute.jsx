@@ -34,14 +34,9 @@ export default function ProtectedRoute({
       ? modules.some((m) => hasAnyPermission(m))
       : modules.some((m) => hasPermission(m, action))
 
-    // Debug logging
-    console.log(`ProtectedRoute check: module="${module}", action="${action}", requireAny=${requireAny}, hasAccess=${hasAccess}`)
-
     if (!hasAccess) {
       // If no redirectTo specified, use user's default accessible route
       const targetRoute = redirectTo || getDefaultRoute()
-      
-      console.warn(`Access denied to ${module}.${action}. Redirecting to ${targetRoute}`)
       
       // Prevent redirect loop - if we're being redirected to the same route, show error instead
       if (window.location.pathname === targetRoute) {

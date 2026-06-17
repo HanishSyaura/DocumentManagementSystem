@@ -10,6 +10,7 @@ const fs = require('fs');
 const config = require('../config/app');
 const prisma = require('../config/database');
 const documentAssignmentService = require('../services/documentAssignmentService');
+const confidentialAccessService = require('../services/confidentialAccessService')
 
 const resolveExistingFilePath = (storedPath) => {
   const raw = String(storedPath || '').trim()
@@ -515,10 +516,7 @@ class DocumentController {
       throw new BadRequestError('Invalid action filter');
     }
 
-    const canAccess = await documentAssignmentService.canAccessDocument(documentId, req.user);
-    if (!canAccess) {
-      throw new ForbiddenError('You do not have permission to view remarks for this document');
-    }
+    await documentService.getDocumentById(documentId, req.user);
 
     const remarks = await prisma.approvalHistory.findMany({
       where: {
@@ -564,6 +562,7 @@ class DocumentController {
     const { fileCode } = req.params;
     const { projectCategoryId } = req.query;
     const document = await documentService.getDocumentByFileCode(fileCode, projectCategoryId || null);
+    await documentService.getDocumentById(document.id, req.user);
 
     return ResponseFormatter.success(
       res,
@@ -1169,7 +1168,7 @@ class DocumentController {
    */
   updateDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
-    const { title, description, projectCategoryId, status, stage } = req.body;
+    const { title, description, projectCategoryId, status, stage, isConfidential } = req.body;
 
     const updateData = {};
     if (title !== undefined) updateData.title = title;
@@ -1177,6 +1176,7 @@ class DocumentController {
     if (projectCategoryId !== undefined) updateData.projectCategoryId = projectCategoryId ? parseInt(projectCategoryId) : null;
     if (status !== undefined) updateData.status = status;
     if (stage !== undefined) updateData.stage = stage;
+    if (isConfidential !== undefined) updateData.isConfidential = Boolean(isConfidential)
 
     const document = await documentService.updateDocument(
       documentId,
@@ -1195,6 +1195,18 @@ class DocumentController {
       'Document updated successfully'
     );
   });
+
+  getConfidentialAccess = asyncHandler(async (req, res) => {
+    const documentId = parseInt(req.params.id)
+    const data = await confidentialAccessService.getDocumentAccess(documentId, req.user)
+    return ResponseFormatter.success(res, data, 'Confidential access retrieved successfully')
+  })
+
+  updateConfidentialAccess = asyncHandler(async (req, res) => {
+    const documentId = parseInt(req.params.id)
+    const data = await confidentialAccessService.setDocumentAccess(documentId, req.user, req.body || {})
+    return ResponseFormatter.success(res, data, 'Confidential access updated successfully')
+  })
 
   renameDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
@@ -1349,6 +1361,7 @@ class DocumentController {
    */
   getDocumentVersions = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
+    await documentService.getDocumentById(documentId, req.user);
     const versions = await documentService.getDocumentVersions(documentId);
 
     return ResponseFormatter.success(
@@ -1483,6 +1496,8 @@ class DocumentController {
       ]);
     }
 
+    await documentService.getDocumentById(documentId, req.user);
+
     const newComment = await documentService.addComment(
       documentId,
       req.user.id,
@@ -1504,6 +1519,7 @@ class DocumentController {
    */
   getComments = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
+    await documentService.getDocumentById(documentId, req.user);
     const comments = await documentService.getDocumentComments(documentId);
 
     return ResponseFormatter.success(

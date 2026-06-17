@@ -75,6 +75,8 @@ model User {
   assignedProjectItems      ProjectIterationDocumentItem[] @relation("ProjectItemAssignee")
   linkedProjectDocuments    ProjectDocumentLink[]      @relation("ProjectDocumentLinkedBy")
   epcTrackingUpdates        DocumentEpcRegistryRecord[] @relation("EpcTrackingUpdatedBy")
+  documentConfidentialAccessEntries DocumentConfidentialAccess[]
+  requirementConfidentialAccessEntries ProjectCategoryDocumentRequirementConfidentialAccess[]
 
   @@index([email])
   @@index([employeeId])
@@ -118,6 +120,8 @@ model Role {
   users             UserRole[]
   workflowSteps     WorkflowStep[]
   folderPermissions FolderPermission[]
+  documentConfidentialAccessEntries DocumentConfidentialAccess[]
+  requirementConfidentialAccessEntries ProjectCategoryDocumentRequirementConfidentialAccess[]
 }
 
 model UserRole {
@@ -350,6 +354,7 @@ model Document {
   assignments            DocumentAssignment[]
   epcRegistryRecords     DocumentEpcRegistryRecord[]
   projectLinks           ProjectDocumentLink[]
+  confidentialAccess     DocumentConfidentialAccess[]
 
   @@unique([fileCode, projectCategoryId])
   @@index([fileCode])
@@ -361,6 +366,33 @@ model Document {
   @@index([createdById])
   @@index([ownerId])
   @@index([createdAt])
+}
+
+enum AccessSubjectType {
+  USER
+  ROLE
+}
+
+model DocumentConfidentialAccess {
+  id          Int               @id @default(autoincrement())
+  documentId  Int
+  subjectType AccessSubjectType
+  userId      Int?
+  roleId      Int?
+  canView     Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role?    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+  @@unique([documentId, roleId])
+  @@index([documentId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([subjectType])
 }
 
 enum DocStatus {
@@ -507,12 +539,35 @@ model ProjectCategoryDocumentRequirement {
   projectCategory ProjectCategory        @relation(fields: [projectCategoryId], references: [id], onDelete: Cascade)
   stage           ProjectStageDefinition @relation(fields: [stageId], references: [id], onDelete: Cascade)
   documentType    DocumentType           @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  confidentialAccess ProjectCategoryDocumentRequirementConfidentialAccess[]
 
   @@unique([projectCategoryId, stageId, documentTypeId], map: "PCDR_pcid_sid_dtid_key")
   @@index([projectCategoryId])
   @@index([stageId])
   @@index([documentTypeId])
   @@index([isRequired])
+}
+
+model ProjectCategoryDocumentRequirementConfidentialAccess {
+  id            Int               @id @default(autoincrement())
+  requirementId Int
+  subjectType   AccessSubjectType
+  userId        Int?
+  roleId        Int?
+  canView       Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  requirement ProjectCategoryDocumentRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role?               @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, userId], map: "PCDRCA_reqid_userid_key")
+  @@unique([requirementId, roleId], map: "PCDRCA_reqid_roleid_key")
+  @@index([requirementId], map: "PCDRCA_reqid_idx")
+  @@index([userId], map: "PCDRCA_userid_idx")
+  @@index([roleId], map: "PCDRCA_roleid_idx")
+  @@index([subjectType], map: "PCDRCA_subjectType_idx")
 }
 
 enum ProjectItemStatus {

@@ -7,10 +7,22 @@ const auditLogService = require('../services/auditLogService');
 const { authenticate, authorize } = require('../middleware/auth');
 const ResponseFormatter = require('../utils/responseFormatter');
 const asyncHandler = require('../utils/asyncHandler');
+const { ForbiddenError } = require('../utils/errors')
 
 const router = express.Router();
 
 router.use(authenticate);
+
+const requirePermission = (moduleKey, action = 'view') => {
+  return (req, res, next) => {
+    const allowed = !!req.user?.permissions?.[moduleKey]?.[action]
+    if (!allowed) return next(new ForbiddenError("You don't have permission to perform this action"))
+    next()
+  }
+}
+
+router.use('/master-record', requirePermission('masterRecord', 'view'));
+router.use('/activity-logs', requirePermission('logsReport.activityLogs', 'view'));
 
 // Config endpoints
 router.get('/config/document-types', asyncHandler(async (req, res) => {

@@ -30,6 +30,313 @@ function ModalShell({ title, children, onClose }) {
   )
 }
 
+function getPhaseTitle(phase, fallback = 'Project Phase') {
+  if (!phase) return fallback
+  const prefix = phase.iterationNo ? `Phase ${phase.iterationNo}` : 'Phase'
+  return phase.name ? `${prefix} - ${phase.name}` : prefix
+}
+
+function DocumentStatusBadge({ status }) {
+  const s = String(status || '').toUpperCase()
+  const base = 'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium'
+  if (s === 'PUBLISHED') return <span className={`${base} bg-green-100 text-green-800`}>Published</span>
+  if (s === 'PENDING_REVIEW' || s === 'IN_REVIEW') return <span className={`${base} bg-amber-100 text-amber-800`}>In Review</span>
+  if (s === 'SUPERSEDED' || s === 'OBSOLETE') return <span className={`${base} bg-gray-100 text-gray-700`}>{s === 'SUPERSEDED' ? 'Superseded' : 'Obsolete'}</span>
+  return <span className={`${base} bg-blue-100 text-blue-800`}>Draft</span>
+}
+
+function ConfidentialBadge({ isConfidential }) {
+  if (!isConfidential) return null
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700">Confidential</span>
+}
+
+function DocumentAccessModal({ document, onClose, onSaved, onError }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [isConfidential, setIsConfidential] = useState(Boolean(document?.isConfidential))
+  const [accessEntries, setAccessEntries] = useState([])
+  const [accessQuery, setAccessQuery] = useState('')
+  const [subjectResults, setSubjectResults] = useState({ users: [], roles: [] })
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await api.get(`/documents/${document.id}/confidential-access`)
+        if (!mounted) return
+        const payload = res?.data?.data || {}
+        setIsConfidential(Boolean(payload?.document?.isConfidential))
+        setAccessEntries(
+          (payload?.entries || [])
+            .map((e) => {
+              if (e.user) {
+                return {
+                  subjectType: 'USER',
+                  subjectId: e.user.id,
+                  label: `${`${e.user.firstName || ''} ${e.user.lastName || ''}`.trim() || e.user.email} (User)`
+                }
+              }
+              if (e.role) {
+                return {
+                  subjectType: 'ROLE',
+                  subjectId: e.role.id,
+                  label: `${e.role.displayName || e.role.name} (Role)`
+                }
+              }
+              return null
+            })
+            .filter(Boolean)
+        )
+      } catch (e) {
+        onError?.(e?.response?.data?.message || e?.message || 'Failed to load confidential access')
+        onClose()
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    if (document?.id) load()
+    return () => {
+      mounted = false
+    }
+  }, [document?.id])
+
+  const searchSubjects = async () => {
+    if (!accessQuery.trim()) return
+    setLoadingSubjects(true)
+    try {
+      const res = await api.get('/folders/access/subjects', { params: { q: accessQuery.trim() } })
+      setSubjectResults(res?.data?.data || { users: [], roles: [] })
+    } finally {
+      setLoadingSubjects(false)
+    }
+  }
+
+  const addAccessEntry = (entry) => {
+    setAccessEntries((prev) => {
+      if (prev.some((x) => x.subjectType === entry.subjectType && String(x.subjectId) === String(entry.subjectId))) return prev
+      return [...prev, entry].sort((a, b) => a.label.localeCompare(b.label))
+    })
+  }
+
+  const removeAccessEntry = (entry) => {
+    setAccessEntries((prev) => prev.filter((x) => !(x.subjectType === entry.subjectType && String(x.subjectId) === String(entry.subjectId))))
+  }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      await api.put(`/documents/${document.id}`, { isConfidential })
+      await api.put(`/documents/${document.id}/confidential-access`, {
+        entries: isConfidential
+          ? accessEntries.map((e) => ({
+              subjectType: e.subjectType,
+              subjectId: e.subjectId,
+              canView: true
+            }))
+          : []
+      })
+      onSaved?.()
+      onClose()
+    } catch (e) {
+      onError?.(e?.response?.data?.message || e?.message || 'Failed to save confidential access')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <ModalShell title="Manage Confidential Access" onClose={onClose}>
+      {loading ? (
+        <div className="text-sm text-gray-500">Loading access settings...</div>
+      ) : (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="text-sm font-semibold text-gray-900">{document.fileCode}</div>
+            <div className="text-sm text-gray-600 mt-1">{document.title}</div>
+            <div className="mt-2 flex items-center gap-2">
+              <DocumentStatusBadge status={document.status} />
+              <span className="text-xs text-gray-500">{`Workflow stage: ${document.stage || '-'}`}</span>
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={isConfidential}
+              onChange={(e) => setIsConfidential(e.target.checked)}
+            />
+            Mark this document as confidential
+          </label>
+
+          {!isConfidential ? (
+            <div className="text-sm text-gray-500">When confidential is off, normal document visibility rules apply.</div>
+          ) : (
+            <>
+              <div>
+                <div className="text-xs font-medium text-gray-500 mb-1">Allowed viewers</div>
+                {accessEntries.length === 0 ? (
+                  <div className="text-sm text-gray-500">No extra viewers added yet. Only creator/owner and users with global confidential permission will have access.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {accessEntries.map((e) => (
+                      <div key={`${e.subjectType}:${e.subjectId}`} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2">
+                        <div className="text-sm text-gray-800">{e.label}</div>
+                        <button type="button" onClick={() => removeAccessEntry(e)} className="text-sm text-red-600 hover:underline">
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-3 space-y-3">
+                <div className="text-xs font-medium text-gray-500">Add user or role</div>
+                <div className="flex gap-2">
+                  <input
+                    value={accessQuery}
+                    onChange={(e) => setAccessQuery(e.target.value)}
+                    placeholder="Search user email/name or role..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                  <button type="button" onClick={searchSubjects} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+                    {loadingSubjects ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
+
+                {(subjectResults.roles.length > 0 || subjectResults.users.length > 0) && (
+                  <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
+                    {subjectResults.roles.map((r) => (
+                      <button
+                        key={`role:${r.id}`}
+                        type="button"
+                        onClick={() => addAccessEntry({ subjectType: 'ROLE', subjectId: r.id, label: `${r.displayName || r.name} (Role)` })}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{r.displayName || r.name}</div>
+                        <div className="text-xs text-gray-500">Role</div>
+                      </button>
+                    ))}
+                    {subjectResults.users.map((u) => (
+                      <button
+                        key={`user:${u.id}`}
+                        type="button"
+                        onClick={() => addAccessEntry({ subjectType: 'USER', subjectId: u.id, label: `${`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email} (User)` })}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</div>
+                        <div className="text-xs text-gray-500">{u.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
+              Close
+            </button>
+            <button type="button" disabled={saving} onClick={save} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save Access'}
+            </button>
+          </div>
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
+function ActivityModal({ projectId, onClose }) {
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [limit] = useState(20)
+  const [total, setTotal] = useState(0)
+  const [logs, setLogs] = useState([])
+
+  const load = async (p) => {
+    setLoading(true)
+    try {
+      const res = await api.get(`/project-tracking/projects/${projectId}/activity-logs`, {
+        params: { page: p, limit }
+      })
+      const data = res?.data?.data || {}
+      setLogs(data.logs || [])
+      setTotal(data.total || 0)
+      setPage(data.page || p)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!projectId) return
+    load(1)
+  }, [projectId])
+
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+
+  return (
+    <ModalShell title="Project Activity" onClose={onClose}>
+      {loading ? (
+        <div className="text-sm text-gray-500">Loading activity...</div>
+      ) : logs.length === 0 ? (
+        <div className="text-sm text-gray-500">No activity recorded for this project yet.</div>
+      ) : (
+        <div className="space-y-3">
+          <div className="overflow-x-auto border border-gray-200 rounded-md">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {logs.map((l) => (
+                  <tr key={l.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.user}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.action}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">{l.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-500">{`Page ${page} of ${totalPages}`}</div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => load(page - 1)}
+                className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => load(page + 1)}
+                className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </ModalShell>
+  )
+}
+
 function AddStageModal({ onClose, onCreate }) {
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -86,6 +393,52 @@ function AddStageModal({ onClose, onCreate }) {
   )
 }
 
+function PhaseModal({ mode, phase, nextPhaseNo, onClose, onSubmit }) {
+  const isEdit = mode === 'edit'
+  const [name, setName] = useState(phase?.name || '')
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await onSubmit({ name: name.trim() })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <ModalShell title={isEdit ? 'Rename Phase' : 'Add New Phase'} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <div className="text-sm text-gray-600">
+          {isEdit
+            ? 'Update the name shown to users for this project phase.'
+            : `Create Phase ${nextPhaseNo || '-'} with a custom name instead of the default iteration label.`}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phase Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            placeholder="Example: Pilot Rollout, Wave 2, UAT"
+            required
+          />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
+            Cancel
+          </button>
+          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+            {loading ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Phase' : 'Create Phase')}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  )
+}
+
 function AssignmentSummary({ phaseLabel, stageLabel, documentTypeLabel, modeLabel }) {
   return (
     <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
@@ -108,7 +461,7 @@ function AssignmentSummary({ phaseLabel, stageLabel, documentTypeLabel, modeLabe
   )
 }
 
-function StageLinkDocumentModal({ iterationId, phase, stage, onClose, onLinked }) {
+function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose, onLinked }) {
   const [documentId, setDocumentId] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -118,7 +471,9 @@ function StageLinkDocumentModal({ iterationId, phase, stage, onClose, onLinked }
     if (!query || query.trim().length < 2) return
     setLoading(true)
     try {
-      const res = await api.get('/documents/search', { params: { query } })
+      const params = { q: query.trim() }
+      if (projectId) params.projectId = projectId
+      const res = await api.get('/project-tracking/documents/search', { params })
       setResults(res?.data?.data?.documents || [])
     } finally {
       setLoading(false)
@@ -143,7 +498,7 @@ function StageLinkDocumentModal({ iterationId, phase, stage, onClose, onLinked }
       <form onSubmit={submit} className="space-y-4">
         <AssignmentSummary
           modeLabel="Attach existing document to stage"
-          phaseLabel={phase ? `Phase ${phase.iterationNo}${phase.name ? ` - ${phase.name}` : ''}` : '-'}
+          phaseLabel={getPhaseTitle(phase, '-')}
           stageLabel={stage?.name}
           documentTypeLabel="Keep original document type"
         />
@@ -171,27 +526,28 @@ function StageLinkDocumentModal({ iterationId, phase, stage, onClose, onLinked }
                     String(r.id) === String(documentId) ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{r.fileCode}</div>
-                  <div className="text-gray-600">{r.title}</div>
+                  <div className="font-medium text-gray-900">{r.document?.fileCode || r.fileCode}</div>
+                  <div className="text-gray-600">{r.document?.title || r.title}</div>
+                  <div className="mt-1 inline-flex items-center gap-2">
+                    <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
+                    <DocumentStatusBadge status={r.document?.status || r.status} />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {`${r.iteration?.project?.code || '-'} • ${getPhaseTitle(r.iteration, 'Phase')} • ${r.stage?.name || '-'}`}
+                  </div>
                 </button>
               ))}
             </div>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Document ID</label>
-          <input
-            value={documentId}
-            onChange={(e) => setDocumentId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
+        <div className="text-xs text-gray-500">
+          {documentId ? 'Selected document ready to attach.' : 'Search and select one document from the list above.'}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
             Cancel
           </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <button disabled={loading || !documentId} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
             {loading ? 'Attaching...' : 'Attach'}
           </button>
         </div>
@@ -230,7 +586,7 @@ function StageCreateDocumentModal({ iterationId, phase, stage, documentTypes, on
       <form onSubmit={submit} className="space-y-4">
         <AssignmentSummary
           modeLabel="Create new document under stage"
-          phaseLabel={phase ? `Phase ${phase.iterationNo}${phase.name ? ` - ${phase.name}` : ''}` : '-'}
+          phaseLabel={getPhaseTitle(phase, '-')}
           stageLabel={stage?.name}
           documentTypeLabel={documentTypes.find((d) => String(d.id) === String(documentTypeId))?.name || null}
         />
@@ -398,7 +754,7 @@ function CreateProjectModal({ onClose, onCreated }) {
   )
 }
 
-function LinkDocumentModal({ item, phase, onClose, onLinked }) {
+function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
   const [documentId, setDocumentId] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -408,7 +764,9 @@ function LinkDocumentModal({ item, phase, onClose, onLinked }) {
     if (!query || query.trim().length < 2) return
     setLoading(true)
     try {
-      const res = await api.get('/documents/search', { params: { query } })
+      const params = { q: query.trim() }
+      if (projectId) params.projectId = projectId
+      const res = await api.get('/project-tracking/documents/search', { params })
       setResults(res?.data?.data?.documents || [])
     } finally {
       setLoading(false)
@@ -431,7 +789,7 @@ function LinkDocumentModal({ item, phase, onClose, onLinked }) {
       <form onSubmit={submit} className="space-y-4">
         <AssignmentSummary
           modeLabel="Attach existing document to required item"
-          phaseLabel={phase ? `Phase ${phase.iterationNo}${phase.name ? ` - ${phase.name}` : ''}` : '-'}
+          phaseLabel={getPhaseTitle(phase, '-')}
           stageLabel={item.stage?.name}
           documentTypeLabel={item.documentType?.name}
         />
@@ -459,27 +817,28 @@ function LinkDocumentModal({ item, phase, onClose, onLinked }) {
                     String(r.id) === String(documentId) ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{r.fileCode}</div>
-                  <div className="text-gray-600">{r.title}</div>
+                  <div className="font-medium text-gray-900">{r.document?.fileCode || r.fileCode}</div>
+                  <div className="text-gray-600">{r.document?.title || r.title}</div>
+                  <div className="mt-1 inline-flex items-center gap-2">
+                    <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
+                    <DocumentStatusBadge status={r.document?.status || r.status} />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {`${r.iteration?.project?.code || '-'} • ${getPhaseTitle(r.iteration, 'Phase')} • ${r.stage?.name || '-'}`}
+                  </div>
                 </button>
               ))}
             </div>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Document ID</label>
-          <input
-            value={documentId}
-            onChange={(e) => setDocumentId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
-          />
+        <div className="text-xs text-gray-500">
+          {documentId ? 'Selected document ready to attach.' : 'Search and select one document from the list above.'}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
             Cancel
           </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <button disabled={loading || !documentId} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
             {loading ? 'Attaching...' : 'Attach'}
           </button>
         </div>
@@ -517,7 +876,7 @@ function CreateDocumentModal({ item, phase, onClose, onCreated }) {
       <form onSubmit={submit} className="space-y-4">
         <AssignmentSummary
           modeLabel="Create new document for required item"
-          phaseLabel={phase ? `Phase ${phase.iterationNo}${phase.name ? ` - ${phase.name}` : ''}` : '-'}
+          phaseLabel={getPhaseTitle(phase, '-')}
           stageLabel={item.stage?.name}
           documentTypeLabel={item.documentType?.name}
         />
@@ -680,6 +1039,7 @@ function ProjectDetail({ projectId }) {
   const canAdvance = hasPermission('projectTracking', 'advanceStage')
   const canEdit = hasPermission('projectTracking', 'edit')
   const canDelete = hasPermission('projectTracking', 'delete')
+  const canManageLinkedDocumentAccess = canCreate || canEdit
 
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -692,20 +1052,28 @@ function ProjectDetail({ projectId }) {
   const [showCreateDoc, setShowCreateDoc] = useState(null)
   const [showStageLink, setShowStageLink] = useState(null)
   const [showStageCreate, setShowStageCreate] = useState(null)
+  const [showCreatePhase, setShowCreatePhase] = useState(false)
+  const [showEditPhase, setShowEditPhase] = useState(null)
+  const [showDocumentAccess, setShowDocumentAccess] = useState(null)
+  const [showActivity, setShowActivity] = useState(false)
   const [showEditProject, setShowEditProject] = useState(false)
   const [uploadDocument, setUploadDocument] = useState(null)
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [advancing, setAdvancing] = useState(false)
 
-  const loadProject = async () => {
+  const loadProject = async (preferredIterationId = null) => {
     setLoading(true)
     try {
       const res = await api.get(`/project-tracking/projects/${projectId}`)
       const p = res?.data?.data?.project
       setProject(p)
-      const firstIter = p?.iterations?.[0]
-      setSelectedIterationId(firstIter?.id || null)
+      const nextSelectedId =
+        p?.iterations?.find((it) => it.id === preferredIterationId)?.id ||
+        p?.iterations?.find((it) => it.id === selectedIterationId)?.id ||
+        p?.iterations?.[0]?.id ||
+        null
+      setSelectedIterationId(nextSelectedId)
     } finally {
       setLoading(false)
     }
@@ -744,14 +1112,36 @@ function ProjectDetail({ projectId }) {
     load()
   }, [])
 
+  const selectedPhase = useMemo(() => {
+    return (project?.iterations || []).find((it) => it.id === selectedIterationId) || null
+  }, [project, selectedIterationId])
+
   const stages = useMemo(() => {
     const map = new Map()
+    ;(project?.enabledStages || []).forEach((stage) => {
+      map.set(stage.stageId, {
+        id: stage.stageId,
+        stageId: stage.stageId,
+        name: stage.name,
+        sortOrder: stage.sortOrder
+      })
+    })
     items.forEach((it) => {
       if (!it.stage) return
-      map.set(it.stageId, it.stage)
+      map.set(it.stageId, { ...map.get(it.stageId), ...it.stage })
     })
+    stageDocuments.forEach((link) => {
+      if (!link.stage) return
+      map.set(link.stageId, { ...map.get(link.stageId), ...link.stage })
+    })
+    if (selectedPhase?.currentStage) {
+      map.set(selectedPhase.currentStage.id, {
+        ...map.get(selectedPhase.currentStage.id),
+        ...selectedPhase.currentStage
+      })
+    }
     return Array.from(map.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-  }, [items])
+  }, [items, project?.enabledStages, selectedPhase?.currentStage, stageDocuments])
 
   const stageDocumentsByStage = useMemo(() => {
     const grouped = new Map()
@@ -772,10 +1162,6 @@ function ProjectDetail({ projectId }) {
     })
     return grouped
   }, [items])
-
-  const selectedPhase = useMemo(() => {
-    return (project?.iterations || []).find((it) => it.id === selectedIterationId) || null
-  }, [project, selectedIterationId])
 
   const phases = useMemo(() => {
     return [...(project?.iterations || [])].sort((a, b) => (a.iterationNo || 0) - (b.iterationNo || 0))
@@ -815,11 +1201,27 @@ function ProjectDetail({ projectId }) {
     })
   }, [stages, selectedPhase, itemsByStage])
 
-  const createIteration = async () => {
-    const res = await api.post(`/project-tracking/projects/${projectId}/iterations`, {})
+  const createNamedIteration = async ({ name }) => {
+    const res = await api.post(`/project-tracking/projects/${projectId}/iterations`, { name })
     const iter = res?.data?.data?.iteration
-    await loadProject()
+    await loadProject(iter?.id)
     if (iter?.id) setSelectedIterationId(iter.id)
+  }
+
+  const renameIteration = async (iterationId, { name }) => {
+    await api.put(`/project-tracking/iterations/${iterationId}`, { name })
+    await loadProject(iterationId)
+  }
+
+  const unlinkItemDocument = async (itemId, linkId) => {
+    await api.delete(`/project-tracking/items/${itemId}/links/${linkId}`)
+    if (selectedIterationId) await loadItems(selectedIterationId)
+  }
+
+  const unlinkStageDocument = async (stageId, linkId) => {
+    if (!selectedIterationId) return
+    await api.delete(`/project-tracking/iterations/${selectedIterationId}/stages/${stageId}/links/${linkId}`)
+    await loadItems(selectedIterationId)
   }
 
   const saveProject = async (payload) => {
@@ -838,12 +1240,12 @@ function ProjectDetail({ projectId }) {
     setAdvancing(true)
     try {
       await api.post(`/project-tracking/iterations/${selectedIterationId}/advance-stage`, {})
-      await loadProject()
+      await loadProject(selectedIterationId)
       await loadItems(selectedIterationId)
-      setAlertModal({ show: true, title: 'Success', message: 'Stage advanced successfully.', type: 'success' })
+      setAlertModal({ show: true, title: 'Success', message: 'Moved to the next stage successfully.', type: 'success' })
     } catch (e) {
       const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to advance stage'
-      setAlertModal({ show: true, title: 'Unable to advance', message: msg, type: 'warning' })
+      setAlertModal({ show: true, title: 'Unable to move stage', message: msg, type: 'warning' })
     } finally {
       setAdvancing(false)
     }
@@ -897,7 +1299,7 @@ function ProjectDetail({ projectId }) {
                 setConfirmModal({
                   show: true,
                   title: 'Move To Next Stage',
-                  message: 'Move the current project phase to the next stage? This is only allowed when all required documents in the current stage are completed.',
+                  message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
                   onConfirm: advanceStage
                 })
               }
@@ -907,8 +1309,14 @@ function ProjectDetail({ projectId }) {
               {advancing ? 'Moving...' : 'Move To Next Stage'}
             </button>
           )}
+          <button
+            onClick={() => setShowActivity(true)}
+            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Activity
+          </button>
           {canCreate && (
-            <button onClick={createIteration} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
+              <button onClick={() => setShowCreatePhase(true)} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
               Add Next Phase
             </button>
           )}
@@ -925,8 +1333,17 @@ function ProjectDetail({ projectId }) {
           return (
             <div className="flex flex-col gap-1">
               <div className="text-sm font-medium text-gray-700">Selected Project Phase</div>
-              <div className="text-lg font-semibold text-gray-900">
-                {selectedPhase ? `Phase ${selectedPhase.iterationNo}${selectedPhase.name ? ` - ${selectedPhase.name}` : ''}` : '-'}
+              <div className="flex items-center gap-3">
+                <div className="text-lg font-semibold text-gray-900">{selectedPhase ? getPhaseTitle(selectedPhase, '-') : '-'}</div>
+                {canEdit && selectedPhase && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPhase(selectedPhase)}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Rename Phase
+                  </button>
+                )}
               </div>
               <div className="text-sm text-gray-600">
                 {`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}
@@ -975,7 +1392,7 @@ function ProjectDetail({ projectId }) {
             <div className="text-xs text-gray-500">Kanban-style view for the selected phase. Highlight shows the current stage.</div>
           </div>
           <div className="text-xs text-gray-500">
-            {selectedPhase ? `Phase ${selectedPhase.iterationNo}` : ''}
+            {selectedPhase ? getPhaseTitle(selectedPhase, '') : ''}
           </div>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-1">
@@ -1085,6 +1502,10 @@ function ProjectDetail({ projectId }) {
                             {l.document.fileCode}
                           </Link>
                           <span className="text-gray-600">{` • ${l.document.title}`}</span>
+                          <span className="ml-2 inline-flex items-center gap-2 align-middle">
+                            <ConfidentialBadge isConfidential={l.document.isConfidential} />
+                            <DocumentStatusBadge status={l.document.status} />
+                          </span>
                           {canCreate && (
                             <button
                               type="button"
@@ -1092,6 +1513,31 @@ function ProjectDetail({ projectId }) {
                               className="ml-3 text-xs text-gray-700 hover:underline"
                             >
                               Upload File
+                            </button>
+                          )}
+                          {canLink && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setConfirmModal({
+                                  show: true,
+                                  title: 'Remove Linked Document',
+                                  message: 'Remove this linked document from the stage? The document record will stay in the system.',
+                                  onConfirm: () => unlinkStageDocument(st.id, l.id)
+                                })
+                              }
+                              className="ml-3 text-xs text-red-600 hover:underline"
+                            >
+                              Remove Link
+                            </button>
+                          )}
+                          {canManageLinkedDocumentAccess && String(l.document.stage || '').toUpperCase() === 'DRAFT' && (
+                            <button
+                              type="button"
+                              onClick={() => setShowDocumentAccess(l.document)}
+                              className="ml-3 text-xs text-blue-600 hover:underline"
+                            >
+                              Access
                             </button>
                           )}
                         </div>
@@ -1126,6 +1572,10 @@ function ProjectDetail({ projectId }) {
                                     {l.document.fileCode}
                                   </Link>
                                   <span className="text-gray-500">{` • ${l.document.title}`}</span>
+                                  <span className="ml-2 inline-flex items-center gap-2 align-middle">
+                                    <ConfidentialBadge isConfidential={l.document.isConfidential} />
+                                    <DocumentStatusBadge status={l.document.status} />
+                                  </span>
                                   {canCreate && (
                                     <button
                                       type="button"
@@ -1133,6 +1583,31 @@ function ProjectDetail({ projectId }) {
                                       className="ml-3 text-xs text-gray-700 hover:underline"
                                     >
                                       Upload File
+                                    </button>
+                                  )}
+                                  {canLink && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setConfirmModal({
+                                          show: true,
+                                          title: 'Remove Linked Document',
+                                          message: 'Remove this linked document from the required item? If no published document remains, the checklist item will become pending again.',
+                                          onConfirm: () => unlinkItemDocument(it.id, l.id)
+                                        })
+                                      }
+                                      className="ml-3 text-xs text-red-600 hover:underline"
+                                    >
+                                      Remove Link
+                                    </button>
+                                  )}
+                                  {canManageLinkedDocumentAccess && String(l.document.stage || '').toUpperCase() === 'DRAFT' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowDocumentAccess(l.document)}
+                                      className="ml-3 text-xs text-blue-600 hover:underline"
+                                    >
+                                      Access
                                     </button>
                                   )}
                                 </div>
@@ -1170,6 +1645,7 @@ function ProjectDetail({ projectId }) {
 
       {showLink && (
         <LinkDocumentModal
+          projectId={projectId}
           item={showLink}
           phase={selectedPhase}
           onClose={() => setShowLink(null)}
@@ -1195,6 +1671,7 @@ function ProjectDetail({ projectId }) {
 
       {showStageLink && selectedIterationId && (
         <StageLinkDocumentModal
+          projectId={projectId}
           iterationId={selectedIterationId}
           phase={selectedPhase}
           stage={showStageLink}
@@ -1218,6 +1695,51 @@ function ProjectDetail({ projectId }) {
             if (result?.document) setUploadDocument(result.document)
             if (selectedIterationId) loadItems(selectedIterationId)
           }}
+        />
+      )}
+
+      {showCreatePhase && (
+        <PhaseModal
+          mode="create"
+          nextPhaseNo={(phases[phases.length - 1]?.iterationNo || 0) + 1}
+          onClose={() => setShowCreatePhase(false)}
+          onSubmit={async (payload) => {
+            await createNamedIteration(payload)
+            setShowCreatePhase(false)
+          }}
+        />
+      )}
+
+      {showEditPhase && (
+        <PhaseModal
+          mode="edit"
+          phase={showEditPhase}
+          onClose={() => setShowEditPhase(null)}
+          onSubmit={async (payload) => {
+            await renameIteration(showEditPhase.id, payload)
+            setShowEditPhase(null)
+          }}
+        />
+      )}
+
+      {showDocumentAccess && (
+        <DocumentAccessModal
+          document={showDocumentAccess}
+          onClose={() => setShowDocumentAccess(null)}
+          onSaved={() => {
+            if (selectedIterationId) loadItems(selectedIterationId)
+            setAlertModal({ show: true, title: 'Success', message: 'Confidential access updated successfully.', type: 'success' })
+          }}
+          onError={(message) => {
+            setAlertModal({ show: true, title: 'Unable to update access', message, type: 'error' })
+          }}
+        />
+      )}
+
+      {showActivity && (
+        <ActivityModal
+          projectId={projectId}
+          onClose={() => setShowActivity(false)}
         />
       )}
 
@@ -1440,6 +1962,12 @@ function Setup() {
   const [addingReq, setAddingReq] = useState(false)
   const [showAddStage, setShowAddStage] = useState(false)
   const [newReq, setNewReq] = useState({ stageId: '', documentTypeId: '', isRequired: true, isConfidentialDefault: false })
+  const [accessRequirement, setAccessRequirement] = useState(null)
+  const [accessEntries, setAccessEntries] = useState([])
+  const [accessQuery, setAccessQuery] = useState('')
+  const [subjectResults, setSubjectResults] = useState({ users: [], roles: [] })
+  const [loadingSubjects, setLoadingSubjects] = useState(false)
+  const [savingAccess, setSavingAccess] = useState(false)
 
   const loadBase = async () => {
     const [cats, docTypes] = await Promise.all([
@@ -1521,6 +2049,72 @@ function Setup() {
     if (!selectedCategoryId) return
     await api.delete(`/project-tracking/requirements/${id}`)
     await loadCategory(selectedCategoryId)
+  }
+
+  const loadRequirementAccess = async (requirementId) => {
+    const res = await api.get(`/project-tracking/requirements/${requirementId}/confidential-access`)
+    const entries = res?.data?.data?.entries || []
+    setAccessEntries(
+      entries
+        .map((e) => {
+          if (e.user) {
+            const label = `${`${e.user.firstName || ''} ${e.user.lastName || ''}`.trim() || e.user.email} (User)`
+            return { subjectType: 'USER', subjectId: e.user.id, label }
+          }
+          if (e.role) {
+            const label = `${e.role.displayName || e.role.name} (Role)`
+            return { subjectType: 'ROLE', subjectId: e.role.id, label }
+          }
+          return null
+        })
+        .filter(Boolean)
+    )
+  }
+
+  const openRequirementAccess = async (req) => {
+    setAccessRequirement(req)
+    setAccessQuery('')
+    setSubjectResults({ users: [], roles: [] })
+    await loadRequirementAccess(req.id)
+  }
+
+  const searchSubjects = async () => {
+    if (!accessQuery.trim()) return
+    setLoadingSubjects(true)
+    try {
+      const res = await api.get('/folders/access/subjects', { params: { q: accessQuery } })
+      setSubjectResults(res?.data?.data || { users: [], roles: [] })
+    } finally {
+      setLoadingSubjects(false)
+    }
+  }
+
+  const addAccessEntry = (entry) => {
+    setAccessEntries((prev) => {
+      if (prev.some((x) => x.subjectType === entry.subjectType && String(x.subjectId) === String(entry.subjectId))) return prev
+      return [...prev, entry].sort((a, b) => a.label.localeCompare(b.label))
+    })
+  }
+
+  const removeAccessEntry = (entry) => {
+    setAccessEntries((prev) => prev.filter((x) => !(x.subjectType === entry.subjectType && String(x.subjectId) === String(entry.subjectId))))
+  }
+
+  const saveRequirementAccess = async () => {
+    if (!accessRequirement) return
+    setSavingAccess(true)
+    try {
+      await api.put(`/project-tracking/requirements/${accessRequirement.id}/confidential-access`, {
+        entries: accessEntries.map((e) => ({
+          subjectType: e.subjectType,
+          subjectId: e.subjectId,
+          canView: true
+        }))
+      })
+      setAccessRequirement(null)
+    } finally {
+      setSavingAccess(false)
+    }
   }
 
   const stageOptions = useMemo(() => {
@@ -1795,13 +2389,24 @@ function Setup() {
                                     {r.isConfidentialDefault ? 'Confidential by default' : 'Standard visibility'}
                                   </div>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteRequirement(r.id)}
-                                  className="text-sm text-red-600 hover:underline"
-                                >
-                                  Remove
-                                </button>
+                                <div className="flex items-center gap-3">
+                                  {r.isConfidentialDefault && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openRequirementAccess(r)}
+                                      className="text-sm text-blue-600 hover:underline"
+                                    >
+                                      Access
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteRequirement(r.id)}
+                                    className="text-sm text-red-600 hover:underline"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1821,6 +2426,90 @@ function Setup() {
           onClose={() => setShowAddStage(false)}
           onCreate={createStage}
         />
+      )}
+
+      {accessRequirement && (
+        <ModalShell title="Confidential Access" onClose={() => setAccessRequirement(null)}>
+          <div className="space-y-4">
+            <div className="text-sm text-gray-700">
+              {`Requirement: ${accessRequirement.documentType?.name || '-'} • ${stageOptions.find((x) => String(x.id) === String(accessRequirement.stageId))?.label || '-'}`}
+            </div>
+
+            <div>
+              <div className="text-xs font-medium text-gray-500 mb-1">Allowed viewers</div>
+              {accessEntries.length === 0 ? (
+                <div className="text-sm text-gray-500">No viewers added yet. Only creator/owner will be able to view confidential documents created from this requirement.</div>
+              ) : (
+                <div className="space-y-2">
+                  {accessEntries.map((e) => (
+                    <div key={`${e.subjectType}:${e.subjectId}`} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2">
+                      <div className="text-sm text-gray-800">{e.label}</div>
+                      <button type="button" onClick={() => removeAccessEntry(e)} className="text-sm text-red-600 hover:underline">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-3 space-y-3">
+              <div className="text-xs font-medium text-gray-500">Add user or role</div>
+              <div className="flex gap-2">
+                <input
+                  value={accessQuery}
+                  onChange={(e) => setAccessQuery(e.target.value)}
+                  placeholder="Search user email/name or role..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                />
+                <button type="button" onClick={searchSubjects} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+                  {loadingSubjects ? 'Searching...' : 'Search'}
+                </button>
+              </div>
+
+              {(subjectResults.users.length > 0 || subjectResults.roles.length > 0) && (
+                <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
+                  {subjectResults.roles.map((r) => (
+                    <button
+                      key={`role:${r.id}`}
+                      type="button"
+                      onClick={() => addAccessEntry({ subjectType: 'ROLE', subjectId: r.id, label: `${r.displayName || r.name} (Role)` })}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{r.displayName || r.name}</div>
+                      <div className="text-xs text-gray-500">Role</div>
+                    </button>
+                  ))}
+                  {subjectResults.users.map((u) => (
+                    <button
+                      key={`user:${u.id}`}
+                      type="button"
+                      onClick={() => addAccessEntry({ subjectType: 'USER', subjectId: u.id, label: `${`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email} (User)` })}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                    >
+                      <div className="font-medium text-gray-900">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</div>
+                      <div className="text-xs text-gray-500">{u.email}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setAccessRequirement(null)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={savingAccess}
+                onClick={saveRequirementAccess}
+                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {savingAccess ? 'Saving...' : 'Save Access'}
+              </button>
+            </div>
+          </div>
+        </ModalShell>
       )}
     </div>
   )

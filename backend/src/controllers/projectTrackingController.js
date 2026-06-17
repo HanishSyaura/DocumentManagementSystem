@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const ResponseFormatter = require('../utils/responseFormatter');
 const projectTrackingService = require('../services/projectTrackingService');
+const confidentialAccessService = require('../services/confidentialAccessService')
 const { ValidationError } = require('../utils/errors');
 
 exports.listProjects = asyncHandler(async (req, res) => {
@@ -71,6 +72,17 @@ exports.getProject = asyncHandler(async (req, res) => {
   return ResponseFormatter.success(res, { project }, 'Project retrieved successfully');
 });
 
+exports.getProjectActivityLogs = asyncHandler(async (req, res) => {
+  const projectId = Number(req.params.projectId)
+  if (!projectId) throw new ValidationError('Invalid projectId')
+
+  const page = req.query?.page ? Number(req.query.page) : 1
+  const limit = req.query?.limit ? Number(req.query.limit) : 20
+
+  const result = await projectTrackingService.getProjectActivityLogs(projectId, { page, limit })
+  return ResponseFormatter.success(res, result, 'Project activity logs retrieved successfully')
+})
+
 exports.createIteration = asyncHandler(async (req, res) => {
   const projectId = Number(req.params.projectId);
   if (!projectId) throw new ValidationError('Invalid projectId');
@@ -85,13 +97,26 @@ exports.createIteration = asyncHandler(async (req, res) => {
   return ResponseFormatter.success(res, { iteration }, 'Iteration created successfully');
 });
 
+exports.updateIteration = asyncHandler(async (req, res) => {
+  const iterationId = Number(req.params.iterationId);
+  if (!iterationId) throw new ValidationError('Invalid iterationId');
+
+  const { name } = req.body || {};
+  if (!name) throw new ValidationError('Phase name is required');
+
+  const iteration = await projectTrackingService.updateIteration(iterationId, {
+    name: String(name),
+    updatedById: req.user.id
+  });
+
+  return ResponseFormatter.success(res, { iteration }, 'Iteration updated successfully');
+});
+
 exports.listIterationItems = asyncHandler(async (req, res) => {
   const iterationId = Number(req.params.iterationId);
   if (!iterationId) throw new ValidationError('Invalid iterationId');
 
-  const canViewConfidential = !!req.user?.permissions?.projectTracking?.viewConfidential;
-
-  const items = await projectTrackingService.listIterationItems(iterationId, { canViewConfidential });
+  const items = await projectTrackingService.listIterationItems(iterationId, { user: req.user });
   return ResponseFormatter.success(res, { items }, 'Iteration items retrieved successfully');
 });
 
@@ -99,8 +124,7 @@ exports.listIterationStageDocuments = asyncHandler(async (req, res) => {
   const iterationId = Number(req.params.iterationId);
   if (!iterationId) throw new ValidationError('Invalid iterationId');
 
-  const canViewConfidential = !!req.user?.permissions?.projectTracking?.viewConfidential;
-  const documents = await projectTrackingService.listIterationStageDocuments(iterationId, { canViewConfidential });
+  const documents = await projectTrackingService.listIterationStageDocuments(iterationId, { user: req.user });
   return ResponseFormatter.success(res, { documents }, 'Stage documents retrieved successfully');
 });
 
@@ -119,6 +143,16 @@ exports.linkDocumentToItem = asyncHandler(async (req, res) => {
   return ResponseFormatter.success(res, result, 'Document linked successfully');
 });
 
+exports.unlinkDocumentFromItem = asyncHandler(async (req, res) => {
+  const itemId = Number(req.params.itemId);
+  const linkId = Number(req.params.linkId);
+  if (!itemId) throw new ValidationError('Invalid itemId');
+  if (!linkId) throw new ValidationError('Invalid linkId');
+
+  const result = await projectTrackingService.unlinkDocumentFromItem(itemId, linkId);
+  return ResponseFormatter.success(res, result, 'Document unlinked successfully');
+});
+
 exports.linkDocumentToStage = asyncHandler(async (req, res) => {
   const iterationId = Number(req.params.iterationId);
   const stageId = Number(req.params.stageId);
@@ -134,6 +168,18 @@ exports.linkDocumentToStage = asyncHandler(async (req, res) => {
   });
 
   return ResponseFormatter.success(res, result, 'Document linked successfully');
+});
+
+exports.unlinkDocumentFromStage = asyncHandler(async (req, res) => {
+  const iterationId = Number(req.params.iterationId);
+  const stageId = Number(req.params.stageId);
+  const linkId = Number(req.params.linkId);
+  if (!iterationId) throw new ValidationError('Invalid iterationId');
+  if (!stageId) throw new ValidationError('Invalid stageId');
+  if (!linkId) throw new ValidationError('Invalid linkId');
+
+  const result = await projectTrackingService.unlinkDocumentFromStage(iterationId, stageId, linkId);
+  return ResponseFormatter.success(res, result, 'Document unlinked successfully');
 });
 
 exports.createDocumentFromItem = asyncHandler(async (req, res) => {
@@ -187,9 +233,7 @@ exports.searchDocuments = asyncHandler(async (req, res) => {
   const projectId = req.query.projectId ? Number(req.query.projectId) : undefined;
   const q = req.query.q ? String(req.query.q) : undefined;
 
-  const canViewConfidential = !!req.user?.permissions?.projectTracking?.viewConfidential;
-
-  const documents = await projectTrackingService.searchDocuments({ projectId, q }, { canViewConfidential });
+  const documents = await projectTrackingService.searchDocuments({ projectId, q }, { user: req.user });
   return ResponseFormatter.success(res, { documents }, 'Documents retrieved successfully');
 });
 
@@ -277,3 +321,17 @@ exports.deleteRequirement = asyncHandler(async (req, res) => {
   await projectTrackingService.deleteRequirement(requirementId, { deletedById: req.user.id });
   return ResponseFormatter.success(res, {}, 'Requirement deleted successfully');
 });
+
+exports.getRequirementConfidentialAccess = asyncHandler(async (req, res) => {
+  const requirementId = Number(req.params.requirementId)
+  if (!requirementId) throw new ValidationError('Invalid requirementId')
+  const data = await confidentialAccessService.getRequirementAccess(requirementId)
+  return ResponseFormatter.success(res, data, 'Requirement confidential access retrieved successfully')
+})
+
+exports.updateRequirementConfidentialAccess = asyncHandler(async (req, res) => {
+  const requirementId = Number(req.params.requirementId)
+  if (!requirementId) throw new ValidationError('Invalid requirementId')
+  const data = await confidentialAccessService.setRequirementAccess(requirementId, req.user, req.body || {})
+  return ResponseFormatter.success(res, data, 'Requirement confidential access updated successfully')
+})

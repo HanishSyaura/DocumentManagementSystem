@@ -1337,7 +1337,19 @@ export default function PublishedDocuments() {
                           message={selectedFolder ? t('no_documents') : t('select_folder_view')} 
                           description={searchQuery ? t('adjust_search') : selectedFolder ? t('no_published_in_folder') : t('click_folder_view')}
                           actionLabel={searchQuery ? t('clear_search') : selectedFolder ? t('upload_file') : null}
-                          onAction={searchQuery ? () => setSearchQuery('') : selectedFolder ? () => setShowUploadFileModal(true) : null}
+                          onAction={
+                            searchQuery
+                              ? () => setSearchQuery('')
+                              : selectedFolder
+                                ? () => {
+                                    if (!canCreateInSelected) {
+                                      setAlertModal({ show: true, title: 'Access denied', message: 'You do not have permission to upload in this folder.', type: 'error' })
+                                      return
+                                    }
+                                    setShowUploadFileModal(true)
+                                  }
+                                : null
+                          }
                         />
                       </td>
                     </tr>

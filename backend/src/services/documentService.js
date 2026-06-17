@@ -2,6 +2,7 @@ const prisma = require('../config/database');
 const fileStorageService = require('./fileStorageService');
 const documentAssignmentService = require('./documentAssignmentService');
 const folderPermissionService = require('./folderPermissionService')
+const confidentialAccessService = require('./confidentialAccessService')
 const { NotFoundError, BadRequestError, ForbiddenError } = require('../utils/errors');
 const DocumentNumbering = require('../utils/documentNumbering');
 const path = require('path');
@@ -1111,8 +1112,9 @@ class DocumentService {
       }
     }
 
-    if (document.isConfidential && user && !user?.permissions?.projectTracking?.viewConfidential) {
-      throw new ForbiddenError('You do not have access to this confidential document');
+    if (document.isConfidential && user) {
+      const ok = await confidentialAccessService.canUserViewDocument(document, user)
+      if (!ok) throw new ForbiddenError('You do not have access to this confidential document')
     }
 
     return document;
@@ -1183,18 +1185,22 @@ class DocumentService {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where = {};
+    const where = {}
 
-    if (!canViewConfidential) {
-      where.isConfidential = false
+    if (userId && user && !canViewConfidential) {
+      const roleIds = await folderPermissionService.getRoleIdsByNames(user.roles || [])
+      where.AND = [...(where.AND || []), confidentialAccessService.buildConfidentialWhereClause(user, roleIds)]
     }
 
     // Enforce assignment-based access control
     if (userId) {
       const roleIds = user ? await folderPermissionService.getRoleIdsByNames(user.roles || []) : []
       const accessClause = documentAssignmentService.buildAccessWhereClause(userId, roleIds);
-      Object.assign(where, accessClause);
+      if (accessClause?.AND) {
+        where.AND = [...(where.AND || []), ...accessClause.AND]
+      } else {
+        Object.assign(where, accessClause)
+      }
     }
 
     if (status) where.status = status;

@@ -11,7 +11,7 @@ const errorHandler = (err, req, res, next) => {
   // Handle operational errors
   if (err.isOperational) {
     if (err instanceof ValidationError) {
-      return ResponseFormatter.validationError(res, err.errors);
+      return ResponseFormatter.validationError(res, err.errors, err.message);
     }
     return ResponseFormatter.error(res, err.message, err.statusCode, err.errors || null);
   }

@@ -44,10 +44,10 @@ class ResponseFormatter {
    * @param {Object} res - Express response object
    * @param {Array} errors - Validation errors array
    */
-  static validationError(res, errors) {
+  static validationError(res, errors, message = 'Validation failed') {
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message,
       errors
     });
   }
