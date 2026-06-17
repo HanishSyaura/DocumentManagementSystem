@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
+import { AlertModal } from './ConfirmModal'
 
 export default function AssignReviewerModal({ isOpen, onClose, document, onSuccess }) {
   const [availableReviewers, setAvailableReviewers] = useState([])
   const [selectedReviewerId, setSelectedReviewerId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
 
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +54,7 @@ export default function AssignReviewerModal({ isOpen, onClose, document, onSucce
 
   const handleSubmit = async () => {
     if (!selectedReviewerId) {
-      alert('Please select a reviewer')
+      setAlertModal({ show: true, title: 'Reviewer Required', message: 'Please select a reviewer before submitting.', type: 'warning' })
       return
     }
 
@@ -62,12 +64,16 @@ export default function AssignReviewerModal({ isOpen, onClose, document, onSucce
         reviewerIds: [selectedReviewerId]
       })
 
-      alert('Document submitted for review successfully!')
       if (onSuccess) onSuccess()
       handleClose()
     } catch (error) {
       console.error('Failed to assign reviewers:', error)
-      alert(error.response?.data?.message || 'Failed to assign reviewers')
+      setAlertModal({
+        show: true,
+        title: 'Submit Failed',
+        message: error.response?.data?.message || 'Failed to assign reviewers',
+        type: 'error'
+      })
     } finally {
       setSubmitting(false)
     }
@@ -75,13 +81,22 @@ export default function AssignReviewerModal({ isOpen, onClose, document, onSucce
 
   const handleClose = () => {
     setSelectedReviewerId(null)
+    setAlertModal({ show: false, title: '', message: '', type: 'info' })
     onClose()
   }
 
   if (!isOpen || !document) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <>
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
+      />
+      <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
       
@@ -186,6 +201,7 @@ export default function AssignReviewerModal({ isOpen, onClose, document, onSucce
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

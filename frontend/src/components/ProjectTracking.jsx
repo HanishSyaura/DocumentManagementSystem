@@ -50,6 +50,14 @@ function ConfidentialBadge({ isConfidential }) {
   return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-100 text-red-700">Confidential</span>
 }
 
+function getDocumentCodeLabel(document) {
+  return document?.fileCode || 'Draft document'
+}
+
+function getDocumentTitleLabel(document) {
+  return document?.title || 'Untitled document'
+}
+
 function DocumentAccessModal({ document, onClose, onSaved, onError }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -461,18 +469,29 @@ function AssignmentSummary({ phaseLabel, stageLabel, documentTypeLabel, modeLabe
   )
 }
 
-function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose, onLinked }) {
+function StageLinkDocumentModal({ projectId, iterationId, phase, stage, stageItems = [], onClose, onLinked }) {
   const [documentId, setDocumentId] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const search = async () => {
-    if (!query || query.trim().length < 2) return
+  const selectedResult = results.find((r) => String(r.id) === String(documentId)) || null
+  const selectedDocumentTypeId = selectedResult?.document?.documentTypeId || selectedResult?.documentTypeId || null
+  const matchingItem = stageItems.find((it) => String(it.documentTypeId) === String(selectedDocumentTypeId)) || null
+  const filteredResults = useMemo(() => {
+    if (statusFilter === 'ALL') return results
+    return results.filter((r) => String(r.document?.status || r.status || '').toUpperCase() === statusFilter)
+  }, [results, statusFilter])
+
+  const search = async (searchText = query) => {
+    if (!searchText || searchText.trim().length < 2) {
+      setResults([])
+      return
+    }
     setLoading(true)
     try {
-      const params = { q: query.trim() }
-      if (projectId) params.projectId = projectId
+      const params = { q: searchText.trim() }
       const res = await api.get('/project-tracking/documents/search', { params })
       setResults(res?.data?.data?.documents || [])
     } finally {
@@ -480,13 +499,25 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose,
     }
   }
 
+  useEffect(() => {
+    if (!query || query.trim().length < 2) {
+      setResults([])
+      return
+    }
+    const timer = window.setTimeout(() => {
+      search(query)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [query])
+
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await api.post(`/project-tracking/iterations/${iterationId}/stages/${stage.id}/link-document`, {
-        documentId: Number(documentId)
-      })
+      const endpoint = matchingItem
+        ? `/project-tracking/items/${matchingItem.id}/link-document`
+        : `/project-tracking/iterations/${iterationId}/stages/${stage.id}/link-document`
+      const res = await api.post(endpoint, { documentId: Number(documentId) })
       onLinked(res?.data?.data)
     } finally {
       setLoading(false)
@@ -509,15 +540,30 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose,
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Type file code or title..."
+              placeholder="Search globally by file code or title..."
             />
-            <button type="button" onClick={search} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
-              Search
+            <button type="button" onClick={() => search(query)} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+              Search All
             </button>
           </div>
-          {results.length > 0 && (
+          <div className="text-xs text-gray-500">Search covers all accessible documents in the system, including published documents outside this project.</div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {['ALL', 'PUBLISHED', 'DRAFT'].map((filterValue) => (
+              <button
+                key={filterValue}
+                type="button"
+                onClick={() => setStatusFilter(filterValue)}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  statusFilter === filterValue ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {filterValue === 'ALL' ? 'All' : filterValue === 'PUBLISHED' ? 'Published' : 'Draft'}
+              </button>
+            ))}
+          </div>
+          {filteredResults.length > 0 && (
             <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
-              {results.map((r) => (
+              {filteredResults.map((r) => (
                 <button
                   key={r.id}
                   type="button"
@@ -526,8 +572,11 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose,
                     String(r.id) === String(documentId) ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{r.document?.fileCode || r.fileCode}</div>
-                  <div className="text-gray-600">{r.document?.title || r.title}</div>
+                  <div className="font-medium text-gray-900">{getDocumentCodeLabel(r.document || r)}</div>
+                  <div className="text-gray-600">{getDocumentTitleLabel(r.document || r)}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {r.document?.documentType?.name || r.item?.documentType?.name || 'Document type unavailable'}
+                  </div>
                   <div className="mt-1 inline-flex items-center gap-2">
                     <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
                     <DocumentStatusBadge status={r.document?.status || r.status} />
@@ -539,9 +588,20 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose,
               ))}
             </div>
           )}
+          {!loading && query.trim().length >= 2 && filteredResults.length === 0 && (
+            <div className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500">
+              {results.length === 0
+                ? 'No matching documents found. Try file code prefix, full file code, or part of the title.'
+                : 'No documents match the selected status filter.'}
+            </div>
+          )}
         </div>
         <div className="text-xs text-gray-500">
-          {documentId ? 'Selected document ready to attach.' : 'Search and select one document from the list above.'}
+          {documentId
+            ? matchingItem
+              ? `Selected document will be linked under required item: ${matchingItem.documentType?.name || 'Document Type'}.`
+              : 'Selected document will be linked under Other Documents for this stage.'
+            : 'Search and select one document from the list above.'}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
@@ -556,21 +616,25 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, onClose,
   )
 }
 
-function StageCreateDocumentModal({ iterationId, phase, stage, documentTypes, onClose, onCreated }) {
+function StageCreateDocumentModal({ iterationId, phase, stage, stageItems = [], documentTypes, onClose, onCreated }) {
   const [documentTypeId, setDocumentTypeId] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const matchingItem = stageItems.find((it) => String(it.documentTypeId) === String(documentTypeId)) || null
+
   const submit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await api.post(`/project-tracking/iterations/${iterationId}/stages/${stage.id}/create-document`, {
-        documentTypeId: Number(documentTypeId),
-        title,
-        description: description || null
-      })
+      const endpoint = matchingItem
+        ? `/project-tracking/items/${matchingItem.id}/create-document`
+        : `/project-tracking/iterations/${iterationId}/stages/${stage.id}/create-document`
+      const payload = matchingItem
+        ? { title, description: description || null }
+        : { documentTypeId: Number(documentTypeId), title, description: description || null }
+      const res = await api.post(endpoint, payload)
       onCreated(res?.data?.data)
     } finally {
       setLoading(false)
@@ -590,7 +654,11 @@ function StageCreateDocumentModal({ iterationId, phase, stage, documentTypes, on
           stageLabel={stage?.name}
           documentTypeLabel={documentTypes.find((d) => String(d.id) === String(documentTypeId))?.name || null}
         />
-        <div className="text-xs text-gray-500">Create a new document under this stage and link it to this project.</div>
+        <div className="text-xs text-gray-500">
+          {matchingItem
+            ? `This document type matches a required checklist item, so the new document will appear under ${matchingItem.documentType?.name || 'that required row'}.`
+            : 'No required checklist item matches this document type, so the new document will be linked under Other Documents for this stage.'}
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
           <select
@@ -759,19 +827,38 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-  const search = async () => {
-    if (!query || query.trim().length < 2) return
+  const filteredResults = useMemo(() => {
+    if (statusFilter === 'ALL') return results
+    return results.filter((r) => String(r.document?.status || r.status || '').toUpperCase() === statusFilter)
+  }, [results, statusFilter])
+
+  const search = async (searchText = query) => {
+    if (!searchText || searchText.trim().length < 2) {
+      setResults([])
+      return
+    }
     setLoading(true)
     try {
-      const params = { q: query.trim() }
-      if (projectId) params.projectId = projectId
+      const params = { q: searchText.trim() }
       const res = await api.get('/project-tracking/documents/search', { params })
       setResults(res?.data?.data?.documents || [])
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!query || query.trim().length < 2) {
+      setResults([])
+      return
+    }
+    const timer = window.setTimeout(() => {
+      search(query)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [query])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -800,15 +887,30 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Type file code or title..."
+              placeholder="Search globally by file code or title..."
             />
-            <button type="button" onClick={search} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
-              Search
+            <button type="button" onClick={() => search(query)} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+              Search All
             </button>
           </div>
-          {results.length > 0 && (
+          <div className="text-xs text-gray-500">Search covers all accessible documents in the system, including published documents outside this project.</div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {['ALL', 'PUBLISHED', 'DRAFT'].map((filterValue) => (
+              <button
+                key={filterValue}
+                type="button"
+                onClick={() => setStatusFilter(filterValue)}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  statusFilter === filterValue ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {filterValue === 'ALL' ? 'All' : filterValue === 'PUBLISHED' ? 'Published' : 'Draft'}
+              </button>
+            ))}
+          </div>
+          {filteredResults.length > 0 && (
             <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
-              {results.map((r) => (
+              {filteredResults.map((r) => (
                 <button
                   key={r.id}
                   type="button"
@@ -817,8 +919,8 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
                     String(r.id) === String(documentId) ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{r.document?.fileCode || r.fileCode}</div>
-                  <div className="text-gray-600">{r.document?.title || r.title}</div>
+                  <div className="font-medium text-gray-900">{getDocumentCodeLabel(r.document || r)}</div>
+                  <div className="text-gray-600">{getDocumentTitleLabel(r.document || r)}</div>
                   <div className="mt-1 inline-flex items-center gap-2">
                     <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
                     <DocumentStatusBadge status={r.document?.status || r.status} />
@@ -828,6 +930,13 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+          {!loading && query.trim().length >= 2 && filteredResults.length === 0 && (
+            <div className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500">
+              {results.length === 0
+                ? 'No matching documents found. Try file code prefix, full file code, or part of the title.'
+                : 'No documents match the selected status filter.'}
             </div>
           )}
         </div>
@@ -1034,16 +1143,18 @@ function ProjectsList({ onOpenProject }) {
 
 function ProjectDetail({ projectId }) {
   const navigate = useNavigate()
+  const uiVersionStamp = 'PT-20260617-R2'
   const canCreate = hasPermission('projectTracking', 'create')
   const canLink = hasPermission('projectTracking', 'linkDocument')
   const canAdvance = hasPermission('projectTracking', 'advanceStage')
   const canEdit = hasPermission('projectTracking', 'edit')
   const canDelete = hasPermission('projectTracking', 'delete')
-  const canManageLinkedDocumentAccess = canCreate || canEdit
+  const canManageLinkedDocumentAccess = hasPermission('projectTracking', 'manageConfidentialAccess')
 
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedIterationId, setSelectedIterationId] = useState(null)
+  const [expandedStageId, setExpandedStageId] = useState(null)
   const [items, setItems] = useState([])
   const [itemsLoading, setItemsLoading] = useState(false)
   const [stageDocuments, setStageDocuments] = useState([])
@@ -1143,6 +1254,19 @@ function ProjectDetail({ projectId }) {
     return Array.from(map.values()).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
   }, [items, project?.enabledStages, selectedPhase?.currentStage, stageDocuments])
 
+  useEffect(() => {
+    if (!stages.length) {
+      setExpandedStageId(null)
+      return
+    }
+
+    setExpandedStageId((prev) => {
+      if (prev && stages.some((s) => s.id === prev)) return prev
+      if (selectedPhase?.currentStage?.id && stages.some((s) => s.id === selectedPhase.currentStage.id)) return selectedPhase.currentStage.id
+      return stages[0].id
+    })
+  }, [stages, selectedPhase?.currentStage?.id, selectedIterationId])
+
   const stageDocumentsByStage = useMemo(() => {
     const grouped = new Map()
     stageDocuments.forEach((l) => {
@@ -1201,6 +1325,14 @@ function ProjectDetail({ projectId }) {
     })
   }, [stages, selectedPhase, itemsByStage])
 
+  const openStage = (stageId) => {
+    setExpandedStageId(stageId)
+    window.setTimeout(() => {
+      const el = document.getElementById(`stage-panel-${stageId}`)
+      if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
+  }
+
   const createNamedIteration = async ({ name }) => {
     const res = await api.post(`/project-tracking/projects/${projectId}/iterations`, { name })
     const iter = res?.data?.data?.iteration
@@ -1251,117 +1383,146 @@ function ProjectDetail({ projectId }) {
     }
   }
 
+  const overallStats = useMemo(() => {
+    const total = items.length
+    const complete = items.filter((x) => String(x.status).toUpperCase() === 'COMPLETE').length
+    const pending = items.filter((x) => String(x.status).toUpperCase() === 'PENDING').length
+    const waived = items.filter((x) => String(x.status).toUpperCase() === 'WAIVED').length
+    const pct = total > 0 ? Math.round((complete / total) * 100) : 0
+    return { total, complete, pending, waived, pct }
+  }, [items])
+
   if (loading) return <div className="p-6 bg-white rounded-lg shadow">Loading...</div>
   if (!project) return <EmptyState title="Project not found" message="The project may have been deleted." />
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm text-gray-500">
-            <button className="text-blue-600 hover:underline" onClick={() => navigate('/project-tracking')}>Projects</button>
-            <span className="mx-2">/</span>
-            <span className="text-gray-700">{project.code}</span>
+    <div className="mx-auto w-full max-w-[1440px] space-y-6">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 shadow-lg">
+        <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-8">
+          <div className="max-w-3xl">
+            <div className="text-sm text-blue-100/90">
+              <button className="text-blue-200 hover:text-white hover:underline" onClick={() => navigate('/project-tracking')}>Projects</button>
+              <span className="mx-2 text-blue-200/60">/</span>
+              <span className="text-white/90">{project.code}</span>
+            </div>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-4xl">{project.name}</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-blue-50/90">
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{project.projectCategory?.name || '-'}</span>
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Manager: ${`${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.trim() || project.manager?.email || '-'}`}</span>
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
+              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 font-mono text-[11px]">{`UI ${uiVersionStamp}`}</span>
+            </div>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-100/80">
+              Track required documents, extra stage files, reviewer workflow, and confidential access for every phase under the same project.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-          <div className="text-sm text-gray-600">
-            {project.projectCategory?.name || '-'} • Manager:{' '}
-            {`${project.manager?.firstName || ''} ${project.manager?.lastName || ''}`.trim() || project.manager?.email || '-'}
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button
+              onClick={() => setShowActivity(true)}
+              className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
+            >
+              Activity
+            </button>
+            {canEdit && (
+              <button
+                onClick={() => setShowEditProject(true)}
+                className="rounded-lg border border-white/15 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100"
+              >
+                Edit
+              </button>
+            )}
+            {canCreate && (
+              <button onClick={() => setShowCreatePhase(true)} className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400">
+                Add Next Phase
+              </button>
+            )}
+            {canAdvance && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Move To Next Stage',
+                    message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
+                    onConfirm: advanceStage
+                  })
+                }
+                disabled={advancing || !selectedIterationId}
+                className="rounded-lg border border-white/15 bg-slate-950/40 px-4 py-2 text-sm font-medium text-white hover:bg-slate-950/60 disabled:opacity-50"
+              >
+                {advancing ? 'Moving...' : 'Move To Next Stage'}
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    show: true,
+                    title: 'Delete Project',
+                    message: 'Delete this project? All iterations and tracking links under it will be removed.',
+                    onConfirm: deleteProject
+                  })
+                }
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
+              >
+                Delete
+              </button>
+            )}
           </div>
-        </div>
-        <div className="flex gap-2">
-          {canEdit && (
-            <button
-              onClick={() => setShowEditProject(true)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Edit
-            </button>
-          )}
-          {canDelete && (
-            <button
-              onClick={() =>
-                setConfirmModal({
-                  show: true,
-                  title: 'Delete Project',
-                  message: 'Delete this project? All iterations and tracking links under it will be removed.',
-                  onConfirm: deleteProject
-                })
-              }
-              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
-            >
-              Delete
-            </button>
-          )}
-          {canAdvance && (
-            <button
-              onClick={() =>
-                setConfirmModal({
-                  show: true,
-                  title: 'Move To Next Stage',
-                  message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
-                  onConfirm: advanceStage
-                })
-              }
-              disabled={advancing || !selectedIterationId}
-              className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900 disabled:opacity-50"
-            >
-              {advancing ? 'Moving...' : 'Move To Next Stage'}
-            </button>
-          )}
-          <button
-            onClick={() => setShowActivity(true)}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            Activity
-          </button>
-          {canCreate && (
-              <button onClick={() => setShowCreatePhase(true)} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
-              Add Next Phase
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 space-y-4">
-        {(() => {
-          const total = items.length
-          const complete = items.filter((x) => String(x.status).toUpperCase() === 'COMPLETE').length
-          const pending = items.filter((x) => String(x.status).toUpperCase() === 'PENDING').length
-          const waived = items.filter((x) => String(x.status).toUpperCase() === 'WAIVED').length
-          const pct = total > 0 ? Math.round((complete / total) * 100) : 0
-          return (
-            <div className="flex flex-col gap-1">
-              <div className="text-sm font-medium text-gray-700">Selected Project Phase</div>
-              <div className="flex items-center gap-3">
-                <div className="text-lg font-semibold text-gray-900">{selectedPhase ? getPhaseTitle(selectedPhase, '-') : '-'}</div>
-                {canEdit && selectedPhase && (
-                  <button
-                    type="button"
-                    onClick={() => setShowEditPhase(selectedPhase)}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Rename Phase
-                  </button>
-                )}
-              </div>
-              <div className="text-sm text-gray-600">
-                {`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}
-              </div>
-              <div className="text-xs text-gray-600">{`Overall ${complete}/${total} complete • Pending ${pending} • Waived ${waived}`}</div>
-              <div className="text-xs text-gray-500">Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.</div>
-              <div className="w-full sm:w-72 mt-1">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div className="h-2 bg-green-500" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            </div>
-          )
-        })()}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Selected Phase</div>
+          <div className="mt-2 text-lg font-semibold text-slate-900">{selectedPhase ? getPhaseTitle(selectedPhase, '-') : '-'}</div>
+          <div className="mt-2 text-sm text-slate-600">{selectedPhase?.currentStage?.name || 'No current stage set'}</div>
+          {canEdit && selectedPhase && (
+            <button
+              type="button"
+              onClick={() => setShowEditPhase(selectedPhase)}
+              className="mt-3 text-sm font-medium text-blue-600 hover:underline"
+            >
+              Rename Phase
+            </button>
+          )}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Required Completion</div>
+          <div className="mt-2 flex items-end gap-2">
+            <div className="text-3xl font-semibold text-slate-900">{overallStats.pct}%</div>
+            <div className="pb-1 text-sm text-slate-500">{`${overallStats.complete}/${overallStats.total} complete`}</div>
+          </div>
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-600" style={{ width: `${overallStats.pct}%` }} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending Items</div>
+          <div className="mt-2 text-3xl font-semibold text-amber-600">{overallStats.pending}</div>
+          <div className="mt-2 text-sm text-slate-500">Checklist items still waiting for published evidence.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Waived Items</div>
+          <div className="mt-2 text-3xl font-semibold text-slate-900">{overallStats.waived}</div>
+          <div className="mt-2 text-sm text-slate-500">Items excluded from phase completion requirements.</div>
+        </div>
+      </div>
 
-        <div>
-          <div className="text-sm font-medium text-gray-700 mb-2">Project Phases</div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2">
+        <div className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+          Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Project Phases</div>
+            <div className="mt-1 text-sm text-slate-500">Switch between iterations under the same project and review each stage flow separately.</div>
+          </div>
+          <div className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 sm:inline-flex">{`${phases.length} phase${phases.length === 1 ? '' : 's'}`}</div>
+        </div>
+        <div className="mt-4 flex gap-4 overflow-x-auto pb-2">
             {phases.map((phase) => {
               const isSelected = phase.id === selectedIterationId
               return (
@@ -1369,40 +1530,46 @@ function ProjectDetail({ projectId }) {
                   key={phase.id}
                   type="button"
                   onClick={() => setSelectedIterationId(phase.id)}
-                  className={`min-w-[210px] rounded-lg border p-4 text-left transition ${
+                  className={`min-w-[250px] rounded-2xl border p-5 text-left transition ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm ring-1 ring-blue-100'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{`Phase ${phase.iterationNo}`}</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">{phase.name || 'Project Phase'}</div>
-                  <div className="mt-2 text-xs text-gray-600">{`Current Stage: ${phase.currentStage?.name || '-'}`}</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{`Phase ${phase.iterationNo}`}</div>
+                      <div className="mt-2 text-base font-semibold text-slate-900">{phase.name || 'Project Phase'}</div>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                      {isSelected ? 'Active' : 'Open'}
+                    </span>
+                  </div>
+                  <div className="mt-4 text-sm text-slate-600">{`Current Stage: ${phase.currentStage?.name || '-'}`}</div>
                 </button>
               )
             })}
-          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-medium text-gray-700">Stage Flow</div>
-            <div className="text-xs text-gray-500">Kanban-style view for the selected phase. Highlight shows the current stage.</div>
+            <div className="text-sm font-semibold text-slate-900">Stage Flow</div>
+            <div className="mt-1 text-sm text-slate-500">Click any stage card to jump directly into its document checklist and linked files.</div>
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
             {selectedPhase ? getPhaseTitle(selectedPhase, '') : ''}
           </div>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1">
+        <div className="flex gap-4 overflow-x-auto pb-2">
           {stageFlow.map((stage) => {
             const tone =
               stage.state === 'current'
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm ring-1 ring-blue-100'
                 : stage.state === 'done'
-                  ? 'border-green-300 bg-green-50'
-                  : 'border-gray-200 bg-gray-50'
+                  ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50'
+                  : 'border-slate-200 bg-slate-50'
 
             const badgeTone =
               stage.state === 'current'
@@ -1419,17 +1586,26 @@ function ProjectDetail({ projectId }) {
                   : 'Upcoming'
 
             return (
-              <div key={stage.id} className={`min-w-[220px] rounded-lg border p-4 ${tone}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-gray-900">{stage.name}</div>
+              <button
+                key={stage.id}
+                type="button"
+                onClick={() => openStage(stage.id)}
+                className={`min-w-[240px] rounded-2xl border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${tone}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-base font-semibold text-slate-900">{stage.name}</div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${badgeTone}`}>{badgeLabel}</span>
                 </div>
-                <div className="mt-3 text-xs text-gray-600">
+                <div className="mt-4 text-sm text-slate-600">
                   {stage.metrics
                     ? `Required documents completed: ${stage.metrics.complete}/${stage.metrics.total}`
                     : 'No checklist configured for this stage yet.'}
                 </div>
-              </div>
+                <div className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+                  <span>Open stage details</span>
+                  <span aria-hidden="true">→</span>
+                </div>
+              </button>
             )
           })}
         </div>
@@ -1441,146 +1617,98 @@ function ProjectDetail({ projectId }) {
         <EmptyState title="No required documents yet" message="No required document template has been set for this project category yet. Go to Category Setup to configure it." />
       ) : (
         <div className="space-y-4">
-          {stages.map((st) => (
-            <div key={st.id} className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b bg-gray-50">
-                {(() => {
-                  const stageItems = itemsByStage.get(st.id) || []
-                  const total = stageItems.length
-                  const complete = stageItems.filter((x) => String(x.status).toUpperCase() === 'COMPLETE').length
-                  const pending = stageItems.filter((x) => String(x.status).toUpperCase() === 'PENDING').length
-                  const waived = stageItems.filter((x) => String(x.status).toUpperCase() === 'WAIVED').length
-                  const pct = total > 0 ? Math.round((complete / total) * 100) : 0
-                  return (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="text-sm font-semibold text-gray-900">{st.name}</div>
-                      <div className="text-xs text-gray-600">
-                        {`Complete ${complete}/${total} • Pending ${pending} • Waived ${waived}`}
-                      </div>
-                      <div className="w-full sm:w-48">
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div className="h-2 bg-green-500" style={{ width: `${pct}%` }} />
-                        </div>
+          {stages.map((st) => {
+            const stageItems = itemsByStage.get(st.id) || []
+            const links = stageDocumentsByStage.get(st.id) || []
+            const total = stageItems.length
+            const complete = stageItems.filter((x) => String(x.status).toUpperCase() === 'COMPLETE').length
+            const pending = stageItems.filter((x) => String(x.status).toUpperCase() === 'PENDING').length
+            const waived = stageItems.filter((x) => String(x.status).toUpperCase() === 'WAIVED').length
+            const pct = total > 0 ? Math.round((complete / total) * 100) : 0
+            const isExpanded = st.id === expandedStageId
+            const linkedRequiredCount = stageItems.reduce((acc, it) => acc + (it.links?.length || 0), 0)
+            const summary = `Extra docs: ${links.length} • Required linked: ${linkedRequiredCount}`
+
+            return (
+              <div key={st.id} id={`stage-panel-${st.id}`} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => (isExpanded ? setExpandedStageId(null) : openStage(st.id))}
+                  className={`w-full border-b px-6 py-5 text-left transition ${isExpanded ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'}`}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="text-base font-semibold text-slate-900">{st.name}</div>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${isExpanded ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                        {isExpanded ? 'Expanded' : 'Collapsed'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-600">{`Complete ${complete}/${total} • Pending ${pending} • Waived ${waived}`}</div>
+                    <div className="w-full sm:w-56">
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-2.5 bg-gradient-to-r from-emerald-500 to-green-600" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
-                  )
-                })()}
-              </div>
-              <div className="px-6 py-4 border-b bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">Other Documents Under This Stage</div>
-                  <div className="text-xs text-gray-500">You can add extra documents here even if they are not listed in the required checklist. One document type can have multiple files.</div>
-                </div>
-                <div className="flex gap-2">
-                  {canLink && (
-                    <button
-                      onClick={() => setShowStageLink(st)}
-                      className="px-3 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900"
-                    >
-                      Attach Existing
-                    </button>
-                  )}
-                  {canCreate && (
-                    <button
-                      onClick={() => setShowStageCreate(st)}
-                      className="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                    >
-                      Create New
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="px-6 py-4 border-b bg-white">
-                {(() => {
-                  const links = stageDocumentsByStage.get(st.id) || []
-                  if (links.length === 0) return <div className="text-sm text-gray-500">No extra documents added for this stage yet.</div>
-                  return (
-                    <div className="space-y-1">
-                      {links.map((l) => (
-                        <div key={l.id} className="text-sm">
-                          <Link to={`/documents/${l.document.id}`} className="text-blue-600 hover:underline">
-                            {l.document.fileCode}
-                          </Link>
-                          <span className="text-gray-600">{` • ${l.document.title}`}</span>
-                          <span className="ml-2 inline-flex items-center gap-2 align-middle">
-                            <ConfidentialBadge isConfidential={l.document.isConfidential} />
-                            <DocumentStatusBadge status={l.document.status} />
-                          </span>
-                          {canCreate && (
-                            <button
-                              type="button"
-                              onClick={() => setUploadDocument(l.document)}
-                              className="ml-3 text-xs text-gray-700 hover:underline"
-                            >
-                              Upload File
-                            </button>
-                          )}
-                          {canLink && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setConfirmModal({
-                                  show: true,
-                                  title: 'Remove Linked Document',
-                                  message: 'Remove this linked document from the stage? The document record will stay in the system.',
-                                  onConfirm: () => unlinkStageDocument(st.id, l.id)
-                                })
-                              }
-                              className="ml-3 text-xs text-red-600 hover:underline"
-                            >
-                              Remove Link
-                            </button>
-                          )}
-                          {canManageLinkedDocumentAccess && String(l.document.stage || '').toUpperCase() === 'DRAFT' && (
-                            <button
-                              type="button"
-                              onClick={() => setShowDocumentAccess(l.document)}
-                              className="ml-3 text-xs text-blue-600 hover:underline"
-                            >
-                              Access
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                  </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-sm text-slate-500">{summary}</div>
+                      <div className="inline-flex items-center gap-2 text-sm text-slate-400">
+                        <span>{isExpanded ? 'Hide details' : 'View details'}</span>
+                        <span aria-hidden="true" className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>⌄</span>
+                      </div>
+                  </div>
+                </button>
+
+                {!isExpanded ? null : (
+                  <>
+                    <div className="flex flex-col gap-3 border-b bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900">Other Documents Under This Stage</div>
+                        <div className="mt-1 text-sm text-slate-500">Add extra stage documents here even if they are not listed in the required checklist. Matching document types still route into checklist rows automatically.</div>
+                      </div>
+                      <div className="flex gap-2">
+                        {canLink && (
+                          <button
+                            onClick={() => setShowStageLink(st)}
+                            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                          >
+                            Attach Existing
+                          </button>
+                        )}
+                        {canCreate && (
+                          <button
+                            onClick={() => setShowStageCreate(st)}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                          >
+                            Create New
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  )
-                })()}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-white">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed Documents</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {(itemsByStage.get(st.id) || []).map((it) => (
-                      <tr key={it.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{it.documentType?.name || '-'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <ItemStatusBadge status={it.status} />
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {it.links?.length ? (
-                            <div className="space-y-1">
-                              {it.links.map((l) => (
-                                <div key={l.id}>
-                                  <Link to={`/documents/${l.document.id}`} className="text-blue-600 hover:underline">
-                                    {l.document.fileCode}
+                    <div className="border-b bg-white px-6 py-5">
+                      {links.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">No extra documents added for this stage yet.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {links.map((l) => (
+                            <div key={l.id} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm">
+                              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                  <Link to={`/documents/${l.document.id}`} className="font-medium text-blue-600 hover:underline">
+                                    {getDocumentCodeLabel(l.document)}
                                   </Link>
-                                  <span className="text-gray-500">{` • ${l.document.title}`}</span>
+                                  <span className="text-slate-600">{` • ${getDocumentTitleLabel(l.document)}`}</span>
                                   <span className="ml-2 inline-flex items-center gap-2 align-middle">
                                     <ConfidentialBadge isConfidential={l.document.isConfidential} />
                                     <DocumentStatusBadge status={l.document.status} />
                                   </span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3 text-xs">
                                   {canCreate && (
                                     <button
                                       type="button"
                                       onClick={() => setUploadDocument(l.document)}
-                                      className="ml-3 text-xs text-gray-700 hover:underline"
+                                      className="font-medium text-slate-700 hover:underline"
                                     >
                                       Upload File
                                     </button>
@@ -1592,11 +1720,11 @@ function ProjectDetail({ projectId }) {
                                         setConfirmModal({
                                           show: true,
                                           title: 'Remove Linked Document',
-                                          message: 'Remove this linked document from the required item? If no published document remains, the checklist item will become pending again.',
-                                          onConfirm: () => unlinkItemDocument(it.id, l.id)
+                                          message: 'Remove this linked document from the stage? The document record will stay in the system.',
+                                          onConfirm: () => unlinkStageDocument(st.id, l.id)
                                         })
                                       }
-                                      className="ml-3 text-xs text-red-600 hover:underline"
+                                      className="font-medium text-red-600 hover:underline"
                                     >
                                       Remove Link
                                     </button>
@@ -1605,41 +1733,115 @@ function ProjectDetail({ projectId }) {
                                     <button
                                       type="button"
                                       onClick={() => setShowDocumentAccess(l.document)}
-                                      className="ml-3 text-xs text-blue-600 hover:underline"
+                                      className="font-medium text-blue-600 hover:underline"
                                     >
                                       Access
                                     </button>
                                   )}
                                 </div>
-                              ))}
+                              </div>
                             </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                          {canLink ? (
-                            <div className="flex items-center justify-end gap-3">
-                              <button onClick={() => setShowLink(it)} className="text-blue-600 hover:underline">
-                                Attach Existing
-                              </button>
-                              {canCreate && (
-                                <button onClick={() => setShowCreateDoc(it)} className="text-gray-800 hover:underline">
-                                  Create New
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="overflow-x-auto bg-white">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Document Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Completed Documents</th>
+                            <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {stageItems.map((it) => (
+                            <tr key={it.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{it.documentType?.name || '-'}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <ItemStatusBadge status={it.status} />
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-700">
+                                {it.links?.length ? (
+                                  <div className="space-y-1">
+                                    {it.links.map((l) => (
+                                      <div key={l.id}>
+                                        <Link to={`/documents/${l.document.id}`} className="text-blue-600 hover:underline">
+                                          {getDocumentCodeLabel(l.document)}
+                                        </Link>
+                                        <span className="text-gray-500">{` • ${getDocumentTitleLabel(l.document)}`}</span>
+                                        <span className="ml-2 inline-flex items-center gap-2 align-middle">
+                                          <ConfidentialBadge isConfidential={l.document.isConfidential} />
+                                          <DocumentStatusBadge status={l.document.status} />
+                                        </span>
+                                        {canCreate && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setUploadDocument(l.document)}
+                                            className="ml-3 text-xs text-gray-700 hover:underline"
+                                          >
+                                            Upload File
+                                          </button>
+                                        )}
+                                        {canLink && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setConfirmModal({
+                                                show: true,
+                                                title: 'Remove Linked Document',
+                                                message: 'Remove this linked document from the required item? If no published document remains, the checklist item will become pending again.',
+                                                onConfirm: () => unlinkItemDocument(it.id, l.id)
+                                              })
+                                            }
+                                            className="ml-3 text-xs text-red-600 hover:underline"
+                                          >
+                                            Remove Link
+                                          </button>
+                                        )}
+                                        {canManageLinkedDocumentAccess && String(l.document.stage || '').toUpperCase() === 'DRAFT' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setShowDocumentAccess(l.document)}
+                                            className="ml-3 text-xs text-blue-600 hover:underline"
+                                          >
+                                            Access
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                {canLink ? (
+                                  <div className="flex items-center justify-end gap-3">
+                                    <button onClick={() => setShowLink(it)} className="text-blue-600 hover:underline">
+                                      Attach Existing
+                                    </button>
+                                    {canCreate && (
+                                      <button onClick={() => setShowCreateDoc(it)} className="text-gray-800 hover:underline">
+                                        Create New
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -1675,6 +1877,7 @@ function ProjectDetail({ projectId }) {
           iterationId={selectedIterationId}
           phase={selectedPhase}
           stage={showStageLink}
+          stageItems={itemsByStage.get(showStageLink.id) || []}
           onClose={() => setShowStageLink(null)}
           onLinked={() => {
             setShowStageLink(null)
@@ -1688,6 +1891,7 @@ function ProjectDetail({ projectId }) {
           iterationId={selectedIterationId}
           phase={selectedPhase}
           stage={showStageCreate}
+          stageItems={itemsByStage.get(showStageCreate.id) || []}
           documentTypes={docTypes}
           onClose={() => setShowStageCreate(null)}
           onCreated={(result) => {
@@ -1746,10 +1950,10 @@ function ProjectDetail({ projectId }) {
       <UploadFileModal
         isOpen={!!uploadDocument}
         document={uploadDocument}
+        canManageAccess={canManageLinkedDocumentAccess}
         onClose={() => setUploadDocument(null)}
         onSuccess={() => {
           if (selectedIterationId) loadItems(selectedIterationId)
-          setUploadDocument(null)
         }}
       />
 

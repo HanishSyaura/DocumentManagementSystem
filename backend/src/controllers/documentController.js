@@ -1170,6 +1170,10 @@ class DocumentController {
     const documentId = parseInt(req.params.id);
     const { title, description, projectCategoryId, status, stage, isConfidential } = req.body;
 
+    if (isConfidential !== undefined && !req.user?.permissions?.projectTracking?.manageConfidentialAccess) {
+      return ResponseFormatter.error(res, "You don't have permission to manage confidential access", 403)
+    }
+
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;

@@ -76,10 +76,8 @@ class ConfidentialAccessService {
     })
     if (!doc) throw new NotFoundError('Document')
 
-    if (doc.folderId) {
-      await folderPermissionService.assertCan(doc.folderId, actor, 'view')
-    } else if (doc.ownerId !== actor?.id && doc.createdById !== actor?.id) {
-      throw new ForbiddenError('You do not have access to this document')
+    if (!actor?.permissions?.projectTracking?.manageConfidentialAccess) {
+      throw new ForbiddenError("You don't have permission to manage confidential access")
     }
 
     const entries = await prisma.documentConfidentialAccess.findMany({
@@ -100,10 +98,8 @@ class ConfidentialAccessService {
     })
     if (!doc) throw new NotFoundError('Document')
 
-    if (doc.folderId) {
-      await folderPermissionService.assertCan(doc.folderId, actor, 'edit')
-    } else if (doc.ownerId !== actor?.id && doc.createdById !== actor?.id) {
-      throw new ForbiddenError('You do not have permission to manage access for this document')
+    if (!actor?.permissions?.projectTracking?.manageConfidentialAccess) {
+      throw new ForbiddenError("You don't have permission to manage confidential access")
     }
 
     if (String(doc.stage || '').toUpperCase() !== 'DRAFT') {

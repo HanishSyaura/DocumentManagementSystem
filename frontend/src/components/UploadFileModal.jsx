@@ -1,15 +1,34 @@
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import api from '../api/axios'
 import useFileUploadSettings from '../hooks/useFileUploadSettings'
+import AssignReviewerModal from './AssignReviewerModal'
+import { AlertModal } from './ConfirmModal'
+import DocumentAccessModal from './DocumentAccessModal'
 
-export default function UploadFileModal({ isOpen, onClose, document, onSuccess }) {
+export default function UploadFileModal({ isOpen, onClose, document, onSuccess, canManageAccess = false }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadComplete, setUploadComplete] = useState(false)
+  const [showAssignReviewer, setShowAssignReviewer] = useState(false)
+  const [showDocumentAccess, setShowDocumentAccess] = useState(false)
+  const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const fileInputRef = useRef(null)
   
   // Use dynamic file upload settings
   const { validateFile, getAcceptString, getAllowedTypesDisplay } = useFileUploadSettings()
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedFile(null)
+      setIsDragging(false)
+      setUploading(false)
+      setUploadComplete(false)
+      setShowAssignReviewer(false)
+      setShowDocumentAccess(false)
+      setAlertModal({ show: false, title: '', message: '', type: 'info' })
+    }
+  }, [isOpen, document?.id])
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -21,7 +40,7 @@ export default function UploadFileModal({ isOpen, onClose, document, onSuccess }
     // Validate file using dynamic settings
     const validation = validateFile(file)
     if (!validation.valid) {
-      alert(validation.error)
+      setAlertModal({ show: true, title: 'Invalid File', message: validation.error, type: 'warning' })
       return
     }
 
@@ -48,13 +67,9 @@ export default function UploadFileModal({ isOpen, onClose, document, onSuccess }
     }
   }
 
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click()
-  }
-
   const handleUpload = async () => {
     if (!selectedFile) {
-      alert('Please select a file to upload')
+      setAlertModal({ show: true, title: 'No File Selected', message: 'Please select a file to upload.', type: 'warning' })
       return
     }
 
@@ -69,123 +84,239 @@ export default function UploadFileModal({ isOpen, onClose, document, onSuccess }
         }
       })
 
-      alert('File uploaded successfully!')
-      if (onSuccess) onSuccess()
-      handleClose()
+      setUploadComplete(true)
+      setSelectedFile(null)
+      if (onSuccess) await onSuccess({ type: 'upload', documentId: document.id })
     } catch (error) {
       console.error('Failed to upload file:', error)
-      alert(error.response?.data?.message || 'Failed to upload file')
+      setAlertModal({
+        show: true,
+        title: 'Upload Failed',
+        message: error.response?.data?.message || 'Failed to upload file',
+        type: 'error'
+      })
     } finally {
       setUploading(false)
     }
   }
 
+  const handleOpenDocument = () => {
+    window.location.assign(`/documents/${document.id}`)
+  }
+
   const handleClose = () => {
     setSelectedFile(null)
     setIsDragging(false)
+    setUploadComplete(false)
+    setShowAssignReviewer(false)
+    setShowDocumentAccess(false)
     onClose()
   }
 
   if (!isOpen || !document) return null
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-          {/* Header */}
-          <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Upload Document File</h2>
-              <p className="text-sm text-gray-600 mt-1">{document.fileCode}: {document.title}</p>
-            </div>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+  const documentCodeLabel = document.fileCode || 'Draft document'
+  const documentTitleLabel = document.title || 'Untitled document'
 
-          {/* Body */}
-          <div className="px-6 py-4">
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 bg-gray-50'
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              {selectedFile ? (
-                <div className="space-y-2">
-                  <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFile(null)}
-                    className="text-sm text-red-600 hover:text-red-700 font-medium"
-                  >
-                    Remove file
-                  </button>
+  return (
+    <>
+      <AlertModal
+        show={alertModal.show}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        onClose={() => setAlertModal({ show: false, title: '', message: '', type: 'info' })}
+      />
+      <AssignReviewerModal
+        isOpen={showAssignReviewer}
+        onClose={() => setShowAssignReviewer(false)}
+        document={document}
+        onSuccess={async () => {
+          setShowAssignReviewer(false)
+          if (onSuccess) await onSuccess({ type: 'submitForReview', documentId: document.id })
+          handleClose()
+        }}
+      />
+      {showDocumentAccess && (
+        <DocumentAccessModal
+          document={document}
+          onClose={() => setShowDocumentAccess(false)}
+          onSaved={async () => {
+            setShowDocumentAccess(false)
+            setAlertModal({ show: true, title: 'Success', message: 'Confidential access updated successfully.', type: 'success' })
+            if (onSuccess) await onSuccess({ type: 'accessUpdated', documentId: document.id })
+          }}
+          onError={(message) => {
+            setAlertModal({ show: true, title: 'Unable to update access', message, type: 'error' })
+          }}
+        />
+      )}
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={handleClose} />
+        
+        {/* Modal */}
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-lg w-full">
+          {/* Header */}
+            <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{uploadComplete ? 'File Uploaded' : 'Upload Document File'}</h2>
+                <p className="text-sm text-gray-600 mt-1">{documentCodeLabel}: {documentTitleLabel}</p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4">
+              {uploadComplete ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="mt-0.5 h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <div>
+                        <div className="text-sm font-semibold text-green-900">Draft file uploaded successfully</div>
+                        <div className="mt-1 text-sm text-green-800">Next step: submit this draft for review, or open the document to continue editing later.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                    <div><span className="font-medium">File Code:</span> {documentCodeLabel}</div>
+                    <div className="mt-1"><span className="font-medium">Title:</span> {documentTitleLabel}</div>
+                    <div className="mt-1"><span className="font-medium">Status:</span> Draft</div>
+                  </div>
                 </div>
               ) : (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragging
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-300 bg-gray-50'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      <svg className="w-12 h-12 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                      <p className="text-xs text-gray-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Remove file
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="text-sm font-medium text-gray-700 mb-1">Drop files here</p>
+                      <p className="text-xs text-gray-500 mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
+                      <p className="text-xs text-gray-400 mb-4">OR</p>
+                      <label className="cursor-pointer">
+                        <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                          Browse files
+                        </span>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept={getAcceptString()}
+                          onChange={handleFileSelect}
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              {uploadComplete ? (
                 <>
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Drop files here</p>
-                  <p className="text-xs text-gray-500 mb-4">Supported formats: {getAllowedTypesDisplay()}</p>
-                  <p className="text-xs text-gray-400 mb-4">OR</p>
-                  <label className="cursor-pointer">
-                    <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                      Browse files
-                    </span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      accept={getAcceptString()}
-                      onChange={handleFileSelect}
-                    />
-                  </label>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  {canManageAccess && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentAccess(true)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Manage Access
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleOpenDocument}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Open Document
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAssignReviewer(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Submit for Review
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    disabled={uploading}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  {canManageAccess && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentAccess(true)}
+                      disabled={uploading}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      Manage Access
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleUpload}
+                    disabled={!selectedFile || uploading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? 'Uploading...' : 'Upload File'}
+                  </button>
                 </>
               )}
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={uploading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {uploading ? 'Uploading...' : 'Upload File'}
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

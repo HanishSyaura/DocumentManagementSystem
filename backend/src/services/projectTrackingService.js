@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { ConflictError, NotFoundError, ValidationError } = require('../utils/errors');
 const documentService = require('./documentService');
+const documentAssignmentService = require('./documentAssignmentService')
 const folderPermissionService = require('./folderPermissionService')
 const confidentialAccessService = require('./confidentialAccessService')
 
@@ -837,34 +838,117 @@ exports.getProjectActivityLogs = async (projectId, { page = 1, limit = 20 } = {}
 }
 
 exports.searchDocuments = async ({ projectId, q }, { user }) => {
-  const where = {};
-  if (projectId) where.iteration = { projectId };
-  if (q) {
-    where.OR = [
-      { document: { fileCode: { contains: q } } },
-      { document: { title: { contains: q } } }
-    ];
+  const query = String(q || '').trim()
+  if (!query) return []
+
+  const normalizeSearchValue = (value) => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const normalizedQuery = normalizeSearchValue(query)
+  const roleIds = user ? await folderPermissionService.getRoleIdsByNames(user.roles || []) : []
+
+  const andWhere = []
+  if (user?.id) {
+    andWhere.push(documentAssignmentService.buildAccessWhereClause(user.id, roleIds))
   }
   if (user && !user?.permissions?.projectTracking?.viewConfidential) {
-    const roleIds = await folderPermissionService.getRoleIdsByNames(user.roles || [])
-    where.document = { ...(where.document || {}), ...confidentialAccessService.buildConfidentialWhereClause(user, roleIds) }
+    andWhere.push(confidentialAccessService.buildConfidentialWhereClause(user, roleIds))
+  }
+  if (projectId) {
+    andWhere.push({ projectLinks: { some: { projectIteration: { projectId } } } })
   }
 
-  return prisma.projectDocumentLink.findMany({
-    where,
-    include: {
-      document: { select: { id: true, fileCode: true, title: true, status: true, isConfidential: true, updatedAt: true } },
-      iteration: {
+  const docs = await prisma.document.findMany({
+    where: andWhere.length > 0 ? { AND: andWhere } : {},
+    select: {
+      id: true,
+      fileCode: true,
+      title: true,
+      description: true,
+      status: true,
+      isConfidential: true,
+      updatedAt: true,
+      documentTypeId: true,
+      documentType: { select: { id: true, name: true } },
+      projectLinks: {
+        where: projectId ? { projectIteration: { projectId } } : undefined,
+        orderBy: { linkedAt: 'desc' },
+        take: 3,
         include: {
-          project: { include: { projectCategory: true } }
+          projectIteration: {
+            include: {
+              project: { include: { projectCategory: true } }
+            }
+          },
+          stage: true,
+          item: { include: { documentType: true } }
         }
-      },
-      stage: true,
-      item: { include: { documentType: true } }
+      }
     },
-    orderBy: { linkedAt: 'desc' },
-    take: 200
-  });
+    orderBy: { updatedAt: 'desc' },
+    take: 500
+  })
+
+  const scored = docs
+    .map((doc) => {
+      const normalizedFileCode = normalizeSearchValue(doc.fileCode)
+      const normalizedTitle = normalizeSearchValue(doc.title)
+      const normalizedDescription = normalizeSearchValue(doc.description)
+
+      const directFileCodeMatch = String(doc.fileCode || '').toLowerCase().includes(query.toLowerCase())
+      const directTitleMatch = String(doc.title || '').toLowerCase().includes(query.toLowerCase())
+      const normalizedFileCodeMatch = normalizedQuery ? normalizedFileCode.includes(normalizedQuery) : false
+      const normalizedTitleMatch = normalizedQuery ? normalizedTitle.includes(normalizedQuery) : false
+      const normalizedDescriptionMatch = normalizedQuery ? normalizedDescription.includes(normalizedQuery) : false
+
+      if (!directFileCodeMatch && !directTitleMatch && !normalizedFileCodeMatch && !normalizedTitleMatch && !normalizedDescriptionMatch) {
+        return null
+      }
+
+      let score = 0
+      if (normalizedQuery && normalizedFileCode.startsWith(normalizedQuery)) score += 120
+      if (directFileCodeMatch) score += 100
+      if (normalizedFileCodeMatch) score += 80
+      if (directTitleMatch) score += 50
+      if (normalizedTitleMatch) score += 30
+      if (normalizedDescriptionMatch) score += 10
+
+      const latestLink = doc.projectLinks[0] || null
+      return {
+        score,
+        updatedAt: doc.updatedAt,
+        result: {
+          id: doc.id,
+          fileCode: doc.fileCode,
+          title: doc.title,
+          status: doc.status,
+          isConfidential: doc.isConfidential,
+          updatedAt: doc.updatedAt,
+          documentTypeId: doc.documentTypeId,
+          documentType: doc.documentType,
+          document: {
+            id: doc.id,
+            fileCode: doc.fileCode,
+            title: doc.title,
+            status: doc.status,
+            isConfidential: doc.isConfidential,
+            updatedAt: doc.updatedAt,
+            documentTypeId: doc.documentTypeId,
+            documentType: doc.documentType
+          },
+          iteration: latestLink?.projectIteration || null,
+          stage: latestLink?.stage || null,
+          item: latestLink?.item || null
+        }
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+    .slice(0, 200)
+    .map((entry) => entry.result)
+
+  return scored
 };
 
 exports.getCategoryStages = async (projectCategoryId) => {

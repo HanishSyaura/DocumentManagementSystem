@@ -55,7 +55,7 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
       id: 'projectTracking',
       name: 'Project Tracking',
       description: 'Track projects with document requirements by stage',
-      actions: ['view', 'create', 'edit', 'delete', 'manageTemplates', 'linkDocument', 'advanceStage', 'viewConfidential']
+      actions: ['view', 'create', 'edit', 'delete', 'manageTemplates', 'linkDocument', 'advanceStage', 'viewConfidential', 'manageConfidentialAccess']
     },
     {
       id: 'configuration',
