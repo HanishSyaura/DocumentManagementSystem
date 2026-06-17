@@ -16,6 +16,7 @@ export default function DocumentViewerModal({ document, onClose }) {
   const docxViewportRef = useRef(null)
   const [docxZoomMode, setDocxZoomMode] = useState('fit')
   const effectiveDocumentId = document?.documentId ?? document?.id
+  const effectiveVersionId = document?.versionId ?? null
   const { scale: docxScale, refresh: refreshDocxScale } = useDocxFitToWidth({
     enabled: contentType === 'docx' && !!docxBuffer,
     mode: docxZoomMode,
@@ -41,6 +42,7 @@ export default function DocumentViewerModal({ document, onClose }) {
         setDocxZoomMode('fit')
         
         const res = await api.get(`/documents/${effectiveDocumentId}/preview`, {
+          params: effectiveVersionId ? { versionId: effectiveVersionId } : undefined,
           responseType: 'blob'
         })
         
@@ -163,6 +165,7 @@ export default function DocumentViewerModal({ document, onClose }) {
 
     try {
       const res = await api.get(`/documents/${effectiveDocumentId}/download`, {
+        params: effectiveVersionId ? { versionId: effectiveVersionId } : undefined,
         responseType: 'blob'
       })
 

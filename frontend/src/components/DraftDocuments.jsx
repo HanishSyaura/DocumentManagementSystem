@@ -3,13 +3,14 @@ import api from '../api/axios'
 import NewDraftModal from './NewDraftModal'
 import ReuploadFileModal from './ReuploadFileModal'
 import DocumentRemarksModal from './DocumentRemarksModal'
+import DocumentViewerModal from './DocumentViewerModal'
 import StatusBadge from './StatusBadge'
 import ActionMenu from './ActionMenu'
 import EmptyState from './EmptyState'
 import Pagination from './Pagination'
 import { PermissionGate } from './PermissionGate'
 import { hasPermission } from '../utils/permissions'
-import ConfirmModal, { AlertModal } from './ConfirmModal'
+import { AlertModal } from './ConfirmModal'
 import { usePreferences } from '../contexts/PreferencesContext'
 
 export default function DraftDocuments() {
@@ -29,8 +30,9 @@ export default function DraftDocuments() {
   const [remarksLoading, setRemarksLoading] = useState(false)
   const [remarksDocument, setRemarksDocument] = useState(null)
   const [remarks, setRemarks] = useState([])
+  const [returnFileViewerOpen, setReturnFileViewerOpen] = useState(false)
+  const [returnFileDocument, setReturnFileDocument] = useState(null)
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
-  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
 
   useEffect(() => {
     loadDocuments()
@@ -89,6 +91,10 @@ export default function DraftDocuments() {
           latestReturnRemark: doc.latestReturnRemark || null,
           latestReturnRemarkAt: doc.latestReturnRemarkAt || null,
           latestReturnRemarkBy: doc.latestReturnRemarkBy || null,
+          latestReturnFileVersionId: doc.latestReturnFileVersionId || null,
+          latestReturnFileName: doc.latestReturnFileName || null,
+          latestReturnFileMimeType: doc.latestReturnFileMimeType || null,
+          latestReturnFileUploadedAt: doc.latestReturnFileUploadedAt || null,
           hasFile: doc.hasFile || false,
           hasReviewers: false, // Will be populated from API
           reviewerIds: [] // Will be populated from API
@@ -126,28 +132,91 @@ export default function DraftDocuments() {
     setCurrentPage(1)
   }
 
-  const handleDelete = async (doc) => {
-    setConfirmModal({
-      show: true,
-      title: 'Confirm Delete',
-      message: `Are you sure you want to delete "${doc.title}"? This action cannot be undone.`,
-      onConfirm: async () => {
-        setConfirmModal({ show: false })
-        try {
-          await api.delete(`/documents/${doc.id}`)
-          setAlertModal({ show: true, title: 'Success', message: `"${doc.title}" has been deleted successfully`, type: 'success' })
-          await loadDocuments()
-        } catch (error) {
-          console.error('Failed to delete document:', error)
-          setAlertModal({ show: true, title: 'Error', message: error.response?.data?.message || 'Failed to delete document. Please try again.', type: 'error' })
-        }
-      }
-    })
-  }
-
   const handleReupload = (doc) => {
     setSelectedDocument(doc)
     setShowReuploadModal(true)
+  }
+
+  const hasReturnFile = (doc) => Boolean(doc?.latestReturnFileVersionId)
+
+  const isPreviewableReturnFile = (doc) => {
+    const mime = String(doc?.latestReturnFileMimeType || '').toLowerCase()
+    const name = String(doc?.latestReturnFileName || '').toLowerCase()
+    return (
+      mime.includes('pdf') ||
+      mime.includes('image/') ||
+      mime.includes('officedocument.wordprocessingml') ||
+      mime.includes('msword') ||
+      name.endsWith('.pdf') ||
+      name.endsWith('.docx') ||
+      name.endsWith('.doc') ||
+      name.endsWith('.png') ||
+      name.endsWith('.jpg') ||
+      name.endsWith('.jpeg') ||
+      name.endsWith('.gif') ||
+      name.endsWith('.bmp')
+    )
+  }
+
+  const handleViewReturnFile = (doc) => {
+    if (!hasReturnFile(doc)) return
+    setReturnFileDocument({
+      id: doc.id,
+      documentId: doc.id,
+      versionId: doc.latestReturnFileVersionId,
+      fileCode: doc.fileCode,
+      title: `${doc.title} - Reviewed File`,
+      version: doc.version,
+      fileName: doc.latestReturnFileName
+    })
+    setReturnFileViewerOpen(true)
+  }
+
+  const handleDownloadReturnFile = async (doc) => {
+    if (!hasReturnFile(doc)) return
+
+    try {
+      const res = await api.get(`/documents/${doc.id}/download`, {
+        params: { versionId: doc.latestReturnFileVersionId },
+        responseType: 'blob'
+      })
+
+      const contentDisposition = res.headers?.['content-disposition'] || ''
+      const contentTypeHeader = res.headers?.['content-type'] || ''
+      const getFileNameFromContentDisposition = (value) => {
+        const v = String(value || '')
+        const mStar = v.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+        if (mStar && mStar[1]) {
+          try {
+            return decodeURIComponent(mStar[1].trim().replace(/^"|"$/g, ''))
+          } catch {
+            return mStar[1].trim().replace(/^"|"$/g, '')
+          }
+        }
+        const m = v.match(/filename\s*=\s*("?)([^";]+)\1/i)
+        if (m && m[2]) return m[2].trim()
+        return null
+      }
+
+      const fallbackName = doc.latestReturnFileName || `${doc.fileCode || 'reviewed-file'}`
+      const downloadName = getFileNameFromContentDisposition(contentDisposition) || fallbackName
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: contentTypeHeader || undefined }))
+      const link = window.document.createElement('a')
+      link.href = url
+      link.setAttribute('download', downloadName)
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download reviewed file:', error)
+      setAlertModal({
+        show: true,
+        title: t('failed_load_doc'),
+        message: error.response?.data?.message || t('failed_load_doc'),
+        type: 'error'
+      })
+    }
   }
 
   const formatLatestRemarkMeta = (doc) => {
@@ -221,14 +290,6 @@ export default function DraftDocuments() {
 
   return (
     <>
-      <ConfirmModal
-        show={confirmModal.show}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        type="danger"
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal({ show: false })}
-      />
       <AlertModal
         show={alertModal.show}
         title={alertModal.title}
@@ -255,6 +316,8 @@ export default function DraftDocuments() {
         document={remarksDocument}
         remarks={remarks}
         loading={remarksLoading}
+        onViewReviewedFile={isPreviewableReturnFile(remarksDocument) ? handleViewReturnFile : null}
+        onDownloadReviewedFile={handleDownloadReturnFile}
         onClose={() => {
           setRemarksModalOpen(false)
           setRemarksDocument(null)
@@ -262,6 +325,16 @@ export default function DraftDocuments() {
           setRemarksLoading(false)
         }}
       />
+
+      {returnFileViewerOpen && returnFileDocument ? (
+        <DocumentViewerModal
+          document={returnFileDocument}
+          onClose={() => {
+            setReturnFileViewerOpen(false)
+            setReturnFileDocument(null)
+          }}
+        />
+      ) : null}
       
       <div className="p-6 space-y-6" data-tour-id="drafts-page">
       {/* Page Header */}
@@ -415,14 +488,34 @@ export default function DraftDocuments() {
                       <div className="space-y-1">
                         <StatusBadge status={doc.status} />
                         {doc.latestReturnRemark && doc.status === 'Return for Amendments' ? (
-                          <button
-                            onClick={() => handleViewRemarks(doc)}
-                            className="block max-w-[240px] text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
-                            title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
-                          >
-                            {t('latest_remark')}
-                            {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
-                          </button>
+                          <div className="space-y-1">
+                            <button
+                              onClick={() => handleViewRemarks(doc)}
+                              className="block max-w-[240px] text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                              title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
+                            >
+                              {t('latest_remark')}
+                              {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
+                            </button>
+                            {hasReturnFile(doc) ? (
+                              <div className="flex flex-wrap gap-2">
+                                {isPreviewableReturnFile(doc) ? (
+                                  <button
+                                    onClick={() => handleViewReturnFile(doc)}
+                                    className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                                  >
+                                    {t('view_reviewed_file')}
+                                  </button>
+                                ) : null}
+                                <button
+                                  onClick={() => handleDownloadReturnFile(doc)}
+                                  className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                                >
+                                  {t('download_reviewed_file')}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
                         ) : null}
                       </div>
                     </td>
@@ -430,18 +523,25 @@ export default function DraftDocuments() {
                       <ActionMenu
                         actions={[
                           ...(doc.status === 'Return for Amendments'
+                            ? [
+                                ...(hasReturnFile(doc) && isPreviewableReturnFile(doc)
+                                  ? [{ label: t('view_reviewed_file'), onClick: () => handleViewReturnFile(doc) }]
+                                  : []
+                                ),
+                                ...(hasReturnFile(doc)
+                                  ? [{ label: t('download_reviewed_file'), onClick: () => handleDownloadReturnFile(doc) }]
+                                  : []
+                                ),
+                              ]
+                            : []
+                          ),
+                          ...(doc.status === 'Return for Amendments'
                             ? [{ label: t('view_remarks'), onClick: () => handleViewRemarks(doc) }]
                             : []
                           ),
                           ...(doc.status === 'Return for Amendments' && hasPermission('documents.draft', 'update')
                             ? [
                           { label: t('reupload_file'), onClick: () => handleReupload(doc) }
-                              ]
-                            : []
-                          ),
-                          ...(hasPermission('documents.draft', 'delete')
-                            ? [
-                                { label: t('delete'), onClick: () => handleDelete(doc), variant: 'destructive' }
                               ]
                             : []
                           )
@@ -487,15 +587,24 @@ export default function DraftDocuments() {
                   <ActionMenu
                     actions={[
                       ...(doc.status === 'Return for Amendments'
+                        ? [
+                            ...(hasReturnFile(doc) && isPreviewableReturnFile(doc)
+                              ? [{ label: t('view_reviewed_file'), onClick: () => handleViewReturnFile(doc) }]
+                              : []
+                            ),
+                            ...(hasReturnFile(doc)
+                              ? [{ label: t('download_reviewed_file'), onClick: () => handleDownloadReturnFile(doc) }]
+                              : []
+                            ),
+                          ]
+                        : []
+                      ),
+                      ...(doc.status === 'Return for Amendments'
                         ? [{ label: t('view_remarks'), onClick: () => handleViewRemarks(doc) }]
                         : []
                       ),
                       ...(doc.status === 'Return for Amendments' && hasPermission('documents.draft', 'update')
                         ? [{ label: t('reupload_file'), onClick: () => handleReupload(doc) }]
-                        : []
-                      ),
-                      ...(hasPermission('documents.draft', 'delete')
-                        ? [{ label: t('delete'), onClick: () => handleDelete(doc), variant: 'destructive' }]
                         : []
                       )
                     ]}
@@ -508,14 +617,34 @@ export default function DraftDocuments() {
                   <span className="text-xs text-gray-500">v{doc.version}</span>
                 </div>
                 {doc.latestReturnRemark && doc.status === 'Return for Amendments' ? (
-                  <button
-                    onClick={() => handleViewRemarks(doc)}
-                    className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
-                    title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
-                  >
-                    {t('latest_remark')}
-                    {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
-                  </button>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => handleViewRemarks(doc)}
+                      className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                      title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
+                    >
+                      {t('latest_remark')}
+                      {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
+                    </button>
+                    {hasReturnFile(doc) ? (
+                      <div className="flex flex-wrap gap-2">
+                        {isPreviewableReturnFile(doc) ? (
+                          <button
+                            onClick={() => handleViewReturnFile(doc)}
+                            className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                          >
+                            {t('view_reviewed_file')}
+                          </button>
+                        ) : null}
+                        <button
+                          onClick={() => handleDownloadReturnFile(doc)}
+                          className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                        >
+                          {t('download_reviewed_file')}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 <div className="text-xs text-gray-500">
                   <p>{t('by_author')} {doc.createdBy}</p>
@@ -556,18 +685,25 @@ export default function DraftDocuments() {
                   <ActionMenu
                     actions={[
                       ...(doc.status === 'Return for Amendments'
+                        ? [
+                            ...(hasReturnFile(doc) && isPreviewableReturnFile(doc)
+                              ? [{ label: t('view_reviewed_file'), onClick: () => handleViewReturnFile(doc) }]
+                              : []
+                            ),
+                            ...(hasReturnFile(doc)
+                              ? [{ label: t('download_reviewed_file'), onClick: () => handleDownloadReturnFile(doc) }]
+                              : []
+                            ),
+                          ]
+                        : []
+                      ),
+                      ...(doc.status === 'Return for Amendments'
                         ? [{ label: t('view_remarks'), onClick: () => handleViewRemarks(doc) }]
                         : []
                       ),
                       ...(doc.status === 'Return for Amendments' && hasPermission('documents.draft', 'update')
                         ? [
                             { label: t('reupload_file'), onClick: () => handleReupload(doc) }
-                          ]
-                        : []
-                      ),
-                      ...(hasPermission('documents.draft', 'delete')
-                        ? [
-                            { label: t('delete'), onClick: () => handleDelete(doc), variant: 'destructive' }
                           ]
                         : []
                       )
@@ -578,14 +714,34 @@ export default function DraftDocuments() {
                   <StatusBadge status={doc.status} />
                 </div>
                 {doc.latestReturnRemark && doc.status === 'Return for Amendments' ? (
-                  <button
-                    onClick={() => handleViewRemarks(doc)}
-                    className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
-                    title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
-                  >
-                    {t('latest_remark')}
-                    {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
-                  </button>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => handleViewRemarks(doc)}
+                      className="w-full text-left text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2 truncate"
+                      title={`${t('latest_remark')}${formatLatestRemarkMeta(doc)}: ${doc.latestReturnRemark}`}
+                    >
+                      {t('latest_remark')}
+                      {formatLatestRemarkMeta(doc)}: {normalizeRemarkSnippet(doc.latestReturnRemark)}
+                    </button>
+                    {hasReturnFile(doc) ? (
+                      <div className="flex flex-wrap gap-2">
+                        {isPreviewableReturnFile(doc) ? (
+                          <button
+                            onClick={() => handleViewReturnFile(doc)}
+                            className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                          >
+                            {t('view_reviewed_file')}
+                          </button>
+                        ) : null}
+                        <button
+                          onClick={() => handleDownloadReturnFile(doc)}
+                          className="text-xs text-blue-700 hover:text-blue-800 underline underline-offset-2"
+                        >
+                          {t('download_reviewed_file')}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>

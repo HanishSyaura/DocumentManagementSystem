@@ -684,6 +684,16 @@ class DocumentController {
       const latestVersion = doc.versions && doc.versions.length > 0 ? doc.versions[0] : null;
       const latestReturn = doc.approvalHistory && doc.approvalHistory.length > 0 ? doc.approvalHistory[0] : null;
       const latestReturnUser = latestReturn?.user || null;
+      const latestVersionUploadedAt = latestVersion?.uploadedAt ? new Date(latestVersion.uploadedAt).getTime() : null;
+      const latestReturnAt = latestReturn?.createdAt ? new Date(latestReturn.createdAt).getTime() : null;
+      const isReturnFileMatch = Boolean(
+        latestVersion &&
+        latestReturn &&
+        latestVersion.uploadedById === latestReturn.userId &&
+        latestVersionUploadedAt &&
+        latestReturnAt &&
+        Math.abs(latestVersionUploadedAt - latestReturnAt) <= 5 * 60 * 1000
+      );
       
       return {
         id: doc.id,
@@ -705,6 +715,10 @@ class DocumentController {
         latestReturnRemarkBy: latestReturnUser
           ? `${latestReturnUser.firstName || ''} ${latestReturnUser.lastName || ''}`.trim() || latestReturnUser.email || ''
           : null,
+        latestReturnFileVersionId: isReturnFileMatch ? latestVersion.id : null,
+        latestReturnFileName: isReturnFileMatch ? latestVersion.fileName : null,
+        latestReturnFileMimeType: isReturnFileMatch ? latestVersion.mimeType : null,
+        latestReturnFileUploadedAt: isReturnFileMatch ? latestVersion.uploadedAt : null,
         createdBy: doc.createdBy ? `${doc.createdBy.firstName || ''} ${doc.createdBy.lastName || ''}`.trim() || doc.createdBy.email : '',
         owner: doc.owner ? `${doc.owner.firstName || ''} ${doc.owner.lastName || ''}`.trim() || doc.owner.email : '',
         createdAt: doc.createdAt,

@@ -20,7 +20,7 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
         {
           id: 'documents.draft',
           name: 'Draft Documents',
-          actions: ['view', 'create', 'update', 'delete']
+          actions: ['view', 'create', 'update']
         },
         {
           id: 'documents.review',

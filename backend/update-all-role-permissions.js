@@ -7,7 +7,7 @@ const rolePermissions = {
   // Administrator - all 80 permissions
   admin: {
     dashboard: { view: true },
-    'documents.draft': { view: true, create: true, update: true, delete: true },
+    'documents.draft': { view: true, create: true, update: true },
     'documents.review': { view: true, read: true, review: true, approve: true, reject: true },
     'documents.published': { view: true, read: true, create: true, update: true, delete: true, download: true },
     'documents.superseded': { view: true, read: true, create: true, update: true, download: true },
@@ -35,7 +35,7 @@ const rolePermissions = {
   // Document Controller - manages document lifecycle
   document_controller: {
     dashboard: { view: true },
-    'documents.draft': { view: true, create: true, update: true, delete: true },
+    'documents.draft': { view: true, create: true, update: true },
     'documents.review': { view: true, read: true, review: true, approve: true, reject: true },
     'documents.published': { view: true, read: true, create: true, update: true, delete: true, download: true },
     'documents.superseded': { view: true, read: true, create: true, update: true, download: true },
@@ -88,7 +88,7 @@ const rolePermissions = {
   // Drafter - can create and edit drafts
   drafter: {
     dashboard: { view: true },
-    'documents.draft': { view: true, create: true, update: true, delete: true },
+    'documents.draft': { view: true, create: true, update: true },
     'documents.review': { view: true, read: true },
     'documents.published': { view: true, read: true, download: true },
     newDocumentRequest: { view: true, create: true },

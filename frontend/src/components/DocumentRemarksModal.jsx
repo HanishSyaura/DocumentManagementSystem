@@ -2,7 +2,7 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 
-export default function DocumentRemarksModal({ isOpen, document, remarks, loading, onClose }) {
+export default function DocumentRemarksModal({ isOpen, document, remarks, loading, onClose, onViewReviewedFile, onDownloadReviewedFile }) {
   const { t, formatDateTime } = usePreferences()
 
   if (!isOpen) return null
@@ -41,6 +41,30 @@ export default function DocumentRemarksModal({ isOpen, document, remarks, loadin
             <div className="text-center py-10 text-gray-500">{t('no_remarks_found')}</div>
           ) : (
             <div className="space-y-4">
+              {document?.latestReturnFileVersionId ? (
+                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                  <div className="text-sm font-medium text-blue-900">{t('reviewed_file_available')}</div>
+                  <div className="text-xs text-blue-800 mt-1">{document?.latestReturnFileName || '-'}</div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {typeof onViewReviewedFile === 'function' ? (
+                      <button
+                        onClick={() => onViewReviewedFile(document)}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        {t('view_reviewed_file')}
+                      </button>
+                    ) : null}
+                    {typeof onDownloadReviewedFile === 'function' ? (
+                      <button
+                        onClick={() => onDownloadReviewedFile(document)}
+                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        {t('download_reviewed_file')}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
               {items.map((r) => (
                 <div key={r.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

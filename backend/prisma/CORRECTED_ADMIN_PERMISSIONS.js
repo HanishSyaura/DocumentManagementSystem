@@ -14,7 +14,6 @@ const correctedAdminPermissions = {
     create: true,    // "New Draft" button
     read: true,      // Can view draft details
     update: true,    // "Reupload File" button
-    delete: true,    // "Delete" button
     submit: true     // Can submit for review
   },
 

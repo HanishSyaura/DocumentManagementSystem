@@ -5,6 +5,28 @@ const documentAssignmentService = require('./documentAssignmentService');
 const projectTrackingService = require('./projectTrackingService');
 
 class WorkflowService {
+  async saveWorkflowFileVersion(document, documentId, userId, file) {
+    if (!file) return null;
+
+    const fileStorageService = require('./fileStorageService');
+    const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
+    const fileName = fileStorageService.generateUniqueFileName(file.originalname);
+    const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
+
+    return prisma.documentVersion.create({
+      data: {
+        documentId,
+        version: document.version,
+        filePath: finalPath,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        uploadedById: userId,
+        isPublished: false
+      }
+    });
+  }
+
   /**
    * Submit document for review
    * Transition: DRAFT → PENDING_REVIEW / REVIEW
@@ -109,24 +131,7 @@ class WorkflowService {
 
       // Upload reviewed file if provided
       if (file) {
-        const fileStorageService = require('./fileStorageService');
-        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
-        const fileName = fileStorageService.generateUniqueFileName(file.originalname);
-        const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
-
-        // Create new document version for reviewed file
-        await prisma.documentVersion.create({
-          data: {
-            documentId,
-            version: document.version,
-            filePath: finalPath,
-            fileName: file.originalname,
-            mimeType: file.mimetype,
-            fileSize: file.size,
-            uploadedById: userId,
-            isPublished: false
-          }
-        });
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
       }
 
       if (skipApproval) {
@@ -242,6 +247,10 @@ class WorkflowService {
 
       return updated;
     } else if (action === 'RETURN') {
+      if (file) {
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
+      }
+
       // Return to draft
       const updated = await prisma.document.update({
         where: { id: documentId },
@@ -316,23 +325,7 @@ class WorkflowService {
     if (action === 'APPROVE') {
       // Upload approved file if provided
       if (file) {
-        const fileStorageService = require('./fileStorageService');
-        const { absolutePath} = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
-        const fileName = fileStorageService.generateUniqueFileName(file.originalname);
-        const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
-
-        await prisma.documentVersion.create({
-          data: {
-            documentId,
-            version: document.version,
-            filePath: finalPath,
-            fileName: file.originalname,
-            mimeType: file.mimetype,
-            fileSize: file.size,
-            uploadedById: userId,
-            isPublished: false
-          }
-        });
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
       }
 
       // If second approver assigned, move to second approval
@@ -412,6 +405,10 @@ class WorkflowService {
 
       return updated;
     } else if (action === 'RETURN') {
+      if (file) {
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
+      }
+
       // Return to draft for amendments
       const updated = await prisma.document.update({
         where: { id: documentId },
@@ -463,23 +460,7 @@ class WorkflowService {
     if (action === 'APPROVE') {
       // Upload approved file if provided
       if (file) {
-        const fileStorageService = require('./fileStorageService');
-        const { absolutePath } = fileStorageService.getDocumentPath(document.fileCode, document.projectCategoryId || null);
-        const fileName = fileStorageService.generateUniqueFileName(file.originalname);
-        const finalPath = await fileStorageService.saveFile(file, absolutePath, fileName);
-
-        await prisma.documentVersion.create({
-          data: {
-            documentId,
-            version: document.version,
-            filePath: finalPath,
-            fileName: file.originalname,
-            mimeType: file.mimetype,
-            fileSize: file.size,
-            uploadedById: userId,
-            isPublished: false
-          }
-        });
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
       }
 
       // Mark as ready to publish
@@ -528,6 +509,10 @@ class WorkflowService {
 
       return updated;
     } else if (action === 'RETURN') {
+      if (file) {
+        await this.saveWorkflowFileVersion(document, documentId, userId, file);
+      }
+
       // Return to draft for amendments
       const updated = await prisma.document.update({
         where: { id: documentId },

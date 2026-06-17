@@ -25,8 +25,8 @@ async function main() {
         description: 'Can create and edit draft documents',
         isSystem: true,
         permissions: JSON.stringify({
-          documents: ['create', 'read', 'update', 'delete'],
-          drafts: ['create', 'read', 'update', 'delete', 'submit']
+          documents: ['create', 'read', 'update'],
+          drafts: ['create', 'read', 'update', 'submit']
         })
       },
       {
