@@ -4,7 +4,12 @@ const { ForbiddenError, BadRequestError, NotFoundError } = require('../utils/err
 class FolderPermissionService {
   isAdminRoleNames(roleNames) {
     const roles = Array.isArray(roleNames) ? roleNames : []
-    return roles.some((r) => ['admin', 'administrator'].includes(String(r || '').toLowerCase()))
+    return roles.some((r) => {
+      const name = String(r || '').toLowerCase()
+      if (!name) return false
+      if (['admin', 'administrator', 'system administrator', 'system_admin', 'system-admin'].includes(name)) return true
+      return name.includes('administrator') || name.includes('admin')
+    })
   }
 
   async getRoleIdsByNames(roleNames) {
@@ -72,6 +77,7 @@ class FolderPermissionService {
     const roleNames = user?.roles || []
 
     if (String(folder.accessMode || 'PUBLIC').toUpperCase() === 'PUBLIC') return true
+    if (this.isAdminRoleNames(roleNames)) return true
 
     const roleIds = await this.getRoleIdsByNames(roleNames)
     const folderIds = []
