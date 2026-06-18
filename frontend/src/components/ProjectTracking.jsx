@@ -10,7 +10,10 @@ import PageHeader from './ui/PageHeader'
 import AppSurface from './ui/AppSurface'
 import Button from './ui/Button'
 import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import SelectField from './ui/SelectField'
 import InlineSpinner from './ui/InlineSpinner'
+import EmptyPanelState from './ui/EmptyPanelState'
 import { TableContainer, Table, Th, Td, Tr } from './ui/Table'
 
 function ItemStatusBadge({ status }) {
@@ -372,41 +375,42 @@ function DocumentAccessModal({ document, onClose, onSaved, onError }) {
   return (
     <ModalShell title="Manage Confidential Access" onClose={onClose}>
       {loading ? (
-        <div className="text-sm text-gray-500">Loading access settings...</div>
+        <div className="text-sm text-ink-muted">Loading access settings...</div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="text-sm font-semibold text-gray-900">{document.fileCode}</div>
-            <div className="text-sm text-gray-600 mt-1">{document.title}</div>
+          <AppSurface padding="md" variant="muted">
+            <div className="text-sm font-semibold text-ink">{document.fileCode}</div>
+            <div className="mt-1 text-sm text-ink-muted">{document.title}</div>
             <div className="mt-2 flex items-center gap-2">
               <DocumentStatusBadge status={document.status} />
-              <span className="text-xs text-gray-500">{`Workflow stage: ${document.stage || '-'}`}</span>
+              <span className="text-xs text-ink-soft">{`Workflow stage: ${document.stage || '-'}`}</span>
             </div>
-          </div>
+          </AppSurface>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-ink-secondary">
             <input
               type="checkbox"
               checked={isConfidential}
               onChange={(e) => setIsConfidential(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-brand focus-visible:ring-2 focus-visible:ring-brand/30"
             />
             Mark this document as confidential
           </label>
 
           {!isConfidential ? (
-            <div className="text-sm text-gray-500">When confidential is off, normal document visibility rules apply.</div>
+            <div className="text-sm text-ink-muted">When confidential is off, normal document visibility rules apply.</div>
           ) : (
             <>
               <div>
-                <div className="text-xs font-medium text-gray-500 mb-1">Allowed viewers</div>
+                <div className="mb-1 text-xs font-semibold text-ink-soft">Allowed viewers</div>
                 {accessEntries.length === 0 ? (
-                  <div className="text-sm text-gray-500">No extra viewers added yet. Only creator/owner and users with global confidential permission will have access.</div>
+                  <div className="text-sm text-ink-muted">No extra viewers added yet. Only creator/owner and users with global confidential permission will have access.</div>
                 ) : (
                   <div className="space-y-2">
                     {accessEntries.map((e) => (
-                      <div key={`${e.subjectType}:${e.subjectId}`} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 px-3 py-2">
-                        <div className="text-sm text-gray-800">{e.label}</div>
-                        <button type="button" onClick={() => removeAccessEntry(e)} className="text-sm text-red-600 hover:underline">
+                      <div key={`${e.subjectType}:${e.subjectId}`} className="flex items-center justify-between gap-3 rounded-dms border border-border bg-surface px-3 py-2">
+                        <div className="text-sm text-ink-secondary">{e.label}</div>
+                        <button type="button" onClick={() => removeAccessEntry(e)} className="text-sm font-semibold text-[var(--dms-color-danger-ink)] hover:underline">
                           Remove
                         </button>
                       </div>
@@ -415,31 +419,32 @@ function DocumentAccessModal({ document, onClose, onSaved, onError }) {
                 )}
               </div>
 
-              <div className="rounded-lg border border-gray-200 p-3 space-y-3">
-                <div className="text-xs font-medium text-gray-500">Add user or role</div>
+              <AppSurface padding="md" variant="panel" className="space-y-3">
+                <div className="text-xs font-semibold text-ink-soft">Add user or role</div>
                 <div className="flex gap-2">
-                  <input
+                  <TextInput
                     value={accessQuery}
                     onChange={(e) => setAccessQuery(e.target.value)}
                     placeholder="Search user email/name or role..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                    className="flex-1"
                   />
-                  <button type="button" onClick={searchSubjects} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+                  <Button type="button" variant="secondary" onClick={searchSubjects} disabled={loadingSubjects}>
+                    {loadingSubjects && <InlineSpinner className="h-4 w-4" />}
                     {loadingSubjects ? 'Searching...' : 'Search'}
-                  </button>
+                  </Button>
                 </div>
 
                 {(subjectResults.roles.length > 0 || subjectResults.users.length > 0) && (
-                  <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
+                  <AppSurface padding="none" variant="panel" className="max-h-56 overflow-auto">
                     {subjectResults.roles.map((r) => (
                       <button
                         key={`role:${r.id}`}
                         type="button"
                         onClick={() => addAccessEntry({ subjectType: 'ROLE', subjectId: r.id, label: `${r.displayName || r.name} (Role)` })}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                        className="w-full border-b border-border px-3 py-2 text-left text-sm transition-colors hover:bg-surface-muted last:border-b-0"
                       >
-                        <div className="font-medium text-gray-900">{r.displayName || r.name}</div>
-                        <div className="text-xs text-gray-500">Role</div>
+                        <div className="font-semibold text-ink">{r.displayName || r.name}</div>
+                        <div className="text-xs text-ink-soft">Role</div>
                       </button>
                     ))}
                     {subjectResults.users.map((u) => (
@@ -447,25 +452,24 @@ function DocumentAccessModal({ document, onClose, onSaved, onError }) {
                         key={`user:${u.id}`}
                         type="button"
                         onClick={() => addAccessEntry({ subjectType: 'USER', subjectId: u.id, label: `${`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email} (User)` })}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0"
+                        className="w-full border-b border-border px-3 py-2 text-left text-sm transition-colors hover:bg-surface-muted last:border-b-0"
                       >
-                        <div className="font-medium text-gray-900">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</div>
-                        <div className="text-xs text-gray-500">{u.email}</div>
+                        <div className="font-semibold text-ink">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email}</div>
+                        <div className="text-xs text-ink-soft">{u.email}</div>
                       </button>
                     ))}
-                  </div>
+                  </AppSurface>
                 )}
-              </div>
+              </AppSurface>
             </>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-              Close
-            </button>
-            <button type="button" disabled={saving} onClick={save} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+            <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
+            <Button type="button" disabled={saving} onClick={save}>
+              {saving && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
               {saving ? 'Saving...' : 'Save Access'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -505,56 +509,42 @@ function ActivityModal({ projectId, onClose }) {
   return (
     <ModalShell title="Project Activity Logs" onClose={onClose}>
       {loading ? (
-        <div className="text-sm text-gray-500">Loading project activity logs...</div>
+        <div className="text-sm text-ink-muted">Loading project activity logs...</div>
       ) : logs.length === 0 ? (
-        <div className="text-sm text-gray-500">No project activity logs recorded yet.</div>
+        <div className="text-sm text-ink-muted">No project activity logs recorded yet.</div>
       ) : (
         <div className="space-y-3">
-          <div className="text-sm text-gray-500">This view only shows logs recorded for this specific project and its phases.</div>
-          <div className="overflow-x-auto border border-gray-200 rounded-md">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scope</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                </tr>
+          <div className="text-sm text-ink-muted">This view only shows logs recorded for this specific project and its phases.</div>
+          <TableContainer>
+            <Table>
+              <thead>
+                <Tr className="hover:bg-transparent">
+                  <Th>Time</Th>
+                  <Th>User</Th>
+                  <Th>Scope</Th>
+                  <Th>Action</Th>
+                  <Th>Description</Th>
+                </Tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {logs.map((l) => (
-                  <tr key={l.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.user}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.entity === 'ProjectIteration' ? 'Phase' : 'Project'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 whitespace-nowrap">{l.action}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">{l.description}</td>
-                  </tr>
+                  <Tr key={l.id}>
+                    <Td className="whitespace-nowrap">{new Date(l.timestamp).toLocaleString()}</Td>
+                    <Td className="whitespace-nowrap">{l.user}</Td>
+                    <Td className="whitespace-nowrap">{l.entity === 'ProjectIteration' ? 'Phase' : 'Project'}</Td>
+                    <Td className="whitespace-nowrap">{l.action}</Td>
+                    <Td>{l.description}</Td>
+                  </Tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableContainer>
 
           <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">{`Page ${page} of ${totalPages}`}</div>
+            <div className="text-xs text-ink-soft">{`Page ${page} of ${totalPages}`}</div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => load(page - 1)}
-                className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => load(page + 1)}
-                className="px-3 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
+              <Button type="button" variant="secondary" size="sm" disabled={page <= 1} onClick={() => load(page - 1)}>Prev</Button>
+              <Button type="button" variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => load(page + 1)}>Next</Button>
             </div>
           </div>
         </div>
@@ -584,35 +574,32 @@ function AddStageModal({ onClose, onCreate }) {
   return (
     <ModalShell title="Add New Stage" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-ink-muted">
           Add a new stage for the selected project category. This stage will appear in the stage flow and can be reordered after creation.
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Stage Name</label>
-          <input
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Stage Name</label>
+          <TextInput
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             placeholder="Example: UAT"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Display Label</label>
-          <input
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Display Label</label>
+          <TextInput
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             placeholder="Optional label shown to users"
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Adding...' : 'Add Stage'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -637,28 +624,26 @@ function PhaseModal({ mode, phase, nextPhaseNo, onClose, onSubmit }) {
   return (
     <ModalShell title={isEdit ? 'Rename Phase' : 'Add New Phase'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-ink-muted">
           {isEdit
             ? 'Update the name shown to users for this project phase.'
             : `Create Phase ${nextPhaseNo || '-'} with a custom name instead of the default iteration label.`}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phase Name</label>
-          <input
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Phase Name</label>
+          <TextInput
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             placeholder="Example: Pilot Rollout, Wave 2, UAT"
             required
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Phase' : 'Create Phase')}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -667,23 +652,23 @@ function PhaseModal({ mode, phase, nextPhaseNo, onClose, onSubmit }) {
 
 function AssignmentSummary({ phaseLabel, stageLabel, documentTypeLabel, modeLabel }) {
   return (
-    <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
-      <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">{modeLabel}</div>
+    <AppSurface padding="md" variant="panel" className="border border-[var(--dms-color-border-default)] bg-[var(--dms-color-info-soft)]">
+      <div className="text-xs font-semibold uppercase tracking-wide text-[var(--dms-color-info-ink)]">{modeLabel}</div>
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <div className="text-xs font-medium text-gray-500">Phase</div>
-          <div className="text-sm font-semibold text-gray-900">{phaseLabel || '-'}</div>
+          <div className="text-xs font-semibold text-ink-soft">Phase</div>
+          <div className="text-sm font-semibold text-ink">{phaseLabel || '-'}</div>
         </div>
         <div>
-          <div className="text-xs font-medium text-gray-500">Stage</div>
-          <div className="text-sm font-semibold text-gray-900">{stageLabel || '-'}</div>
+          <div className="text-xs font-semibold text-ink-soft">Stage</div>
+          <div className="text-sm font-semibold text-ink">{stageLabel || '-'}</div>
         </div>
         <div>
-          <div className="text-xs font-medium text-gray-500">Document Type</div>
-          <div className="text-sm font-semibold text-gray-900">{documentTypeLabel || 'Choose in form below'}</div>
+          <div className="text-xs font-semibold text-ink-soft">Document Type</div>
+          <div className="text-sm font-semibold text-ink">{documentTypeLabel || 'Choose in form below'}</div>
         </div>
       </div>
-    </div>
+    </AppSurface>
   )
 }
 
@@ -754,27 +739,30 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, stageIte
           documentTypeLabel="Keep original document type"
         />
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Find Existing Document</label>
+          <label className="block text-sm font-semibold text-ink-secondary">Find Existing Document</label>
           <div className="flex gap-2">
-            <input
+            <TextInput
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+              className="flex-1"
               placeholder="Search globally by file code or title..."
             />
-            <button type="button" onClick={() => search(query)} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+            <Button type="button" variant="secondary" onClick={() => search(query)} disabled={loading}>
+              {loading && <InlineSpinner className="h-4 w-4" />}
               Search All
-            </button>
+            </Button>
           </div>
-          <div className="text-xs text-gray-500">Search covers all accessible documents in the system, including published documents outside this project.</div>
+          <div className="text-xs text-ink-soft">Search covers all accessible documents in the system, including published documents outside this project.</div>
           <div className="flex flex-wrap gap-2 pt-1">
             {['ALL', 'PUBLISHED', 'DRAFT'].map((filterValue) => (
               <button
                 key={filterValue}
                 type="button"
                 onClick={() => setStatusFilter(filterValue)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  statusFilter === filterValue ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  statusFilter === filterValue
+                    ? 'border-white/10 bg-brand text-ink-inverse'
+                    : 'border-border bg-surface text-ink-secondary hover:bg-surface-muted hover:text-ink'
                 }`}
               >
                 {filterValue === 'ALL' ? 'All' : filterValue === 'PUBLISHED' ? 'Published' : 'Draft'}
@@ -782,41 +770,42 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, stageIte
             ))}
           </div>
           {filteredResults.length > 0 && (
-            <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
+            <AppSurface padding="none" variant="panel" className="max-h-56 overflow-auto">
               {filteredResults.map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setDocumentId(String(r.id))}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0 ${
-                    String(r.id) === String(documentId) ? 'bg-blue-50' : ''
+                  className={`w-full border-b border-border px-3 py-2 text-left text-sm transition-colors hover:bg-surface-muted last:border-b-0 ${
+                    String(r.id) === String(documentId) ? 'bg-surface-muted' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{getDocumentCodeLabel(r.document || r)}</div>
-                  <div className="text-gray-600">{getDocumentTitleLabel(r.document || r)}</div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="font-semibold text-ink">{getDocumentCodeLabel(r.document || r)}</div>
+                  <div className="text-ink-secondary">{getDocumentTitleLabel(r.document || r)}</div>
+                  <div className="mt-1 text-xs text-ink-soft">
                     {r.document?.documentType?.name || r.item?.documentType?.name || 'Document type unavailable'}
                   </div>
                   <div className="mt-1 inline-flex items-center gap-2">
                     <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
                     <DocumentStatusBadge status={r.document?.status || r.status} />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="mt-1 text-xs text-ink-soft">
                     {`${r.iteration?.project?.code || '-'} • ${getPhaseTitle(r.iteration, 'Phase')} • ${r.stage?.name || '-'}`}
                   </div>
                 </button>
               ))}
-            </div>
+            </AppSurface>
           )}
           {!loading && query.trim().length >= 2 && filteredResults.length === 0 && (
-            <div className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500">
-              {results.length === 0
-                ? 'No matching documents found. Try file code prefix, full file code, or part of the title.'
-                : 'No documents match the selected status filter.'}
-            </div>
+            <EmptyPanelState
+              title={results.length === 0 ? 'No matching documents found' : 'No documents match the selected status'}
+              description={results.length === 0
+                ? 'Try file code prefix, full file code, or part of the title.'
+                : 'Try switching the status filter.'}
+            />
           )}
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-ink-soft">
           {documentId
             ? matchingItem
               ? `Selected document will be linked under required item: ${matchingItem.documentType?.name || 'Document Type'}.`
@@ -824,12 +813,11 @@ function StageLinkDocumentModal({ projectId, iterationId, phase, stage, stageIte
             : 'Search and select one document from the list above.'}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading || !documentId} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading || !documentId} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Attaching...' : 'Attach'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -874,50 +862,46 @@ function StageCreateDocumentModal({ iterationId, phase, stage, stageItems = [], 
           stageLabel={stage?.name}
           documentTypeLabel={documentTypes.find((d) => String(d.id) === String(documentTypeId))?.name || null}
         />
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-ink-soft">
           {matchingItem
             ? `This document type matches a required checklist item, so the new document will appear under ${matchingItem.documentType?.name || 'that required row'}.`
             : 'No required checklist item matches this document type, so the new document will be linked under Other Documents for this stage.'}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
-          <select
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Document Type</label>
+          <SelectField
             value={documentTypeId}
             onChange={(e) => setDocumentTypeId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             required
           >
             <option value="">Select</option>
             {documentTypes.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
-          </select>
+          </SelectField>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <input
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Title</label>
+          <TextInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Description</label>
+          <TextArea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             rows={3}
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -989,9 +973,9 @@ function CreateProjectModal({ onClose, onCreated }) {
   return (
     <ModalShell title="Create Project" onClose={onClose} maxWidthClass="max-w-5xl">
       <form onSubmit={submit} className="space-y-4">
-        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <AppSurface padding="md" variant="panel" className="border border-[var(--dms-color-border-default)] bg-[var(--dms-color-info-soft)] text-[var(--dms-color-info-ink)]">
           Capture the core project brief here. `Project Category` is kept because it drives the workflow stages and document checklist templates.
-        </div>
+        </AppSurface>
         <ProjectFormFields
           form={form}
           setForm={setForm}
@@ -1001,12 +985,11 @@ function CreateProjectModal({ onClose, onCreated }) {
           stageStatusLabel="Will follow the initial workflow stage after creation"
         />
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -1074,27 +1057,30 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
           documentTypeLabel={item.documentType?.name}
         />
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Find Existing Document</label>
+          <label className="block text-sm font-semibold text-ink-secondary">Find Existing Document</label>
           <div className="flex gap-2">
-            <input
+            <TextInput
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+              className="flex-1"
               placeholder="Search globally by file code or title..."
             />
-            <button type="button" onClick={() => search(query)} className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900">
+            <Button type="button" variant="secondary" onClick={() => search(query)} disabled={loading}>
+              {loading && <InlineSpinner className="h-4 w-4" />}
               Search All
-            </button>
+            </Button>
           </div>
-          <div className="text-xs text-gray-500">Search covers all accessible documents in the system, including published documents outside this project.</div>
+          <div className="text-xs text-ink-soft">Search covers all accessible documents in the system, including published documents outside this project.</div>
           <div className="flex flex-wrap gap-2 pt-1">
             {['ALL', 'PUBLISHED', 'DRAFT'].map((filterValue) => (
               <button
                 key={filterValue}
                 type="button"
                 onClick={() => setStatusFilter(filterValue)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  statusFilter === filterValue ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                  statusFilter === filterValue
+                    ? 'border-white/10 bg-brand text-ink-inverse'
+                    : 'border-border bg-surface text-ink-secondary hover:bg-surface-muted hover:text-ink'
                 }`}
               >
                 {filterValue === 'ALL' ? 'All' : filterValue === 'PUBLISHED' ? 'Published' : 'Draft'}
@@ -1102,47 +1088,47 @@ function LinkDocumentModal({ projectId, item, phase, onClose, onLinked }) {
             ))}
           </div>
           {filteredResults.length > 0 && (
-            <div className="max-h-56 overflow-auto border border-gray-200 rounded-md">
+            <AppSurface padding="none" variant="panel" className="max-h-56 overflow-auto">
               {filteredResults.map((r) => (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setDocumentId(String(r.id))}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-b-0 ${
-                    String(r.id) === String(documentId) ? 'bg-blue-50' : ''
+                  className={`w-full border-b border-border px-3 py-2 text-left text-sm transition-colors hover:bg-surface-muted last:border-b-0 ${
+                    String(r.id) === String(documentId) ? 'bg-surface-muted' : ''
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{getDocumentCodeLabel(r.document || r)}</div>
-                  <div className="text-gray-600">{getDocumentTitleLabel(r.document || r)}</div>
+                  <div className="font-semibold text-ink">{getDocumentCodeLabel(r.document || r)}</div>
+                  <div className="text-ink-secondary">{getDocumentTitleLabel(r.document || r)}</div>
                   <div className="mt-1 inline-flex items-center gap-2">
                     <ConfidentialBadge isConfidential={r.document?.isConfidential || r.isConfidential} />
                     <DocumentStatusBadge status={r.document?.status || r.status} />
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="mt-1 text-xs text-ink-soft">
                     {`${r.iteration?.project?.code || '-'} • ${getPhaseTitle(r.iteration, 'Phase')} • ${r.stage?.name || '-'}`}
                   </div>
                 </button>
               ))}
-            </div>
+            </AppSurface>
           )}
           {!loading && query.trim().length >= 2 && filteredResults.length === 0 && (
-            <div className="rounded-md border border-dashed border-gray-300 px-3 py-4 text-sm text-gray-500">
-              {results.length === 0
-                ? 'No matching documents found. Try file code prefix, full file code, or part of the title.'
-                : 'No documents match the selected status filter.'}
-            </div>
+            <EmptyPanelState
+              title={results.length === 0 ? 'No matching documents found' : 'No documents match the selected status'}
+              description={results.length === 0
+                ? 'Try file code prefix, full file code, or part of the title.'
+                : 'Try switching the status filter.'}
+            />
           )}
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-ink-soft">
           {documentId ? 'Selected document ready to attach.' : 'Search and select one document from the list above.'}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading || !documentId} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading || !documentId} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Attaching...' : 'Attach'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
@@ -1182,32 +1168,29 @@ function CreateDocumentModal({ item, phase, onClose, onCreated }) {
           stageLabel={item.stage?.name}
           documentTypeLabel={item.documentType?.name}
         />
-        <div className="text-xs text-gray-500">Create a new document for this required item and link it automatically.</div>
+        <div className="text-xs text-ink-soft">Create a new document for this required item and link it automatically.</div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-          <input
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Title</label>
+          <TextInput
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea
+          <label className="mb-1 block text-xs font-semibold text-ink-soft">Description</label>
+          <TextArea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
             rows={3}
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button disabled={loading} type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button disabled={loading} type="submit">
+            {loading && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
             {loading ? 'Creating...' : 'Create'}
-          </button>
+          </Button>
         </div>
       </form>
     </ModalShell>
