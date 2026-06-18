@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { normalizeAppPath } from '../../utils/normalizeUrl'
 
 export default function AppTopbarBrand({
@@ -8,9 +9,13 @@ export default function AppTopbarBrand({
   compact = false
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <Link
+      to="/dashboard"
+      className="group flex min-w-0 items-center gap-3 rounded-2xl px-1.5 py-1 transition-colors hover:bg-topbar-surfaceHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--dms-color-accent)]"
+      aria-label="Go to dashboard"
+    >
       {logo ? (
-        <div className="flex h-10 items-center rounded-xl bg-white px-2 shadow-dms-soft">
+        <div className="flex h-10 items-center rounded-xl border border-topbar-border bg-surface px-2 shadow-dms-soft">
           <img
             src={normalizeAppPath(logo)}
             alt="Company Logo"
@@ -18,7 +23,7 @@ export default function AppTopbarBrand({
           />
         </div>
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-brand shadow-dms-soft">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-topbar-border bg-surface text-sm font-bold text-brand shadow-dms-soft">
           {String(companyName || 'FN').substring(0, 2).toUpperCase()}
         </div>
       )}
@@ -29,6 +34,6 @@ export default function AppTopbarBrand({
           <span className="text-xs text-white/75">{appLabel}</span>
         </div>
       )}
-    </div>
+    </Link>
   )
 }

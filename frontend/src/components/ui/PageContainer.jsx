@@ -1,9 +1,9 @@
 import React from 'react'
 
 const sizeMap = {
-  default: '',
-  wide: 'max-w-[1600px]',
-  dashboard: 'max-w-[1480px]'
+  default: null,
+  wide: '1600px',
+  dashboard: '1440px'
 }
 
 export default function PageContainer({
@@ -12,11 +12,15 @@ export default function PageContainer({
   size = 'default',
   ...props
 }) {
+  const sizeValue = sizeMap[size] ?? sizeMap.default
+  const style = sizeValue
+    ? { ...(props.style || {}), '--dms-page-container-max': sizeValue }
+    : props.style
+
   const classes = [
     'dms-page-container',
-    sizeMap[size] || sizeMap.default,
     className
   ].filter(Boolean).join(' ')
 
-  return <div className={classes} {...props}>{children}</div>
+  return <div className={classes} {...props} style={style}>{children}</div>
 }

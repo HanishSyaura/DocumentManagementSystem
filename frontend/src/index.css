@@ -92,8 +92,8 @@ body {
   --dms-font-size-xl: 20px;
   --dms-font-size-2xl: 28px;
   --dms-layout-topbar-height: 56px;
-  --dms-layout-sidebar-width: 272px;
-  --dms-layout-sidebar-width-lg: 288px;
+  --dms-layout-sidebar-width: 240px;
+  --dms-layout-sidebar-width-lg: 256px;
   --dms-layout-sidebar-collapsed: 72px;
   --dms-layout-rightpanel-width: 320px;
   --dms-layout-page-max: 1440px;
@@ -125,12 +125,26 @@ body {
 
 .dms-page-container {
   width: 100%;
-  max-width: var(--dms-layout-page-max);
+  max-width: var(--dms-page-container-max, var(--dms-layout-page-max));
   margin: 0 auto;
   padding-left: var(--dms-layout-page-gutter-mobile);
   padding-right: var(--dms-layout-page-gutter-mobile);
   padding-top: var(--dms-space-4);
   padding-bottom: var(--dms-space-6);
+}
+
+@media (min-width: 768px) {
+  .dms-page-container {
+    padding-left: var(--dms-layout-page-gutter-tablet);
+    padding-right: var(--dms-layout-page-gutter-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dms-page-container {
+    padding-left: var(--dms-layout-page-gutter-desktop);
+    padding-right: var(--dms-layout-page-gutter-desktop);
+  }
 }
 
 .dms-text-muted {
