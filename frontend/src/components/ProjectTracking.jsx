@@ -14,6 +14,7 @@ import TextArea from './ui/TextArea'
 import SelectField from './ui/SelectField'
 import InlineSpinner from './ui/InlineSpinner'
 import EmptyPanelState from './ui/EmptyPanelState'
+import SectionHeader from './ui/SectionHeader'
 import { TableContainer, Table, Th, Td, Tr } from './ui/Table'
 import IconButton from './ui/IconButton'
 
@@ -1942,203 +1943,254 @@ function ProjectDetail({ projectId }) {
           title={project.name}
           subtitle="Track required documents, stage evidence, and confidential access for each phase."
           actions={(
-            <>
-              <Button variant="secondary" onClick={() => setShowActivity(true)}>Activity Logs</Button>
-              {canEdit && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setEditChangeRequest(null)
-                    setShowChangeRequestModal(true)
-                  }}
-                  disabled={!selectedIterationId}
-                >
-                  Key In Change Request
-                </Button>
-              )}
-              {canEdit && isProjectActive && (
-                <Button
-                  variant="secondary"
-                  className="bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)] hover:opacity-90"
-                  onClick={() =>
-                    setConfirmModal({
-                      show: true,
-                      title: 'Put Project On Hold',
-                      message: 'Pause project progress for now? Existing documents stay available and you can resume later.',
-                      onConfirm: () => updateProjectStatus('ON_HOLD')
-                    })
-                  }
-                >
-                  Put On Hold
-                </Button>
-              )}
-              {canEdit && isProjectOnHold && (
-                <Button
-                  variant="secondary"
-                  className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
-                  onClick={() =>
-                    setConfirmModal({
-                      show: true,
-                      title: 'Resume Project',
-                      message: 'Resume this project and allow progress actions again?',
-                      onConfirm: () => updateProjectStatus('ACTIVE')
-                    })
-                  }
-                >
-                  Resume Project
-                </Button>
-              )}
-              {canEdit && isProjectClosed && (
-                <Button
-                  variant="secondary"
-                  className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
-                  onClick={() =>
-                    setConfirmModal({
-                      show: true,
-                      title: 'Reopen Project',
-                      message: 'Reopen this closed project and allow progress actions again?',
-                      onConfirm: () => updateProjectStatus('ACTIVE')
-                    })
-                  }
-                >
-                  Reopen Project
-                </Button>
-              )}
-              {canEdit && !isProjectClosed && (
-                <Button
-                  variant="danger"
-                  className="bg-[var(--dms-color-danger-ink)] text-ink-inverse hover:opacity-90"
-                  onClick={() =>
-                    setConfirmModal({
-                      show: true,
-                      title: 'Close Project',
-                      message: 'Close this project? Linked documents will remain available, but no further progress actions will be required.',
-                      onConfirm: () => updateProjectStatus('CLOSED')
-                    })
-                  }
-                >
-                  Close Project
-                </Button>
-              )}
-              {canEdit && (
-                <Button variant="secondary" onClick={() => setShowEditProject(true)}>Edit</Button>
-              )}
-              {canCreate && (
-                <Button variant="primary" onClick={() => setShowCreatePhase(true)} disabled={!isProjectActive}>
-                  Add Next Phase
-                </Button>
-              )}
-              {canAdvance && (
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    setConfirmModal({
-                      show: true,
-                      title: 'Move To Next Stage',
-                      message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
-                      onConfirm: advanceStage
-                    })
-                  }
-                  disabled={advancing || !selectedIterationId || !isProjectActive}
-                >
-                  {advancing ? <><InlineSpinner className="h-4 w-4" />Moving...</> : 'Move To Next Stage'}
-                </Button>
-              )}
-              {canDelete && (
-                <Button variant="danger" onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Delete Project',
-                    message: 'Delete this project? All iterations and tracking links under it will be removed.',
-                    onConfirm: deleteProject
-                  })
-                }>
-                  Delete
-                </Button>
-              )}
-            </>
+            <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setShowActivity(true)}>Activity Logs</Button>
+                {canEdit ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setEditChangeRequest(null)
+                      setShowChangeRequestModal(true)
+                    }}
+                    disabled={!selectedIterationId}
+                  >
+                    Key In Change Request
+                  </Button>
+                ) : null}
+                {canEdit ? (
+                  <Button size="sm" variant="secondary" onClick={() => setShowEditProject(true)}>Edit</Button>
+                ) : null}
+              </div>
+
+              <div className="hidden h-8 w-px bg-border md:block" />
+
+              <div className="flex flex-wrap items-center gap-2">
+                {canCreate ? (
+                  <Button size="sm" variant="primary" onClick={() => setShowCreatePhase(true)} disabled={!isProjectActive}>
+                    Add Next Phase
+                  </Button>
+                ) : null}
+                {canAdvance ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Move To Next Stage',
+                        message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
+                        onConfirm: advanceStage
+                      })
+                    }
+                    disabled={advancing || !selectedIterationId || !isProjectActive}
+                  >
+                    {advancing ? <><InlineSpinner className="h-4 w-4" />Moving...</> : 'Move To Next Stage'}
+                  </Button>
+                ) : null}
+              </div>
+
+              <div className="hidden h-8 w-px bg-border md:block" />
+
+              <div className="flex flex-wrap items-center gap-2">
+                {canEdit && isProjectActive ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)] hover:opacity-90"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Put Project On Hold',
+                        message: 'Pause project progress for now? Existing documents stay available and you can resume later.',
+                        onConfirm: () => updateProjectStatus('ON_HOLD')
+                      })
+                    }
+                  >
+                    Put On Hold
+                  </Button>
+                ) : null}
+                {canEdit && isProjectOnHold ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Resume Project',
+                        message: 'Resume this project and allow progress actions again?',
+                        onConfirm: () => updateProjectStatus('ACTIVE')
+                      })
+                    }
+                  >
+                    Resume Project
+                  </Button>
+                ) : null}
+                {canEdit && isProjectClosed ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Reopen Project',
+                        message: 'Reopen this closed project and allow progress actions again?',
+                        onConfirm: () => updateProjectStatus('ACTIVE')
+                      })
+                    }
+                  >
+                    Reopen Project
+                  </Button>
+                ) : null}
+                {canEdit && !isProjectClosed ? (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Close Project',
+                        message: 'Close this project? Linked documents will remain available, but no further progress actions will be required.',
+                        onConfirm: () => updateProjectStatus('CLOSED')
+                      })
+                    }
+                  >
+                    Close Project
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() =>
+                      setConfirmModal({
+                        show: true,
+                        title: 'Delete Project',
+                        message: 'Delete this project? All iterations and tracking links under it will be removed.',
+                        onConfirm: deleteProject
+                      })
+                    }
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           )}
         />
 
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <ProjectStatusBadge status={project.status} />
-          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{project.projectCategory?.name || '-'}</span>
-          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{`Manager: ${managerLabel}`}</span>
-          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Status</div>
+            <div className="mt-2">
+              <ProjectStatusBadge status={project.status} />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Category</div>
+            <div className="mt-2 text-sm font-medium text-ink">{project.projectCategory?.name || '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Manager</div>
+            <div className="mt-2 text-sm font-medium text-ink">{managerLabel}</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Current Stage</div>
+            <div className="mt-2 text-sm font-medium text-ink">{selectedPhase?.currentStage?.name || 'Not set'}</div>
+          </div>
         </div>
       </AppSurface>
 
       <AppSurface padding="lg">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <SectionHeader
+          title="Project Information"
+          subtitle="All details captured in the project form, arranged for quick reference."
+          actions={(
+            <span className="rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">
+              {`Lifecycle: ${formatLifecycleStatus(project.status)}`}
+            </span>
+          )}
+        />
+
+        <div className="mt-5 space-y-5">
           <div>
-            <div className="text-sm font-semibold text-ink">Project Card Information</div>
-            <div className="mt-1 text-sm text-ink-muted">All details captured in the project form are shown here for quick reference.</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Overview</div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-surface-muted px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Code / Reference Number</div>
+                <div className="mt-2 font-mono text-sm text-ink">{project.code || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client Name</div>
+                <div className="mt-2 text-sm font-medium text-ink">{project.clientName || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client PIC</div>
+                <div className="mt-2 text-sm font-medium text-ink">{project.clientPic || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Internal Project Manager</div>
+                <div className="mt-2 text-sm font-medium text-ink">{managerLabel}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Category</div>
+                <div className="mt-2 text-sm font-medium text-ink">{project.projectCategory?.name || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Current Stage</div>
+                <div className="mt-2 text-sm font-medium text-ink">{selectedPhase?.currentStage?.name || 'Not set'}</div>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-ink-secondary">{`Lifecycle Status: ${formatLifecycleStatus(project.status)}`}</div>
-        </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-surface-muted px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Code / Reference Number</div>
-              <div className="mt-1 font-mono text-sm text-ink">{project.code || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client Name</div>
-              <div className="mt-1 text-sm text-ink">{project.clientName || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client PIC</div>
-              <div className="mt-1 text-sm text-ink">{project.clientPic || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Internal Project Manager</div>
-              <div className="mt-1 text-sm text-ink">{managerLabel}</div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Dates</div>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Start Date</div>
-                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.startDate)}</div>
+                <div className="mt-2 text-sm font-medium text-ink">{formatDateLabel(project.startDate)}</div>
               </div>
-              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Planned Completion Date</div>
-                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.plannedCompletionDate)}</div>
+                <div className="mt-2 text-sm font-medium text-ink">{formatDateLabel(project.plannedCompletionDate)}</div>
               </div>
-              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Actual Completion Date</div>
-                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.actualCompletionDate)}</div>
+                <div className="mt-2 text-sm font-medium text-ink">{formatDateLabel(project.actualCompletionDate)}</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Team Members</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.teamMembers || '-'}</div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Team</div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Team Members</div>
+                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.teamMembers || '-'}</div>
+              </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Scope</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.scope || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Objective</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.objective || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Deliverables</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.deliverables || '-'}</div>
-            </div>
-
-            <div className="rounded-xl border border-border bg-surface px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Description</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.description || '-'}</div>
+            <div className="space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Scope</div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Scope</div>
+                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.scope || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Objective</div>
+                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.objective || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Deliverables</div>
+                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.deliverables || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Description</div>
+                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.description || '-'}</div>
+              </div>
             </div>
           </div>
         </div>
