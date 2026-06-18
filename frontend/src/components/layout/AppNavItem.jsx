@@ -10,7 +10,7 @@ export default function AppNavItem({
 }) {
   const baseClasses = collapsed
     ? 'justify-center px-2 py-3'
-    : 'gap-3 px-3.5 py-3'
+    : 'gap-3 px-3 py-2.5'
 
   const stateClasses = active
     ? 'bg-sidebar-active text-sidebar-text shadow-dms-soft'
@@ -23,7 +23,7 @@ export default function AppNavItem({
       data-tour-id={item.tourId}
       title={collapsed ? item.name : undefined}
       className={[
-        'group relative flex items-center rounded-2xl text-sm font-medium transition-all duration-200',
+        'group relative flex items-center rounded-2xl text-[12px] font-medium leading-4 transition-all duration-200 lg:text-[13px]',
         baseClasses,
         stateClasses,
         isTourTarget ? 'ring-2 ring-[var(--dms-color-accent)] animate-pulse' : ''
@@ -35,7 +35,7 @@ export default function AppNavItem({
       <span className={['shrink-0 transition-transform', active ? 'scale-105' : ''].join(' ')}>
         {item.icon}
       </span>
-      {!collapsed && <span className="truncate">{item.name}</span>}
+      {!collapsed && <span className="min-w-0 flex-1 whitespace-normal break-words">{item.name}</span>}
       {collapsed && (
         <span className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-border bg-surface-strong px-2 py-1 text-xs text-ink opacity-0 translate-x-1 shadow-dms-lg transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
           {item.name}
