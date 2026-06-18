@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import ReactDOM from 'react-dom'
 import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
 import { applyTheme, persistBranding, persistLandingPageSettings, readCompanyInfo, readLandingPageSettings, readThemeSettings } from '../utils/branding'
@@ -8,6 +7,7 @@ import AppSurface from './ui/AppSurface'
 import Button from './ui/Button'
 import TextInput from './ui/TextInput'
 import SelectField from './ui/SelectField'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
 
 // Sub-tab Navigation
 function SubTabNavigation({ activeTab, onTabChange }) {
@@ -518,38 +518,36 @@ function LandingPageSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <AppSurface padding="lg" className="bg-[var(--dms-color-info-soft)]">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--dms-color-info-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 className="text-sm font-semibold text-blue-900">{t('gss_lp_content_mgr')}</h3>
-            <p className="text-xs text-blue-800 mt-1">{t('gss_lp_content_mgr_desc')}</p>
+            <h3 className="text-sm font-semibold text-[var(--dms-color-info-ink)]">{t('gss_lp_content_mgr')}</h3>
+            <p className="mt-1 text-xs text-[var(--dms-color-info-ink)]/85">{t('gss_lp_content_mgr_desc')}</p>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Quick Actions */}
       <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-ink-muted">
           <span className="font-medium">7 Sections</span> • Customize content, images, and layout
         </div>
-        <button onClick={handlePreview} className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-          👁 {t('gss_lp_preview')}
-        </button>
+        <Button type="button" variant="secondary" onClick={handlePreview}>{t('gss_lp_preview')}</Button>
       </div>
 
       {/* Hero Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-4">{t('gss_lp_hero')}</h4>
+      <AppSurface padding="lg">
+        <h4 className="mb-4 font-medium text-ink">{t('gss_lp_hero')}</h4>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">{t('gss_lp_headline')}</label>
-            <input type="text" value={content.heroHeadline} onChange={(e) => setContent(prev => ({ ...prev, heroHeadline: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">{t('gss_lp_headline')}</label>
+            <TextInput type="text" value={content.heroHeadline} onChange={(e) => setContent(prev => ({ ...prev, heroHeadline: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">{t('gss_lp_subheadline')}</label>
+            <label className="mb-2 block text-sm font-medium text-ink">{t('gss_lp_subheadline')}</label>
             <MarkdownEditor
               value={content.heroSubheadline}
               onChange={(val) => setContent(prev => ({ ...prev, heroSubheadline: val }))}
@@ -557,12 +555,12 @@ function LandingPageSettings() {
             />
           </div>
 
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Image</label>
+          <div className="border-t border-border pt-4">
+            <label className="mb-2 block text-sm font-medium text-ink">Section Image</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {content.heroImage && (
-                  <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <div className="mb-2 rounded-lg border border-border bg-[var(--dms-color-success-soft)] px-3 py-2 text-sm text-[var(--dms-color-success-ink)]">
                     ✓ Image uploaded (see preview)
                   </div>
                 )}
@@ -570,31 +568,33 @@ function LandingPageSettings() {
                   type="file" 
                   accept="image/*" 
                   onChange={(e) => handleSectionImageUpload('heroImage', e)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface-muted file:px-4 file:py-2 file:text-sm file:text-ink-secondary hover:file:bg-surface"
                 />
-                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
+                <p className="mt-1 text-xs text-ink-muted">{maxLpImageHint}</p>
                 {content.heroImage && (
-                  <button 
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
                     onClick={() => setContent(prev => ({ ...prev, heroImage: null }))} 
-                    className="mt-2 w-full px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                    className="mt-2 w-full"
                   >
                     Remove Image
-                  </button>
+                  </Button>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-2">Image Position</label>
-                <select 
+                <label className="mb-2 block text-xs text-ink-muted">Image Position</label>
+                <SelectField
                   value={content.heroImagePosition} 
                   onChange={(e) => setContent(prev => ({ ...prev, heroImagePosition: e.target.value }))} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white"
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
-                </select>
+                </SelectField>
                 {content.heroImage && (
-                  <div className="mt-2 border rounded-lg p-2 bg-gray-50">
-                    <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                  <div className="mt-2 rounded-lg border border-border bg-surface-muted p-2">
+                    <p className="mb-2 text-xs text-ink-muted">Preview:</p>
                     <img src={content.heroImage} alt="Hero" className="w-full h-32 object-contain rounded" />
                   </div>
                 )}
@@ -602,18 +602,18 @@ function LandingPageSettings() {
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* What is DMS Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-4">{t('gss_lp_about')}</h4>
+      <AppSurface padding="lg">
+        <h4 className="mb-4 font-medium text-ink">{t('gss_lp_about')}</h4>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Title</label>
-            <input type="text" value={content.aboutTitle} onChange={(e) => setContent(prev => ({ ...prev, aboutTitle: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Section Title</label>
+            <TextInput type="text" value={content.aboutTitle} onChange={(e) => setContent(prev => ({ ...prev, aboutTitle: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Main Description</label>
+            <label className="mb-2 block text-sm font-medium text-ink">Main Description</label>
             <MarkdownEditor
               value={content.aboutDescription}
               onChange={(val) => setContent(prev => ({ ...prev, aboutDescription: val }))}
@@ -621,20 +621,20 @@ function LandingPageSettings() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Sub Description</label>
+            <label className="mb-2 block text-sm font-medium text-ink">Sub Description</label>
             <MarkdownEditor
               value={content.aboutSubDescription}
               onChange={(val) => setContent(prev => ({ ...prev, aboutSubDescription: val }))}
               rows={2}
             />
           </div>
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Image (Optional)</label>
-            <p className="text-xs text-gray-600 mb-2">Upload a custom image to replace the default gradient icon</p>
+          <div className="border-t border-border pt-4">
+            <label className="mb-2 block text-sm font-medium text-ink">Section Image (Optional)</label>
+            <p className="mb-2 text-xs text-ink-muted">Upload a custom image to replace the default gradient icon</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {content.aboutImage && (
-                  <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <div className="mb-2 rounded-lg border border-border bg-[var(--dms-color-success-soft)] px-3 py-2 text-sm text-[var(--dms-color-success-ink)]">
                     ✓ Image uploaded (see preview)
                   </div>
                 )}
@@ -642,31 +642,33 @@ function LandingPageSettings() {
                   type="file" 
                   accept="image/*" 
                   onChange={(e) => handleSectionImageUpload('aboutImage', e)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface-muted file:px-4 file:py-2 file:text-sm file:text-ink-secondary hover:file:bg-surface"
                 />
-                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
+                <p className="mt-1 text-xs text-ink-muted">{maxLpImageHint}</p>
                 {content.aboutImage && (
-                  <button 
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
                     onClick={() => setContent(prev => ({ ...prev, aboutImage: null }))} 
-                    className="mt-2 w-full px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                    className="mt-2 w-full"
                   >
                     Remove Image
-                  </button>
+                  </Button>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-2">Image Position</label>
-                <select 
+                <label className="mb-2 block text-xs text-ink-muted">Image Position</label>
+                <SelectField
                   value={content.aboutImagePosition} 
                   onChange={(e) => setContent(prev => ({ ...prev, aboutImagePosition: e.target.value }))} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white"
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
-                </select>
+                </SelectField>
                 {content.aboutImage && (
-                  <div className="mt-2 border rounded-lg p-2 bg-gray-50">
-                    <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                  <div className="mt-2 rounded-lg border border-border bg-surface-muted p-2">
+                    <p className="mb-2 text-xs text-ink-muted">Preview:</p>
                     <img src={content.aboutImage} alt="About" className="w-full h-32 object-contain rounded" />
                   </div>
                 )}
@@ -674,7 +676,7 @@ function LandingPageSettings() {
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Key Features Section */}
       <div className="border border-gray-200 rounded-lg p-4">
@@ -2310,221 +2312,206 @@ const ThemeBranding = () => {
   return (
     <div className="space-y-6">
       {/* Confirmation Modal */}
-      {showConfirmModal && hasChanges && ReactDOM.createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
+      {showConfirmModal && hasChanges && (
+        <Modal onClose={handleKeepChanges} size="sm">
+          <ModalHeader
+            title="Keep Theme Changes?"
+            subtitle="You've made changes to the theme. Would you like to keep these changes or revert to the previous theme?"
+            onClose={handleKeepChanges}
+          />
+          <ModalBody>
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[var(--dms-color-info-soft)] text-[var(--dms-color-info-ink)]">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                 </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Keep Theme Changes?</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  You've made changes to the theme. Would you like to keep these changes or revert to the previous theme?
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleRevertChanges}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Revert Changes
-                  </button>
-                  <button
-                    onClick={handleKeepChanges}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Keep Changes
-                  </button>
-                </div>
-              </div>
+              <p className="text-sm leading-6 text-ink-secondary">
+                Preview mode is active. Keep the new branding if it looks right, or revert to the previous theme before users see it.
+              </p>
             </div>
-          </div>
-        </div>,
-        document.body
+          </ModalBody>
+          <ModalFooter className="justify-between">
+            <Button type="button" variant="secondary" onClick={handleRevertChanges}>
+              Revert Changes
+            </Button>
+            <Button type="button" onClick={handleKeepChanges}>
+              Keep Changes
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <AppSurface padding="lg" className="bg-[var(--dms-color-info-soft)]">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--dms-color-info-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
           </svg>
           <div>
-            <h3 className="text-sm font-semibold text-blue-900">Theme & Branding Manager</h3>
-            <p className="text-xs text-blue-800 mt-1">Customize colors, logos, and visual identity. Changes apply instantly with a confirmation dialog.</p>
+            <h3 className="text-sm font-semibold text-[var(--dms-color-info-ink)]">Theme & Branding Manager</h3>
+            <p className="mt-1 text-xs text-[var(--dms-color-info-ink)]/85">Customize colors, logos, and visual identity. Changes apply instantly with a confirmation dialog.</p>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Quick Theme Presets - Moved to top */}
-      <div className="border border-gray-200 rounded-lg p-4 bg-gradient-to-r from-blue-50 to-purple-50">
-        <div className="flex items-center justify-between mb-3">
+      <AppSurface padding="lg" className="bg-surface-muted">
+        <div className="mb-3 flex items-center justify-between">
           <div>
-            <h4 className="font-medium text-gray-900">🎨 Quick Theme Presets</h4>
-            <p className="text-xs text-gray-600 mt-1">Start with a pre-designed theme, then customize to your needs</p>
+            <h4 className="font-medium text-ink">Quick Theme Presets</h4>
+            <p className="mt-1 text-xs text-ink-muted">Start with a pre-designed theme, then customize to your needs</p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={exportTheme}
-              className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50"
-            >
-              📥 Export
-            </button>
-            <button
-              onClick={importTheme}
-              className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50"
-            >
-              📤 Import
-            </button>
+            <Button type="button" size="sm" variant="secondary" onClick={exportTheme}>Export</Button>
+            <Button type="button" size="sm" variant="secondary" onClick={importTheme}>Import</Button>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
           {/* Default */}
           <button
             onClick={() => applyPreset('default')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#0f6fcf' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#10B981' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Default</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Default</span>
           </button>
           
           {/* Corporate */}
           <button
             onClick={() => applyPreset('corporate')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#003366' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#0066CC' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Corporate</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Corporate</span>
           </button>
           
           {/* Modern */}
           <button
             onClick={() => applyPreset('modern')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#6366F1' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#8B5CF6' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Modern</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Modern</span>
           </button>
           
           {/* Minimal */}
           <button
             onClick={() => applyPreset('minimal')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#000000' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#666666' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Minimal</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Minimal</span>
           </button>
           
           {/* Vibrant */}
           <button
             onClick={() => applyPreset('vibrant')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#FF6B6B' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#4ECDC4' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Vibrant</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Vibrant</span>
           </button>
           
           {/* Ocean */}
           <button
             onClick={() => applyPreset('ocean')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#006994' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#00A9CE' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Ocean</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Ocean</span>
           </button>
           
           {/* Forest */}
           <button
             onClick={() => applyPreset('forest')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#065F46' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#059669' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Forest</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Forest</span>
           </button>
           
           {/* Sunset */}
           <button
             onClick={() => applyPreset('sunset')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#C2410C' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#EA580C' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Sunset</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Sunset</span>
           </button>
           
           {/* Midnight */}
           <button
             onClick={() => applyPreset('midnight')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#1E293B' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#334155' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Midnight</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Midnight</span>
           </button>
           
           {/* Rose */}
           <button
             onClick={() => applyPreset('rose')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#BE123C' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#E11D48' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Rose</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Rose</span>
           </button>
           
           {/* Lavender */}
           <button
             onClick={() => applyPreset('lavender')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#7C3AED' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#A78BFA' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Lavender</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Lavender</span>
           </button>
           
           {/* Amber */}
           <button
             onClick={() => applyPreset('amber')}
-            className="group flex flex-col items-center gap-2 p-3 text-center border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:shadow-md transition-all bg-white"
+            className="group flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface p-3 text-center transition-all hover:border-brand hover:shadow-dms-soft"
           >
             <div className="flex gap-1">
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#D97706' }}></div>
               <div className="w-5 h-5 rounded" style={{ backgroundColor: '#F59E0B' }}></div>
             </div>
-            <span className="text-xs font-medium text-gray-900 group-hover:text-blue-600">Amber</span>
+            <span className="text-xs font-medium text-ink group-hover:text-brand">Amber</span>
           </button>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Branding Assets */}
       <div className="space-y-4">
