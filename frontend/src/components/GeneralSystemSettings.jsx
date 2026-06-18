@@ -679,23 +679,23 @@ function LandingPageSettings() {
       </AppSurface>
 
       {/* Key Features Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-gray-900">{t('gss_lp_features')}</h4>
-          <button onClick={handleAddFeature} className="text-sm text-blue-600 hover:text-blue-700 font-medium">{t('gss_lp_add_feature')}</button>
+      <AppSurface padding="lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="font-medium text-ink">{t('gss_lp_features')}</h4>
+          <Button type="button" size="sm" variant="secondary" onClick={handleAddFeature}>{t('gss_lp_add_feature')}</Button>
         </div>
         <div className="space-y-3">
           {content.features.map((feature, idx) => (
-            <div key={idx} className="border border-gray-200 rounded p-3 bg-gray-50">
+            <div key={idx} className="rounded-xl border border-border bg-surface-muted p-3">
               <div className="space-y-3">
                 {/* Row 1: Title and Description */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   <div className="md:col-span-4">
-                    <label className="block text-xs text-gray-600 mb-1">Feature Title</label>
-                    <input type="text" value={feature.title} onChange={(e) => handleFeatureChange(idx, 'title', e.target.value)} placeholder="Feature Title" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
+                    <label className="mb-1 block text-xs text-ink-muted">Feature Title</label>
+                    <TextInput type="text" value={feature.title} onChange={(e) => handleFeatureChange(idx, 'title', e.target.value)} placeholder="Feature Title" />
                   </div>
                   <div className="md:col-span-7">
-                    <label className="block text-xs text-gray-600 mb-1">Description</label>
+                    <label className="mb-1 block text-xs text-ink-muted">Description</label>
                     <MarkdownEditor
                       value={feature.description}
                       onChange={(val) => handleFeatureChange(idx, 'description', val)}
@@ -703,72 +703,72 @@ function LandingPageSettings() {
                     />
                   </div>
                   <div className="md:col-span-1 flex items-end">
-                    <button onClick={() => handleRemoveFeature(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded w-full" title="Remove">
+                    <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveFeature(idx)} className="w-full" title="Remove">
                       <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 {/* Row 2: Icon Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   <div className="md:col-span-3">
-                    <label className="block text-xs text-gray-600 mb-1">Icon Image Upload</label>
+                    <label className="mb-1 block text-xs text-ink-muted">Icon Image Upload</label>
                     <input 
                       type="file" 
                       accept="image/*" 
                       onChange={(e) => handleIconImageUpload(idx, e)} 
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full rounded-2xl border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface file:px-3 file:py-1 file:text-xs file:text-ink-secondary hover:file:bg-surface-muted"
                     />
-                    <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
+                    <p className="mt-1 text-xs text-ink-muted">{maxLpImageHint}</p>
                   </div>
                   <div className={feature.iconImage ? "md:col-span-3" : "md:col-span-3"}>
-                    <label className="block text-xs text-gray-600 mb-1">Background Color</label>
+                    <label className="mb-1 block text-xs text-ink-muted">Background Color</label>
                     <div className="flex gap-2">
                       <input
                         type="color"
                         value={hexOr(feature.iconBgColor, '#F3F4F6')}
                         onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)}
-                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                        className="h-10 w-16 cursor-pointer rounded border border-border bg-surface"
                       />
-                      <input
+                      <TextInput
                         type="text"
                         value={feature.iconBgColor || ''}
                         onChange={(e) => handleFeatureChange(idx, 'iconBgColor', e.target.value)}
                         placeholder="#F3F4F6"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                        className="flex-1"
                       />
                     </div>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="block text-xs text-gray-600 mb-1">Text Color</label>
+                    <label className="mb-1 block text-xs text-ink-muted">Text Color</label>
                     <div className="flex gap-2">
                       <input
                         type="color"
                         value={hexOr(feature.textColor, '#1F2937')}
                         onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)}
-                        className="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+                        className="h-10 w-16 cursor-pointer rounded border border-border bg-surface"
                       />
-                      <input
+                      <TextInput
                         type="text"
                         value={feature.textColor || ''}
                         onChange={(e) => handleFeatureChange(idx, 'textColor', e.target.value)}
                         placeholder="#1F2937"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none"
+                        className="flex-1"
                       />
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs text-gray-600 mb-1">Preview</label>
+                    <label className="mb-1 block text-xs text-ink-muted">Preview</label>
                     <div
-                      className={`w-full h-10 ${isHexColor(feature.iconBgColor) ? '' : (feature.iconBgColor || 'bg-gray-100')} rounded-lg flex items-center justify-center`}
+                      className={`flex h-10 w-full items-center justify-center rounded-lg ${isHexColor(feature.iconBgColor) ? '' : (feature.iconBgColor || 'bg-surface')}`}
                       style={isHexColor(feature.iconBgColor) ? { backgroundColor: feature.iconBgColor } : undefined}
                     >
                       {feature.iconImage ? (
                         <img src={feature.iconImage} alt="icon" className="h-6 w-6 object-contain" />
                       ) : (
                         <span
-                          className={`text-xs ${isHexColor(feature.textColor) ? '' : (feature.textColor || 'text-gray-400')}`}
+                          className={`text-xs ${isHexColor(feature.textColor) ? '' : (feature.textColor || 'text-ink-soft')}`}
                           style={isHexColor(feature.textColor) ? { color: feature.textColor } : undefined}
                         >
                           No icon
@@ -778,13 +778,16 @@ function LandingPageSettings() {
                   </div>
                   {feature.iconImage && (
                     <div className="md:col-span-2">
-                      <label className="block text-xs text-gray-600 mb-1">Clear Image</label>
-                      <button 
+                      <label className="mb-1 block text-xs text-ink-muted">Clear Image</label>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
                         onClick={() => handleFeatureChange(idx, 'iconImage', null)} 
-                        className="w-full px-3 py-2 text-xs text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                        className="w-full"
                       >
                         Remove Image
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -792,25 +795,25 @@ function LandingPageSettings() {
             </div>
           ))}
         </div>
-      </div>
+      </AppSurface>
 
       {/* User Roles Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-gray-900">{t('gss_lp_roles')}</h4>
-          <button onClick={handleAddRole} className="text-sm text-blue-600 hover:text-blue-700 font-medium">{t('gss_lp_add_role')}</button>
+      <AppSurface padding="lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="font-medium text-ink">{t('gss_lp_roles')}</h4>
+          <Button type="button" size="sm" variant="secondary" onClick={handleAddRole}>{t('gss_lp_add_role')}</Button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Title</label>
-            <input type="text" value={content.rolesTitle} onChange={(e) => setContent(prev => ({ ...prev, rolesTitle: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Section Title</label>
+            <TextInput type="text" value={content.rolesTitle} onChange={(e) => setContent(prev => ({ ...prev, rolesTitle: e.target.value }))} />
           </div>
           <div className="space-y-3">
             {content.roles.map((role, idx) => (
-              <div key={idx} className="border border-gray-200 rounded p-3 bg-gray-50">
+              <div key={idx} className="rounded-xl border border-border bg-surface-muted p-3">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   <div className="md:col-span-3">
-                    <input type="text" value={role.name} onChange={(e) => handleRoleChange(idx, 'name', e.target.value)} placeholder="Role Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
+                    <TextInput type="text" value={role.name} onChange={(e) => handleRoleChange(idx, 'name', e.target.value)} placeholder="Role Name" />
                   </div>
                   <div className="md:col-span-6">
                     <MarkdownEditor
@@ -821,73 +824,73 @@ function LandingPageSettings() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <select value={role.position} onChange={(e) => handleRoleChange(idx, 'position', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                    <SelectField value={role.position} onChange={(e) => handleRoleChange(idx, 'position', e.target.value)}>
                       <option value="center">Center</option>
                       <option value="top">Top</option>
                       <option value="bottom">Bottom</option>
                       <option value="left">Left</option>
                       <option value="right">Right</option>
-                    </select>
+                    </SelectField>
                   </div>
                   <div className="md:col-span-1 flex items-center">
-                    <button onClick={() => handleRemoveRole(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Remove">
+                    <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveRole(idx)} title="Remove">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Workflow Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-gray-900">{t('gss_lp_workflow')}</h4>
-          <button onClick={handleAddWorkflowStep} className="text-sm text-blue-600 hover:text-blue-700 font-medium">{t('gss_lp_add_step')}</button>
+      <AppSurface padding="lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h4 className="font-medium text-ink">{t('gss_lp_workflow')}</h4>
+          <Button type="button" size="sm" variant="secondary" onClick={handleAddWorkflowStep}>{t('gss_lp_add_step')}</Button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Title</label>
-            <input type="text" value={content.workflowTitle} onChange={(e) => setContent(prev => ({ ...prev, workflowTitle: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Section Title</label>
+            <TextInput type="text" value={content.workflowTitle} onChange={(e) => setContent(prev => ({ ...prev, workflowTitle: e.target.value }))} />
           </div>
           <div className="space-y-3">
             {content.workflowSteps.map((step, idx) => (
-              <div key={idx} className="border border-gray-200 rounded p-3 bg-gray-50">
+              <div key={idx} className="rounded-xl border border-border bg-surface-muted p-3">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                   <div className="md:col-span-1 flex items-center justify-center">
-                    <span className="text-sm font-bold text-gray-600">{idx + 1}</span>
+                    <span className="text-sm font-bold text-ink-muted">{idx + 1}</span>
                   </div>
                   <div className="md:col-span-8">
-                    <input type="text" value={step.step} onChange={(e) => handleWorkflowStepChange(idx, 'step', e.target.value)} placeholder="Step Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
+                    <TextInput type="text" value={step.step} onChange={(e) => handleWorkflowStepChange(idx, 'step', e.target.value)} placeholder="Step Name" />
                   </div>
                   <div className="md:col-span-2">
-                    <select value={step.color} onChange={(e) => handleWorkflowStepChange(idx, 'color', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white">
+                    <SelectField value={step.color} onChange={(e) => handleWorkflowStepChange(idx, 'color', e.target.value)}>
                       <option value="cyan">Cyan</option>
                       <option value="blue">Blue</option>
                       <option value="gray">Gray</option>
-                    </select>
+                    </SelectField>
                   </div>
                   <div className="md:col-span-1 flex items-center">
-                    <button onClick={() => handleRemoveWorkflowStep(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Remove">
+                    <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveWorkflowStep(idx)} title="Remove">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Image</label>
+          <div className="border-t border-border pt-4">
+            <label className="mb-2 block text-sm font-medium text-ink">Section Image</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {content.workflowImage && (
-                  <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <div className="mb-2 rounded-lg border border-border bg-[var(--dms-color-success-soft)] px-3 py-2 text-sm text-[var(--dms-color-success-ink)]">
                     ✓ Image uploaded (see preview)
                   </div>
                 )}
@@ -895,33 +898,35 @@ function LandingPageSettings() {
                   type="file" 
                   accept="image/*" 
                   onChange={(e) => handleSectionImageUpload('workflowImage', e)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface-muted file:px-4 file:py-2 file:text-sm file:text-ink-secondary hover:file:bg-surface"
                 />
-                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
+                <p className="mt-1 text-xs text-ink-muted">{maxLpImageHint}</p>
                 {content.workflowImage && (
-                  <button 
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
                     onClick={() => setContent(prev => ({ ...prev, workflowImage: null }))} 
-                    className="mt-2 w-full px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg"
+                    className="mt-2 w-full"
                   >
                     Remove Image
-                  </button>
+                  </Button>
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-2">Image Position</label>
-                <select 
+                <label className="mb-2 block text-xs text-ink-muted">Image Position</label>
+                <SelectField
                   value={content.workflowImagePosition} 
                   onChange={(e) => setContent(prev => ({ ...prev, workflowImagePosition: e.target.value }))} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white"
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
                   <option value="top">Top</option>
                   <option value="bottom">Bottom</option>
-                </select>
+                </SelectField>
                 {content.workflowImage && (
-                  <div className="mt-2 border rounded-lg p-2 bg-gray-50">
-                    <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                  <div className="mt-2 rounded-lg border border-border bg-surface-muted p-2">
+                    <p className="mb-2 text-xs text-ink-muted">Preview:</p>
                     <img src={content.workflowImage} alt="Workflow" className="w-full h-32 object-contain rounded" />
                   </div>
                 )}
@@ -929,18 +934,18 @@ function LandingPageSettings() {
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Contact Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-4">{t('gss_lp_contact')}</h4>
+      <AppSurface padding="lg">
+        <h4 className="mb-4 font-medium text-ink">{t('gss_lp_contact')}</h4>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Contact Title</label>
-            <input type="text" value={content.contactTitle} onChange={(e) => setContent(prev => ({ ...prev, contactTitle: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Contact Title</label>
+            <TextInput type="text" value={content.contactTitle} onChange={(e) => setContent(prev => ({ ...prev, contactTitle: e.target.value }))} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Contact Description</label>
+            <label className="mb-2 block text-sm font-medium text-ink">Contact Description</label>
             <MarkdownEditor
               value={content.contactDescription}
               onChange={(val) => setContent(prev => ({ ...prev, contactDescription: val }))}
@@ -948,33 +953,33 @@ function LandingPageSettings() {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-900">Contact Emails</label>
-              <button onClick={handleAddContactEmail} className="text-xs text-blue-600 hover:text-blue-700">+ Add Email</button>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-sm font-medium text-ink">Contact Emails</label>
+              <Button type="button" size="sm" variant="secondary" onClick={handleAddContactEmail}>Add Email</Button>
             </div>
             <div className="space-y-2">
               {content.contactEmails.map((email, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <input type="email" value={email} onChange={(e) => handleContactEmailChange(idx, e.target.value)} placeholder="email@example.com" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
-                  <button onClick={() => handleRemoveContactEmail(idx)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded" title="Remove">
+                  <TextInput type="email" value={email} onChange={(e) => handleContactEmailChange(idx, e.target.value)} placeholder="email@example.com" className="flex-1" />
+                  <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveContactEmail(idx)} title="Remove">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Contact Phone</label>
-            <input type="tel" value={content.contactPhone} onChange={(e) => setContent(prev => ({ ...prev, contactPhone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Contact Phone</label>
+            <TextInput type="tel" value={content.contactPhone} onChange={(e) => setContent(prev => ({ ...prev, contactPhone: e.target.value }))} />
           </div>
-          <div className="border-t pt-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">Section Image</label>
+          <div className="border-t border-border pt-4">
+            <label className="mb-2 block text-sm font-medium text-ink">Section Image</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {content.contactImage && (
-                  <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  <div className="mb-2 rounded-lg border border-border bg-[var(--dms-color-success-soft)] px-3 py-2 text-sm text-[var(--dms-color-success-ink)]">
                     ✓ Image uploaded (see preview)
                   </div>
                 )}
@@ -982,9 +987,9 @@ function LandingPageSettings() {
                   type="file" 
                   accept="image/*" 
                   onChange={(e) => handleSectionImageUpload('contactImage', e)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface-muted file:px-4 file:py-2 file:text-sm file:text-ink-secondary hover:file:bg-surface"
                 />
-                <p className="text-xs text-gray-500 mt-1">{maxLpImageHint}</p>
+                <p className="mt-1 text-xs text-ink-muted">{maxLpImageHint}</p>
                 {content.contactImage && (
                   <Button
                     type="button"
@@ -998,20 +1003,19 @@ function LandingPageSettings() {
                 )}
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-2">Image Position</label>
-                <select 
+                <label className="mb-2 block text-xs text-ink-muted">Image Position</label>
+                <SelectField
                   value={content.contactImagePosition} 
                   onChange={(e) => setContent(prev => ({ ...prev, contactImagePosition: e.target.value }))} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none bg-white"
                 >
                   <option value="left">Left</option>
                   <option value="right">Right</option>
                   <option value="top">Top</option>
                   <option value="bottom">Bottom</option>
-                </select>
+                </SelectField>
                 {content.contactImage && (
-                  <div className="mt-2 border rounded-lg p-2 bg-gray-50">
-                    <p className="text-xs text-gray-600 mb-2">Preview:</p>
+                  <div className="mt-2 rounded-lg border border-border bg-surface-muted p-2">
+                    <p className="mb-2 text-xs text-ink-muted">Preview:</p>
                     <img src={content.contactImage} alt="Contact" className="w-full h-32 object-contain rounded" />
                   </div>
                 )}
@@ -1019,46 +1023,46 @@ function LandingPageSettings() {
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       {/* Footer Section */}
-      <div className="border border-gray-200 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-4">{t('gss_lp_footer')}</h4>
+      <AppSurface padding="lg">
+        <h4 className="mb-4 font-medium text-ink">{t('gss_lp_footer')}</h4>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Copyright Text</label>
-            <input type="text" value={content.copyrightText} onChange={(e) => setContent(prev => ({ ...prev, copyrightText: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
+            <label className="mb-2 block text-sm font-medium text-ink">Copyright Text</label>
+            <TextInput type="text" value={content.copyrightText} onChange={(e) => setContent(prev => ({ ...prev, copyrightText: e.target.value }))} />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-900">Footer Links</label>
-              <button onClick={handleAddFooterLink} className="text-xs text-blue-600 hover:text-blue-700">+ Add Link</button>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-sm font-medium text-ink">Footer Links</label>
+              <Button type="button" size="sm" variant="secondary" onClick={handleAddFooterLink}>Add Link</Button>
             </div>
             <div className="space-y-3">
               {content.footerLinks.map((link, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                  <div className="flex gap-2 mb-2">
-                    <input type="text" value={link.label} onChange={(e) => handleFooterLinkChange(idx, 'label', e.target.value)} placeholder="Link Label" className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none" />
-                    <button onClick={() => handleRemoveFooterLink(idx)} className="px-3 py-2 text-red-600 hover:bg-red-50 rounded" title="Remove">
+                <div key={idx} className="rounded-xl border border-border bg-surface-muted p-3">
+                  <div className="mb-2 flex gap-2">
+                    <TextInput type="text" value={link.label} onChange={(e) => handleFooterLinkChange(idx, 'label', e.target.value)} placeholder="Link Label" className="flex-1" />
+                    <Button type="button" variant="danger" size="sm" onClick={() => handleRemoveFooterLink(idx)} title="Remove">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </Button>
                   </div>
                   <div>
                     {link.pdf && (
-                      <div className="mb-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                      <div className="mb-2 rounded-lg border border-border bg-[var(--dms-color-success-soft)] px-3 py-2 text-sm text-[var(--dms-color-success-ink)]">
                         ✓ PDF uploaded
                       </div>
                     )}
                     {typeof maxUploadMB === 'number' && Number.isFinite(maxUploadMB) && (
-                      <div className="mb-2 text-xs text-gray-600">Max upload size: {maxUploadMB}MB</div>
+                      <div className="mb-2 text-xs text-ink-muted">Max upload size: {maxUploadMB}MB</div>
                     )}
                     <input 
                       type="file" 
                       accept="application/pdf" 
                       onChange={(e) => handleFooterPdfUpload(idx, e)} 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none file:mr-2 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none file:mr-2 file:rounded-xl file:border-0 file:bg-surface file:px-4 file:py-2 file:text-sm file:text-ink-secondary hover:file:bg-surface-muted"
                     />
                     {link.pdf && (
                       <Button
@@ -1077,7 +1081,7 @@ function LandingPageSettings() {
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       <div className="flex justify-between pt-4">
         <Button onClick={handlePreview} variant="secondary">
