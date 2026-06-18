@@ -6,7 +6,10 @@ export default function AppRightPanelToggle({
   onClick
 }) {
   return (
-    <div className="fixed right-0 top-20 z-30 hidden xl:block">
+    <div
+      className="fixed right-0 z-50 hidden xl:block"
+      style={{ top: 'calc(var(--dms-layout-topbar-height) + 12px)' }}
+    >
       <IconButton
         onClick={onClick}
         className="rounded-r-none border-r-0 shadow-dms-lg"

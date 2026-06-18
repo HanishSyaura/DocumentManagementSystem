@@ -136,6 +136,100 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
     return acc
   }, {})
 
+  const panelContent = (
+    <AppSurface padding="md" className="space-y-4">
+      <SectionHeader
+        title={t('system_notifications')}
+        subtitle={t('important_alerts')}
+        actions={(
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <span className="rounded-full border border-[var(--dms-color-border-default)] bg-[var(--dms-color-info-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--dms-color-info-ink)]">
+                {unreadCount}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsNotificationsCollapsed(!isNotificationsCollapsed)}
+              className="rounded-lg p-1 text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
+            >
+              <svg className="h-5 w-5 transition-transform" style={{ transform: isNotificationsCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
+      />
+
+      {!isNotificationsCollapsed && (
+        <>
+          {notifications.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => markAllAsRead()}
+                  className="text-ink-secondary transition-colors hover:text-ink"
+                >
+                  {t('mark_all_read')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowUnreadOnly(v => !v)}
+                className={`transition-colors ${showUnreadOnly ? 'text-brand' : 'text-ink-muted hover:text-ink-secondary'}`}
+              >
+                {showUnreadOnly ? t('show_all') : t('show_unread')}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-brand transition-colors hover:text-brand-hover"
+              >
+                {t('clear_all')}
+              </button>
+            </div>
+          )}
+
+          {visibleNotifications.length > 0 ? (
+            <div className="dms-scrollbar max-h-[calc(100vh-14rem)] space-y-4 overflow-y-auto pr-1">
+              {(['today', 'yesterday', 'earlier']).filter(k => (grouped[k] || []).length > 0).map((k) => (
+                <div key={k}>
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+                    {k === 'today' ? t('notif_today') : k === 'yesterday' ? t('notif_yesterday') : t('notif_earlier')}
+                  </div>
+                  <div className="space-y-3">
+                    {(grouped[k] || []).map(notification => (
+                      <div
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`cursor-pointer transition-opacity ${!notification.read ? 'opacity-100' : 'opacity-75'}`}
+                      >
+                        <NotificationItem
+                          type={notification.severity || 'info'}
+                          title={notification.title}
+                          message={notification.message || notification.title}
+                          unread={!notification.read}
+                          time={getTimeAgo(notification.timestamp || notification.createdAt)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyPanelState
+              icon={<InfoIcon />}
+              title={t('no_notifications')}
+              description={t('all_caught_up')}
+            />
+          )}
+        </>
+      )}
+    </AppSurface>
+  )
+
   return (
     <>
       <AppRightPanelToggle
@@ -144,100 +238,20 @@ export default function RightPanel({ onCollapseChange, isCollapsed = false }) {
       />
 
       <aside
-        className={`app-rightpanel dms-scrollbar hidden h-full flex-none bg-surface-muted transition-all duration-300 xl:block ${isPanelCollapsed ? 'w-0 overflow-hidden p-0' : 'w-rightpanel overflow-y-auto p-4'} ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}
+        className={`app-rightpanel dms-scrollbar fixed right-0 z-40 hidden w-rightpanel border-l border-border bg-surface-muted transition-transform duration-300 xl:block 2xl:hidden ${isPanelCollapsed ? 'translate-x-full pointer-events-none' : 'translate-x-0 pointer-events-auto'} overflow-y-auto p-4`}
+        style={{
+          top: 'var(--dms-layout-topbar-height)',
+          height: 'calc(100vh - var(--dms-layout-topbar-height))'
+        }}
+      >
+        {panelContent}
+      </aside>
+
+      <aside
+        className={`app-rightpanel dms-scrollbar hidden h-full flex-none bg-surface-muted transition-all duration-300 2xl:block ${isPanelCollapsed ? 'w-0 overflow-hidden p-0' : 'w-rightpanel overflow-y-auto p-4'} ${isPanelCollapsed ? 'translate-x-full' : 'translate-x-0'}`}
         style={{ borderLeft: isPanelCollapsed ? 'none' : undefined }}
       >
-        <AppSurface padding="md" className="space-y-4">
-          <SectionHeader
-            title={t('system_notifications')}
-            subtitle={t('important_alerts')}
-            actions={(
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <span className="rounded-full border border-[var(--dms-color-border-default)] bg-[var(--dms-color-info-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--dms-color-info-ink)]">
-                    {unreadCount}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsNotificationsCollapsed(!isNotificationsCollapsed)}
-                  className="rounded-lg p-1 text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
-                >
-                  <svg className="h-5 w-5 transition-transform" style={{ transform: isNotificationsCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          />
-
-          {!isNotificationsCollapsed && (
-            <>
-              {notifications.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
-                  {unreadCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => markAllAsRead()}
-                      className="text-ink-secondary transition-colors hover:text-ink"
-                    >
-                      {t('mark_all_read')}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowUnreadOnly(v => !v)}
-                    className={`transition-colors ${showUnreadOnly ? 'text-brand' : 'text-ink-muted hover:text-ink-secondary'}`}
-                  >
-                    {showUnreadOnly ? t('show_all') : t('show_unread')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearAll}
-                    className="text-brand transition-colors hover:text-brand-hover"
-                  >
-                    {t('clear_all')}
-                  </button>
-                </div>
-              )}
-
-              {visibleNotifications.length > 0 ? (
-                <div className="dms-scrollbar max-h-[calc(100vh-14rem)] space-y-4 overflow-y-auto pr-1">
-                  {(['today', 'yesterday', 'earlier']).filter(k => (grouped[k] || []).length > 0).map((k) => (
-                    <div key={k}>
-                      <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-                        {k === 'today' ? t('notif_today') : k === 'yesterday' ? t('notif_yesterday') : t('notif_earlier')}
-                      </div>
-                      <div className="space-y-3">
-                        {(grouped[k] || []).map(notification => (
-                          <div
-                            key={notification.id}
-                            onClick={() => handleNotificationClick(notification)}
-                            className={`cursor-pointer transition-opacity ${!notification.read ? 'opacity-100' : 'opacity-75'}`}
-                          >
-                            <NotificationItem
-                              type={notification.severity || 'info'}
-                              title={notification.title}
-                              message={notification.message || notification.title}
-                              unread={!notification.read}
-                              time={getTimeAgo(notification.timestamp || notification.createdAt)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanelState
-                  icon={<InfoIcon />}
-                  title={t('no_notifications')}
-                  description={t('all_caught_up')}
-                />
-              )}
-            </>
-          )}
-        </AppSurface>
+        {panelContent}
       </aside>
     </>
   )

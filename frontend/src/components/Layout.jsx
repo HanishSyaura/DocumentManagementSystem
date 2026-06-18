@@ -20,7 +20,13 @@ export default function Layout({ children }) {
   const [sidebarPosition, setSidebarPosition] = useState('left')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('dms_sidebar_collapsed') === '1'
+      const stored = localStorage.getItem('dms_sidebar_collapsed')
+      if (stored === null) {
+        return typeof window !== 'undefined' && window.matchMedia
+          ? window.matchMedia('(max-width: 1366px)').matches
+          : false
+      }
+      return stored === '1'
     } catch {
       return false
     }
