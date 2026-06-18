@@ -13,8 +13,8 @@ export default function AppNavItem({
     : 'gap-3 px-3.5 py-3'
 
   const stateClasses = active
-    ? 'bg-white/16 text-white shadow-dms-soft ring-1 ring-white/10'
-    : 'text-white/80 hover:bg-white/8 hover:text-white'
+    ? 'bg-sidebar-active text-sidebar-text shadow-dms-soft'
+    : 'text-sidebar-text opacity-90 hover:bg-sidebar-hover hover:opacity-100'
 
   return (
     <Link
@@ -26,7 +26,7 @@ export default function AppNavItem({
         'group relative flex items-center rounded-2xl text-sm font-medium transition-all duration-200',
         baseClasses,
         stateClasses,
-        isTourTarget ? 'ring-2 ring-yellow-300 animate-pulse' : ''
+        isTourTarget ? 'ring-2 ring-[var(--dms-color-accent)] animate-pulse' : ''
       ].filter(Boolean).join(' ')}
     >
       {!collapsed && (
@@ -37,7 +37,7 @@ export default function AppNavItem({
       </span>
       {!collapsed && <span className="truncate">{item.name}</span>}
       {collapsed && (
-        <span className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-xs text-white opacity-0 translate-x-1 shadow-lg transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+        <span className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-border bg-surface-strong px-2 py-1 text-xs text-ink opacity-0 translate-x-1 shadow-dms-lg transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
           {item.name}
         </span>
       )}

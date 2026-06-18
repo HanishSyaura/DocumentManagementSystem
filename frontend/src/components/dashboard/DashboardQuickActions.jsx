@@ -40,7 +40,7 @@ export default function DashboardQuickActions() {
         title={t('quick_actions_title')}
         subtitle={t('quick_actions_subtitle')}
       />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {actions.map((action) => (
           <Link
             key={action.key}

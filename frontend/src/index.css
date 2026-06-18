@@ -14,11 +14,11 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-.app-topbar { background-color: var(--dms-primary); }
+.app-topbar { background-color: var(--dms-color-bg-topbar); }
 .app-sidebar { 
-  background-color: var(--dms-sidebar-bg); 
-  border-right: 1px solid rgba(0,0,0,0.08); 
-  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  background-color: var(--dms-color-bg-sidebar);
+  border-right: 1px solid var(--dms-color-border-default);
+  box-shadow: var(--dms-shadow-sm);
 }
 .app-rightpanel { background-color: var(--dms-color-bg-surface-muted); border-left: 1px solid var(--dms-color-border-default); }
 .app-main-content { 
@@ -46,6 +46,9 @@ body {
   --dms-color-bg-surface-strong: #ffffff;
   --dms-color-bg-overlay: rgba(15, 23, 42, 0.42);
   --dms-color-bg-topbar: var(--dms-primary);
+  --dms-color-border-topbar: rgba(255, 255, 255, 0.12);
+  --dms-color-bg-topbar-surface: rgba(255, 255, 255, 0.10);
+  --dms-color-bg-topbar-surface-hover: rgba(255, 255, 255, 0.14);
   --dms-color-bg-sidebar: var(--dms-sidebar-bg);
   --dms-color-bg-sidebar-hover: rgba(255, 255, 255, 0.08);
   --dms-color-bg-sidebar-active: rgba(255, 255, 255, 0.16);
@@ -231,11 +234,12 @@ button:focus-visible,
   left: 0.75rem;
   top: 0.75rem;
   transform: translateY(-200%);
-  background: #ffffff;
-  color: #111827;
+  background: var(--dms-color-bg-surface-strong);
+  color: var(--dms-color-text-primary);
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  border-radius: var(--dms-radius-md);
+  border: 1px solid var(--dms-color-border-default);
+  box-shadow: var(--dms-shadow-lg);
   z-index: 100000;
 }
 .skip-link:focus {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import api from '../api/axios'
 import { usePreferences } from '../contexts/PreferencesContext'
 import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
 import DashboardHeader from './dashboard/DashboardHeader'
 import DashboardMetricCard from './dashboard/DashboardMetricCard'
 import DashboardQuickActions from './dashboard/DashboardQuickActions'
@@ -27,24 +28,32 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState(null)
   const [recent, setRecent] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const loadDashboard = async (mountedRef) => {
+    try {
+      setError(false)
+      setLoading(true)
+      const res = await api.get('/reports/dashboard')
+      if (mountedRef && !mountedRef.current) return
+      setMetrics(res.data.data?.metrics || res.data.metrics)
+      setRecent(res.data.data?.recentActivity || res.data.recentActivity || [])
+    } catch (e) {
+      if (mountedRef && !mountedRef.current) return
+      setMetrics(null)
+      setRecent([])
+      setError(true)
+      console.error('Failed to load dashboard', e)
+    } finally {
+      if (mountedRef && mountedRef.current) setLoading(false)
+      if (!mountedRef) setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    let mounted = true
-    async function load() {
-      try {
-        const res = await api.get('/reports/dashboard')
-        if (!mounted) return
-        // Backend returns: { success, message, data: { metrics, recentActivity } }
-        setMetrics(res.data.data?.metrics || res.data.metrics)
-        setRecent(res.data.data?.recentActivity || res.data.recentActivity || [])
-      } catch (e) {
-        console.error('Failed to load dashboard', e)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-    load()
-    return () => { mounted = false }
+    const mountedRef = { current: true }
+    loadDashboard(mountedRef)
+    return () => { mountedRef.current = false }
   }, [])
 
   return (
@@ -59,7 +68,7 @@ export default function Dashboard() {
 
       {!loading && metrics && (
         <>
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-tour-id="dashboard-metrics">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" data-tour-id="dashboard-metrics">
             <DashboardMetricCard
               title={t('docs_in_draft')}
               value={metrics.drafts}
@@ -110,12 +119,17 @@ export default function Dashboard() {
         </>
       )}
 
-      {!loading && !metrics && (
+      {!loading && (error || !metrics) && (
         <AppSurface
           padding="lg"
           className="border-[var(--dms-color-border-default)] bg-[var(--dms-color-danger-soft)] text-[var(--dms-color-danger-ink)]"
         >
-          Failed to load dashboard.
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm font-semibold">Failed to load dashboard.</div>
+            <Button type="button" variant="secondary" onClick={() => loadDashboard()}>
+              Retry
+            </Button>
+          </div>
         </AppSurface>
       )}
     </div>

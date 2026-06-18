@@ -79,11 +79,11 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
   }
 
   return (
-    <div className="app-topbar flex h-topbar items-center justify-between border-b border-white/10 px-3 shadow-md sm:px-4">
+    <div className="app-topbar flex h-topbar items-center justify-between border-b border-topbar-border px-3 shadow-md sm:px-4">
       <div className="flex min-w-0 items-center gap-3">
         <IconButton
           onClick={onMenu}
-          className="border-white/10 bg-white/10 text-white hover:bg-white/15 hover:text-white md:hidden"
+          className="border-topbar-border bg-topbar-surface text-ink-inverse hover:bg-topbar-surfaceHover hover:text-ink-inverse md:hidden"
           aria-label="Open menu"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -102,7 +102,7 @@ export default function Topbar({ onMenu, onGettingStarted, showGettingStartedHin
           <button
             type="button"
             onClick={() => onGettingStarted?.()}
-            className={`flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-white transition-colors hover:bg-white/15 ${
+            className={`flex items-center gap-2 rounded-2xl border border-topbar-border bg-topbar-surface px-3 py-2 text-ink-inverse transition-colors hover:bg-topbar-surfaceHover ${
               showGettingStartedHint ? 'animate-pulse ring-2 ring-[var(--dms-color-accent)]' : ''
             }`}
             aria-label={t('getting_started')}

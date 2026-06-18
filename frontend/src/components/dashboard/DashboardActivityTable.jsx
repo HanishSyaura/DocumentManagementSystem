@@ -4,6 +4,7 @@ import AppSurface from '../ui/AppSurface'
 import SectionHeader from '../ui/SectionHeader'
 import EmptyPanelState from '../ui/EmptyPanelState'
 import { normalizeAppPath } from '../../utils/normalizeUrl'
+import { TableContainer, Table, Th, Td, Tr } from '../ui/Table'
 
 function Avatar({ name, profileImage }) {
   const safeName = String(name || 'User').trim()
@@ -13,7 +14,7 @@ function Avatar({ name, profileImage }) {
     : safeName.substring(0, 2).toUpperCase()
 
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-secondary to-brand text-sm font-semibold text-white shadow-dms-soft">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brand-secondary to-brand text-sm font-semibold text-ink-inverse shadow-dms-soft">
       {profileImage ? (
         <img src={normalizeAppPath(profileImage)} alt={safeName} className="h-full w-full object-cover" />
       ) : (
@@ -40,35 +41,37 @@ export default function DashboardActivityTable({
 
       {recent.length > 0 ? (
         <>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-ink-soft">
-                  <th className="px-2 py-3 w-[40%]">{columns?.userDocument}</th>
-                  <th className="px-2 py-3 w-[35%]">{columns?.action}</th>
-                  <th className="px-2 py-3 text-right w-[25%]">{columns?.time}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((item, index) => (
-                  <tr key={index} className="border-b border-border/70 transition-colors hover:bg-surface-muted">
-                    <td className="px-2 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={item.user} profileImage={item.profileImage} />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-ink">{item.user}</div>
-                          <div className="truncate text-xs text-brand">{item.document}</div>
+          <div className="hidden md:block">
+            <TableContainer>
+              <Table>
+                <thead>
+                  <Tr>
+                    <Th className="w-[40%]">{columns?.userDocument}</Th>
+                    <Th className="w-[35%]">{columns?.action}</Th>
+                    <Th align="right" className="w-[25%]">{columns?.time}</Th>
+                  </Tr>
+                </thead>
+                <tbody>
+                  {recent.map((item, index) => (
+                    <Tr key={index} className="hover:bg-surface-muted">
+                      <Td>
+                        <div className="flex items-center gap-3">
+                          <Avatar name={item.user} profileImage={item.profileImage} />
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-ink">{item.user}</div>
+                            <div className="truncate text-xs text-brand">{item.document}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-3.5 text-sm text-ink-secondary">{item.action}</td>
-                    <td className="px-2 py-3.5 text-right text-xs text-ink-muted whitespace-nowrap">
-                      {item.updatedAt ? formatRelativeTime(item.updatedAt) : item.when}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </Td>
+                      <Td className="text-sm text-ink-secondary">{item.action}</Td>
+                      <Td align="right" className="whitespace-nowrap text-xs text-ink-muted">
+                        {item.updatedAt ? formatRelativeTime(item.updatedAt) : item.when}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableContainer>
           </div>
 
           <div className="space-y-3 md:hidden">

@@ -4,6 +4,7 @@ import { hasAnyPermission } from '../utils/permissions'
 import { usePreferences } from '../contexts/PreferencesContext'
 import api from '../api/axios'
 import AppNavItem from './layout/AppNavItem'
+import IconButton from './ui/IconButton'
 
 const menuItems = [
   { 
@@ -255,14 +256,19 @@ export default function Sidebar({ isOpen, onClose, isCollapsed }) {
 
       {/* Mobile overlay sidebar */}
       <div className={`fixed inset-0 z-40 md:hidden ${isOpen ? '' : 'pointer-events-none'}`} aria-hidden={!isOpen}>
-        <div className={`absolute inset-0 bg-black/40 transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
+        <div className={`absolute inset-0 bg-overlay transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0'}`} onClick={onClose}></div>
         <div className={`dms-scrollbar absolute left-0 top-0 h-full w-[min(18rem,85vw)] overflow-y-auto overflow-x-hidden p-4 transform transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: 'var(--dms-sidebar-bg)' }}>
           <div className="mb-4 flex items-center justify-end">
-            <button onClick={onClose} className="rounded-xl p-2 text-white transition-colors hover:bg-white/10">
+            <IconButton
+              onClick={onClose}
+              size="sm"
+              className="border-topbar-border bg-topbar-surface text-ink-inverse hover:bg-topbar-surfaceHover hover:text-ink-inverse"
+              aria-label="Close menu"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </IconButton>
           </div>
           <nav className="space-y-1.5">
             {visibleMenuItems.map((item) => (

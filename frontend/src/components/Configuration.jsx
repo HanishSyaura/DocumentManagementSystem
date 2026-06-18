@@ -32,18 +32,14 @@ function TabNavigation({ activeTab, onTabChange }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6">
-      <nav className="flex space-x-8">
+    <div className="mb-6 border-b border-border">
+      <nav className="dms-scrollbar flex gap-4 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             data-tour-id={`config-tab-${tab.id}`}
-            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === tab.id
-                ? 'border-blue-600'
-                : 'border-transparent hover:border-gray-300'
-            }`}
+            className="whitespace-nowrap border-b-2 px-2 py-3 text-sm font-semibold transition-colors hover:text-ink"
             style={{
               color: activeTab === tab.id ? 'var(--dms-tab-active)' : 'var(--dms-tab-text)',
               borderColor: activeTab === tab.id ? 'var(--dms-tab-active)' : 'transparent'
@@ -59,13 +55,13 @@ function TabNavigation({ activeTab, onTabChange }) {
 
 // Template Management Tab Component
 function TemplateManagement() {
-  const { t } = usePreferences()
+  const { t, itemsPerPage } = usePreferences()
   const [activeSubTab, setActiveSubTab] = useState('templates')
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(itemsPerPage || 10)
   const [showAddTemplateModal, setShowAddTemplateModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState(null)
@@ -92,6 +88,10 @@ function TemplateManagement() {
     loadTemplates()
     loadDocumentTypes()
   }, [])
+
+  useEffect(() => {
+    setPageSize(itemsPerPage || 10)
+  }, [itemsPerPage])
 
   useEffect(() => {
     try {

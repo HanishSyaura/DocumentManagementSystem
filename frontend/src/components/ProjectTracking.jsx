@@ -15,6 +15,7 @@ import SelectField from './ui/SelectField'
 import InlineSpinner from './ui/InlineSpinner'
 import EmptyPanelState from './ui/EmptyPanelState'
 import { TableContainer, Table, Th, Td, Tr } from './ui/Table'
+import IconButton from './ui/IconButton'
 
 function ItemStatusBadge({ status }) {
   const s = String(status || '').toUpperCase()
@@ -26,11 +27,13 @@ function ItemStatusBadge({ status }) {
 
 function ModalShell({ title, children, onClose, maxWidthClass = 'max-w-xl' }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-overlay flex items-center justify-center z-50 p-4">
       <div className={`w-full rounded-dms-lg border border-border bg-surface shadow-dms-lg ${maxWidthClass}`}>
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h3 className="text-lg font-semibold text-ink">{title}</h3>
-          <button onClick={onClose} className="text-ink-soft transition-colors hover:text-ink">×</button>
+          <IconButton size="sm" onClick={onClose} aria-label="Close">
+            <span className="text-lg leading-none">×</span>
+          </IconButton>
         </div>
         <div className="max-h-[85vh] overflow-y-auto p-6">{children}</div>
       </div>
@@ -646,6 +649,219 @@ function PhaseModal({ mode, phase, nextPhaseNo, onClose, onSubmit }) {
           </Button>
         </div>
       </form>
+    </ModalShell>
+  )
+}
+
+function ChangeRequestModal({ projectId, iterationId, phase, initialItem, onClose, onSaved }) {
+  const initialRow = useMemo(() => {
+    if (initialItem) {
+      return {
+        key: `edit-${initialItem.id}`,
+        mode: 'edit',
+        serverId: initialItem.id,
+        changeId: initialItem.changeId || '',
+        phaseRef: initialItem.phaseRef || '',
+        description: initialItem.description || '',
+        impact: initialItem.impact || '',
+        authorizedBy: initialItem.authorizedBy || '',
+        complianceSignOff: initialItem.complianceSignOff || '',
+        dateApproved: toDateInputValue(initialItem.dateApproved),
+        saving: false,
+        error: null
+      }
+    }
+
+    const phaseLabel = phase?.iterationNo ? `Phase ${phase.iterationNo}` : ''
+    return {
+      key: `new-${Date.now()}`,
+      mode: 'create',
+      serverId: null,
+      changeId: '',
+      phaseRef: phaseLabel,
+      description: '',
+      impact: '',
+      authorizedBy: '',
+      complianceSignOff: '',
+      dateApproved: '',
+      saving: false,
+      error: null
+    }
+  }, [initialItem, phase])
+
+  const [rows, setRows] = useState([initialRow])
+
+  useEffect(() => {
+    setRows([initialRow])
+  }, [initialRow])
+
+  const addRow = () => {
+    const phaseLabel = phase?.iterationNo ? `Phase ${phase.iterationNo}` : ''
+    setRows((prev) => prev.concat({
+      key: `new-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      mode: 'create',
+      serverId: null,
+      changeId: '',
+      phaseRef: phaseLabel,
+      description: '',
+      impact: '',
+      authorizedBy: '',
+      complianceSignOff: '',
+      dateApproved: '',
+      saving: false,
+      error: null
+    }))
+  }
+
+  const updateRow = (key, patch) => {
+    setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)))
+  }
+
+  const removeRow = (key) => {
+    setRows((prev) => {
+      const next = prev.filter((r) => r.key !== key)
+      if (initialItem || next.length > 0) return next
+      const phaseLabel = phase?.iterationNo ? `Phase ${phase.iterationNo}` : ''
+      return [{
+        key: `new-${Date.now()}`,
+        mode: 'create',
+        serverId: null,
+        changeId: '',
+        phaseRef: phaseLabel,
+        description: '',
+        impact: '',
+        authorizedBy: '',
+        complianceSignOff: '',
+        dateApproved: '',
+        saving: false,
+        error: null
+      }]
+    })
+  }
+
+  const saveRow = async (row) => {
+    const changeId = String(row.changeId || '').trim()
+    const description = String(row.description || '').trim()
+    if (!changeId || !description) {
+      updateRow(row.key, { error: 'Change ID and Description are required.' })
+      return
+    }
+
+    updateRow(row.key, { saving: true, error: null })
+    try {
+      const payload = {
+        projectIterationId: iterationId ? Number(iterationId) : null,
+        changeId,
+        phaseRef: row.phaseRef || null,
+        description,
+        impact: row.impact || null,
+        authorizedBy: row.authorizedBy || null,
+        complianceSignOff: row.complianceSignOff || null,
+        dateApproved: row.dateApproved || null
+      }
+
+      if (row.mode === 'edit' && row.serverId) {
+        await api.put(`/project-tracking/change-requests/${row.serverId}`, payload)
+      } else {
+        await api.post(`/project-tracking/projects/${projectId}/change-requests`, payload)
+      }
+
+      await onSaved?.()
+
+      if (row.mode === 'edit') {
+        onClose?.()
+      } else {
+        removeRow(row.key)
+      }
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to save change request'
+      updateRow(row.key, { error: msg })
+    } finally {
+      updateRow(row.key, { saving: false })
+    }
+  }
+
+  return (
+    <ModalShell title="Key In Change Request" onClose={onClose} maxWidthClass="max-w-6xl">
+      <div className="space-y-4">
+        <div className="text-sm text-ink-muted">
+          Add approved changes for the selected project phase. Each row can be saved individually.
+        </div>
+        <TableContainer>
+          <Table>
+            <thead>
+              <Tr>
+                <Th>Change ID</Th>
+                <Th>Phase Ref</Th>
+                <Th>Description of Amendment</Th>
+                <Th>Impact (Cost / Schedule / Scope)</Th>
+                <Th>Authorized By</Th>
+                <Th>Compliance Sign-Off</Th>
+                <Th>Date Approved</Th>
+                <Th className="w-[140px]">Actions</Th>
+              </Tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <React.Fragment key={r.key}>
+                  <Tr>
+                    <Td>
+                      <TextInput value={r.changeId} onChange={(e) => updateRow(r.key, { changeId: e.target.value })} placeholder="CR-01" />
+                    </Td>
+                    <Td>
+                      <TextInput value={r.phaseRef} onChange={(e) => updateRow(r.key, { phaseRef: e.target.value })} placeholder="Phase 2" />
+                    </Td>
+                    <Td>
+                      <TextArea value={r.description} onChange={(e) => updateRow(r.key, { description: e.target.value })} rows={2} placeholder="Describe amendment..." />
+                    </Td>
+                    <Td>
+                      <TextArea value={r.impact} onChange={(e) => updateRow(r.key, { impact: e.target.value })} rows={2} placeholder="Impact..." />
+                    </Td>
+                    <Td>
+                      <TextInput value={r.authorizedBy} onChange={(e) => updateRow(r.key, { authorizedBy: e.target.value })} placeholder="Name" />
+                    </Td>
+                    <Td>
+                      <TextInput value={r.complianceSignOff} onChange={(e) => updateRow(r.key, { complianceSignOff: e.target.value })} placeholder="Signature / Ref" />
+                    </Td>
+                    <Td>
+                      <TextInput type="date" value={r.dateApproved} onChange={(e) => updateRow(r.key, { dateApproved: e.target.value })} />
+                    </Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" disabled={r.saving} onClick={() => saveRow(r)}>
+                          {r.saving && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
+                          {r.mode === 'edit' ? 'Update' : 'Save'}
+                        </Button>
+                        {r.mode === 'create' && (
+                          <Button type="button" variant="secondary" onClick={() => removeRow(r.key)} disabled={r.saving}>
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </Td>
+                  </Tr>
+                  {r.error && (
+                    <Tr>
+                      <Td colSpan={8} className="text-sm text-[var(--dms-color-danger-ink)]">{r.error}</Td>
+                    </Tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </Table>
+        </TableContainer>
+        {!initialItem && (
+          <div className="flex justify-between gap-2">
+            <Button type="button" variant="secondary" onClick={addRow}>Add Row</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
+          </div>
+        )}
+        {initialItem && (
+          <div className="flex justify-end">
+            <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
+          </div>
+        )}
+      </div>
     </ModalShell>
   )
 }
@@ -1355,6 +1571,10 @@ function ProjectDetail({ projectId }) {
   const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null })
   const [alertModal, setAlertModal] = useState({ show: false, title: '', message: '', type: 'info' })
   const [advancing, setAdvancing] = useState(false)
+  const [changeRequests, setChangeRequests] = useState([])
+  const [changeRequestsLoading, setChangeRequestsLoading] = useState(false)
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
+  const [editChangeRequest, setEditChangeRequest] = useState(null)
 
   const loadProject = async (preferredIterationId = null) => {
     setLoading(true)
@@ -1386,12 +1606,32 @@ function ProjectDetail({ projectId }) {
     }
   }
 
+  const loadChangeRequests = async (iterationId) => {
+    if (!iterationId) {
+      setChangeRequests([])
+      return
+    }
+    setChangeRequestsLoading(true)
+    try {
+      const res = await api.get(`/project-tracking/projects/${projectId}/change-requests`, {
+        params: { iterationId }
+      })
+      setChangeRequests(res?.data?.data?.changeRequests || [])
+    } finally {
+      setChangeRequestsLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadProject()
   }, [projectId])
 
   useEffect(() => {
     if (selectedIterationId) loadItems(selectedIterationId)
+  }, [selectedIterationId])
+
+  useEffect(() => {
+    if (selectedIterationId) loadChangeRequests(selectedIterationId)
   }, [selectedIterationId])
 
   useEffect(() => {
@@ -1640,7 +1880,14 @@ function ProjectDetail({ projectId }) {
 
   const managerLabel = `${`${project?.manager?.firstName || ''} ${project?.manager?.lastName || ''}`.trim() || project?.manager?.email || '-'}`.trim()
 
-  if (loading) return <div className="p-6 bg-white rounded-lg shadow">Loading...</div>
+  if (loading) {
+    return (
+      <AppSurface padding="lg" className="flex items-center gap-3">
+        <InlineSpinner className="h-4 w-4" />
+        <span className="text-sm text-ink-muted">Loading...</span>
+      </AppSurface>
+    )
+  }
   if (!project) return <EmptyState title="Project not found" message="The project may have been deleted." />
 
   const updateProjectStatus = async (nextStatus) => {
@@ -1669,221 +1916,220 @@ function ProjectDetail({ projectId }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-blue-900 shadow-lg">
-        <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:justify-between lg:px-8">
-          <div className="max-w-3xl">
-            <div className="text-sm text-blue-100/90">
-              <button className="text-blue-200 hover:text-white hover:underline" onClick={() => navigate('/project-tracking')}>Projects</button>
-              <span className="mx-2 text-blue-200/60">/</span>
-              <span className="text-white/90">{project.code}</span>
-            </div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white lg:text-4xl">{project.name}</h1>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-blue-50/90">
-              <ProjectStatusBadge status={project.status} />
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{project.projectCategory?.name || '-'}</span>
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Manager: ${managerLabel}`}</span>
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 font-mono text-[11px]">{`UI ${uiVersionStamp}`}</span>
-            </div>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-100/80">
-              Track required documents, extra stage files, reviewer workflow, and confidential access for every phase under the same project.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            <button
-              onClick={() => setShowActivity(true)}
-              className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur hover:bg-white/15"
-            >
-              Activity Logs
-            </button>
-            {canEdit && isProjectActive && (
-              <button
-                onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Put Project On Hold',
-                    message: 'Pause project progress for now? Existing documents stay available and you can resume later.',
-                    onConfirm: () => updateProjectStatus('ON_HOLD')
-                  })
-                }
-                className="rounded-lg border border-amber-300 bg-amber-400/90 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-300"
-              >
-                Put On Hold
-              </button>
-            )}
-            {canEdit && isProjectOnHold && (
-              <button
-                onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Resume Project',
-                    message: 'Resume this project and allow progress actions again?',
-                    onConfirm: () => updateProjectStatus('ACTIVE')
-                  })
-                }
-                className="rounded-lg border border-emerald-300 bg-emerald-400/90 px-4 py-2 text-sm font-medium text-emerald-950 hover:bg-emerald-300"
-              >
-                Resume Project
-              </button>
-            )}
-            {canEdit && isProjectClosed && (
-              <button
-                onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Reopen Project',
-                    message: 'Reopen this closed project and allow progress actions again?',
-                    onConfirm: () => updateProjectStatus('ACTIVE')
-                  })
-                }
-                className="rounded-lg border border-emerald-300 bg-emerald-400/90 px-4 py-2 text-sm font-medium text-emerald-950 hover:bg-emerald-300"
-              >
-                Reopen Project
-              </button>
-            )}
-            {canEdit && !isProjectClosed && (
-              <button
-                onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Close Project',
-                    message: 'Close this project? Linked documents will remain available, but no further progress actions will be required.',
-                    onConfirm: () => updateProjectStatus('CLOSED')
-                  })
-                }
-                className="rounded-lg border border-rose-300 bg-rose-400/90 px-4 py-2 text-sm font-medium text-rose-950 hover:bg-rose-300"
-              >
-                Close Project
-              </button>
-            )}
-            {canEdit && (
-              <button
-                onClick={() => setShowEditProject(true)}
-                className="rounded-lg border border-white/15 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100"
-              >
-                Edit
-              </button>
-            )}
-            {canCreate && (
-              <button
-                onClick={() => setShowCreatePhase(true)}
-                disabled={!isProjectActive}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-blue-900/60 disabled:text-blue-100/70"
-              >
-                Add Next Phase
-              </button>
-            )}
-            {canAdvance && (
-              <button
-                onClick={() =>
-                  setConfirmModal({
-                    show: true,
-                    title: 'Move To Next Stage',
-                    message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
-                    onConfirm: advanceStage
-                  })
-                }
-                disabled={advancing || !selectedIterationId || !isProjectActive}
-                className="rounded-lg border border-white/15 bg-slate-950/40 px-4 py-2 text-sm font-medium text-white hover:bg-slate-950/60 disabled:opacity-50"
-              >
-                {advancing ? 'Moving...' : 'Move To Next Stage'}
-              </button>
-            )}
-            {canDelete && (
-              <button
-                onClick={() =>
+    <div className="space-y-6">
+      <AppSurface padding="lg" className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+          <button type="button" className="text-brand hover:underline" onClick={() => navigate('/project-tracking')}>Projects</button>
+          <span className="text-ink-soft">/</span>
+          <span className="font-medium text-ink-secondary">{project.code}</span>
+          <span className="rounded-full border border-border bg-surface-muted px-2 py-0.5 font-mono text-[11px] text-ink-muted">{`UI ${uiVersionStamp}`}</span>
+        </div>
+
+        <PageHeader
+          title={project.name}
+          subtitle="Track required documents, stage evidence, and confidential access for each phase."
+          actions={(
+            <>
+              <Button variant="secondary" onClick={() => setShowActivity(true)}>Activity Logs</Button>
+              {canEdit && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setEditChangeRequest(null)
+                    setShowChangeRequestModal(true)
+                  }}
+                  disabled={!selectedIterationId}
+                >
+                  Key In Change Request
+                </Button>
+              )}
+              {canEdit && isProjectActive && (
+                <Button
+                  variant="secondary"
+                  className="bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)] hover:opacity-90"
+                  onClick={() =>
+                    setConfirmModal({
+                      show: true,
+                      title: 'Put Project On Hold',
+                      message: 'Pause project progress for now? Existing documents stay available and you can resume later.',
+                      onConfirm: () => updateProjectStatus('ON_HOLD')
+                    })
+                  }
+                >
+                  Put On Hold
+                </Button>
+              )}
+              {canEdit && isProjectOnHold && (
+                <Button
+                  variant="secondary"
+                  className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
+                  onClick={() =>
+                    setConfirmModal({
+                      show: true,
+                      title: 'Resume Project',
+                      message: 'Resume this project and allow progress actions again?',
+                      onConfirm: () => updateProjectStatus('ACTIVE')
+                    })
+                  }
+                >
+                  Resume Project
+                </Button>
+              )}
+              {canEdit && isProjectClosed && (
+                <Button
+                  variant="secondary"
+                  className="bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] hover:opacity-90"
+                  onClick={() =>
+                    setConfirmModal({
+                      show: true,
+                      title: 'Reopen Project',
+                      message: 'Reopen this closed project and allow progress actions again?',
+                      onConfirm: () => updateProjectStatus('ACTIVE')
+                    })
+                  }
+                >
+                  Reopen Project
+                </Button>
+              )}
+              {canEdit && !isProjectClosed && (
+                <Button
+                  variant="danger"
+                  className="bg-[var(--dms-color-danger-ink)] text-ink-inverse hover:opacity-90"
+                  onClick={() =>
+                    setConfirmModal({
+                      show: true,
+                      title: 'Close Project',
+                      message: 'Close this project? Linked documents will remain available, but no further progress actions will be required.',
+                      onConfirm: () => updateProjectStatus('CLOSED')
+                    })
+                  }
+                >
+                  Close Project
+                </Button>
+              )}
+              {canEdit && (
+                <Button variant="secondary" onClick={() => setShowEditProject(true)}>Edit</Button>
+              )}
+              {canCreate && (
+                <Button variant="primary" onClick={() => setShowCreatePhase(true)} disabled={!isProjectActive}>
+                  Add Next Phase
+                </Button>
+              )}
+              {canAdvance && (
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    setConfirmModal({
+                      show: true,
+                      title: 'Move To Next Stage',
+                      message: 'Move the current phase to the next stage? This is only allowed when all required items in the current stage are completed.',
+                      onConfirm: advanceStage
+                    })
+                  }
+                  disabled={advancing || !selectedIterationId || !isProjectActive}
+                >
+                  {advancing ? <><InlineSpinner className="h-4 w-4" />Moving...</> : 'Move To Next Stage'}
+                </Button>
+              )}
+              {canDelete && (
+                <Button variant="danger" onClick={() =>
                   setConfirmModal({
                     show: true,
                     title: 'Delete Project',
                     message: 'Delete this project? All iterations and tracking links under it will be removed.',
                     onConfirm: deleteProject
                   })
-                }
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+                }>
+                  Delete
+                </Button>
+              )}
+            </>
+          )}
+        />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <ProjectStatusBadge status={project.status} />
+          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{project.projectCategory?.name || '-'}</span>
+          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{`Manager: ${managerLabel}`}</span>
+          <span className="inline-flex items-center rounded-full border border-border bg-surface-muted px-3 py-1 text-xs font-medium text-ink-secondary">{`Current Stage: ${selectedPhase?.currentStage?.name || 'Not set'}`}</span>
+        </div>
+      </AppSurface>
+
+      <AppSurface padding="lg">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Project Card Information</div>
-            <div className="mt-1 text-sm text-slate-500">All details captured in the project form are shown here for quick reference.</div>
+            <div className="text-sm font-semibold text-ink">Project Card Information</div>
+            <div className="mt-1 text-sm text-ink-muted">All details captured in the project form are shown here for quick reference.</div>
           </div>
-          <div className="text-sm text-slate-600">{`Lifecycle Status: ${formatLifecycleStatus(project.status)}`}</div>
+          <div className="text-sm text-ink-secondary">{`Lifecycle Status: ${formatLifecycleStatus(project.status)}`}</div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Code / Reference Number</div>
-              <div className="mt-1 font-mono text-sm text-slate-900">{project.code || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface-muted px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Code / Reference Number</div>
+              <div className="mt-1 font-mono text-sm text-ink">{project.code || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client Name</div>
-              <div className="mt-1 text-sm text-slate-900">{project.clientName || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client Name</div>
+              <div className="mt-1 text-sm text-ink">{project.clientName || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Client PIC</div>
-              <div className="mt-1 text-sm text-slate-900">{project.clientPic || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Client PIC</div>
+              <div className="mt-1 text-sm text-ink">{project.clientPic || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Internal Project Manager</div>
-              <div className="mt-1 text-sm text-slate-900">{managerLabel}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Internal Project Manager</div>
+              <div className="mt-1 text-sm text-ink">{managerLabel}</div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Start Date</div>
-                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.startDate)}</div>
+              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Start Date</div>
+                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.startDate)}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Planned Completion Date</div>
-                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.plannedCompletionDate)}</div>
+              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Planned Completion Date</div>
+                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.plannedCompletionDate)}</div>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Actual Completion Date</div>
-                <div className="mt-1 text-sm text-slate-900">{formatDateLabel(project.actualCompletionDate)}</div>
+              <div className="rounded-xl border border-border bg-surface px-4 py-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Actual Completion Date</div>
+                <div className="mt-1 text-sm text-ink">{formatDateLabel(project.actualCompletionDate)}</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Team Members</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.teamMembers || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Team Members</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.teamMembers || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Scope</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.scope || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Scope</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.scope || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Objective</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.objective || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Objective</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.objective || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Deliverables</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.deliverables || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Deliverables</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.deliverables || '-'}</div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Project Description</div>
-              <div className="mt-1 whitespace-pre-line text-sm text-slate-900">{project.description || '-'}</div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Description</div>
+              <div className="mt-1 whitespace-pre-line text-sm text-ink">{project.description || '-'}</div>
             </div>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -1931,6 +2177,94 @@ function ProjectDetail({ projectId }) {
               : 'bg-blue-50 text-blue-700'
         }`}>
           {progressLockMessage}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Change Control & Amendment Log</div>
+            <div className="mt-1 text-sm text-slate-500">Approved changes recorded for the selected phase.</div>
+          </div>
+          <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            {selectedPhase ? getPhaseTitle(selectedPhase, '') : ''}
+          </div>
+        </div>
+        <div className="mt-4">
+          {changeRequestsLoading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <InlineSpinner className="h-4 w-4" />
+              Loading change requests...
+            </div>
+          ) : changeRequests.length === 0 ? (
+            <EmptyPanelState
+              title="No change requests yet"
+              description="Use the “Key In Change Request” button to add the first record."
+            />
+          ) : (
+            <TableContainer>
+              <Table>
+                <thead>
+                  <Tr>
+                    <Th>Change ID</Th>
+                    <Th>Phase Ref</Th>
+                    <Th>Description of Amendment</Th>
+                    <Th>Impact</Th>
+                    <Th>Authorized By</Th>
+                    <Th>Compliance Sign-Off</Th>
+                    <Th>Date Approved</Th>
+                    {canEdit && <Th className="w-[140px]">Actions</Th>}
+                  </Tr>
+                </thead>
+                <tbody>
+                  {changeRequests.map((cr) => (
+                    <Tr key={cr.id}>
+                      <Td className="whitespace-nowrap font-semibold">{cr.changeId}</Td>
+                      <Td className="whitespace-nowrap">{cr.phaseRef || (cr.iteration?.iterationNo ? `Phase ${cr.iteration.iterationNo}` : '-')}</Td>
+                      <Td className="min-w-[260px]">{cr.description}</Td>
+                      <Td className="min-w-[200px]">{cr.impact || '-'}</Td>
+                      <Td className="whitespace-nowrap">{cr.authorizedBy || '-'}</Td>
+                      <Td className="whitespace-nowrap">{cr.complianceSignOff || '-'}</Td>
+                      <Td className="whitespace-nowrap">{formatDateLabel(cr.dateApproved)}</Td>
+                      {canEdit && (
+                        <Td>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => {
+                                setEditChangeRequest(cr)
+                                setShowChangeRequestModal(true)
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="danger"
+                              onClick={() =>
+                                setConfirmModal({
+                                  show: true,
+                                  title: 'Delete Change Request',
+                                  message: `Delete ${cr.changeId}?`,
+                                  onConfirm: async () => {
+                                    await api.delete(`/project-tracking/change-requests/${cr.id}`)
+                                    await loadChangeRequests(selectedIterationId)
+                                  }
+                                })
+                              }
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </Td>
+                      )}
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableContainer>
+          )}
         </div>
       </div>
 
@@ -2448,6 +2782,22 @@ function ProjectDetail({ projectId }) {
             }}
           />
         </ModalShell>
+      )}
+
+      {showChangeRequestModal && (
+        <ChangeRequestModal
+          projectId={projectId}
+          iterationId={selectedIterationId}
+          phase={selectedPhase}
+          initialItem={editChangeRequest}
+          onClose={() => {
+            setShowChangeRequestModal(false)
+            setEditChangeRequest(null)
+          }}
+          onSaved={async () => {
+            await loadChangeRequests(selectedIterationId)
+          }}
+        />
       )}
 
       <ConfirmModal

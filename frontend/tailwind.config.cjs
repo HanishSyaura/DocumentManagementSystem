@@ -7,10 +7,23 @@ module.exports = {
     extend: {
       colors: {
         canvas: 'var(--dms-color-bg-canvas)',
+        overlay: 'var(--dms-color-bg-overlay)',
         surface: {
           DEFAULT: 'var(--dms-color-bg-surface)',
           muted: 'var(--dms-color-bg-surface-muted)',
           strong: 'var(--dms-color-bg-surface-strong)'
+        },
+        sidebar: {
+          DEFAULT: 'var(--dms-color-bg-sidebar)',
+          hover: 'var(--dms-color-bg-sidebar-hover)',
+          active: 'var(--dms-color-bg-sidebar-active)',
+          text: 'var(--dms-sidebar-text)'
+        },
+        topbar: {
+          bg: 'var(--dms-color-bg-topbar)',
+          border: 'var(--dms-color-border-topbar)',
+          surface: 'var(--dms-color-bg-topbar-surface)',
+          surfaceHover: 'var(--dms-color-bg-topbar-surface-hover)'
         },
         brand: {
           DEFAULT: 'var(--dms-color-brand-primary)',
@@ -29,12 +42,11 @@ module.exports = {
           inverse: 'var(--dms-color-text-inverse)'
         },
         primary: {
-          DEFAULT: '#0f6fcf',
-          dark: '#0b57a8'
+          DEFAULT: 'var(--dms-color-brand-secondary)',
+          dark: 'var(--dms-color-brand-primary-hover)'
         },
-        sidebar: '#ffffff',
-        panel: '#f8fafc',
-        muted: '#6b7280'
+        panel: 'var(--dms-color-bg-surface-muted)',
+        muted: 'var(--dms-color-text-muted)'
       },
       boxShadow: {
         'dms-card': 'var(--dms-shadow-md)',

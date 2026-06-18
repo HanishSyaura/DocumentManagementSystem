@@ -5,7 +5,7 @@ export default function SkeletonBlock({
 }) {
   return (
     <div
-      className={['animate-pulse rounded-xl bg-slate-200/80', className].filter(Boolean).join(' ')}
+      className={['animate-pulse rounded-xl bg-surface-muted', className].filter(Boolean).join(' ')}
       aria-hidden="true"
     />
   )
