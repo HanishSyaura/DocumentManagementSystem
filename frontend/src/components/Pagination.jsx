@@ -60,10 +60,10 @@ export default function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
+    <div className="flex items-center justify-between border-t border-border bg-surface px-4 py-3">
       {/* Left side - Records info and page size selector */}
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-700">
+        <span className="text-sm text-ink-secondary">
           {t('showing')} <span className="font-medium">{startRecord}</span> {t('to')}{' '}
           <span className="font-medium">{endRecord}</span> {t('of')}{' '}
           <span className="font-medium">{totalRecords}</span> {t('results')}
@@ -71,14 +71,14 @@ export default function Pagination({
         
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
-            <label htmlFor="pageSize" className="text-sm text-gray-700">
+            <label htmlFor="pageSize" className="text-sm text-ink-secondary">
               {t('rows_per_page')}
             </label>
             <select
               id="pageSize"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-9 rounded-2xl border border-border bg-surface px-2 text-sm text-ink outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-brand/30"
             >
               {pageSizeOptions.map((size) => (
                 <option key={size} value={size}>
@@ -96,7 +96,7 @@ export default function Pagination({
         <button
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="px-3 py-1 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+          className="h-9 rounded-2xl border border-border bg-surface px-3 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t('previous')}
         </button>
@@ -105,17 +105,17 @@ export default function Pagination({
         <div className="flex gap-1">
           {getPageNumbers().map((page, index) => (
             page === '...' ? (
-              <span key={`ellipsis-${index}`} className="px-3 py-1 text-gray-500">
+              <span key={`ellipsis-${index}`} className="px-3 py-1 text-ink-soft">
                 ...
               </span>
             ) : (
               <button
                 key={page}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 border rounded text-sm font-medium transition-colors ${
+                className={`h-9 rounded-2xl border px-3 text-sm font-semibold transition-colors ${
                   currentPage === page
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    ? 'border-white/10 bg-brand text-ink-inverse'
+                    : 'border-border bg-surface text-ink-secondary hover:bg-surface-muted hover:text-ink'
                 }`}
               >
                 {page}
@@ -128,7 +128,7 @@ export default function Pagination({
         <button
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="px-3 py-1 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+          className="h-9 rounded-2xl border border-border bg-surface px-3 text-sm font-semibold text-ink-secondary transition-colors hover:bg-surface-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t('next')}
         </button>

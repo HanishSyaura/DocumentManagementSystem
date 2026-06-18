@@ -3,16 +3,23 @@ import api from '../api/axios'
 import Pagination from './Pagination'
 import StatusBadge from './StatusBadge'
 import { hasPermission } from '../utils/permissions'
+import PageHeader from './ui/PageHeader'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import InlineSpinner from './ui/InlineSpinner'
+import EmptyPanelState from './ui/EmptyPanelState'
+import { TableContainer, Table, Th, Td, Tr } from './ui/Table'
 
 function TrackingStatusBadge({ status }) {
   const config = {
-    REGISTER: { label: 'Register', style: 'bg-slate-100 text-slate-700 border-slate-300' },
-    CHECK_IN: { label: 'Check-in', style: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-    CHECK_OUT: { label: 'Check-out', style: 'bg-amber-100 text-amber-800 border-amber-300' },
-    ARCHIVE: { label: 'Archive', style: 'bg-gray-100 text-gray-600 border-gray-300' }
+    REGISTER: { label: 'Register', style: 'bg-surface-muted text-ink-secondary border-border' },
+    CHECK_IN: { label: 'Check-in', style: 'bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] border-[var(--dms-color-border-default)]' },
+    CHECK_OUT: { label: 'Check-out', style: 'bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)] border-[var(--dms-color-border-default)]' },
+    ARCHIVE: { label: 'Archive', style: 'bg-surface-muted text-ink-muted border-border' }
   }
 
-  const resolved = config[status] || { label: status || '-', style: 'bg-slate-100 text-slate-700 border-slate-300' }
+  const resolved = config[status] || { label: status || '-', style: 'bg-surface-muted text-ink-secondary border-border' }
 
   return (
     <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full border whitespace-nowrap ${resolved.style}`}>
@@ -27,6 +34,7 @@ export default function RfidEpcRegistry() {
   const [enabled, setEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState({
     from: '',
     to: '',
@@ -42,6 +50,7 @@ export default function RfidEpcRegistry() {
 
   const loadRecords = async (nextFilters = filters, nextPage = page, nextLimit = limit) => {
     setLoading(true)
+    setErrorMessage('')
     try {
       const res = await api.get('/epc-registry', {
         params: {
@@ -59,6 +68,7 @@ export default function RfidEpcRegistry() {
       setRecords([])
       setTotal(0)
       setEnabled(true)
+      setErrorMessage('Unable to load EPC registry right now. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -82,6 +92,7 @@ export default function RfidEpcRegistry() {
 
   const handleExport = async () => {
     setExporting(true)
+    setErrorMessage('')
     try {
       const res = await api.get('/epc-registry/export', {
         params: filters,
@@ -97,7 +108,7 @@ export default function RfidEpcRegistry() {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to export EPC registry:', error)
-      alert('Export failed. Please try again.')
+      setErrorMessage('Export failed. Please try again.')
     } finally {
       setExporting(false)
     }
@@ -105,131 +116,129 @@ export default function RfidEpcRegistry() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">EPC Registry</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Automatically generated fixed-length 96-bit EPC records derived from document file codes.
-            </p>
-          </div>
-          {canExport && (
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={exporting || loading || records.length === 0 || !enabled}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exporting ? 'Exporting...' : 'Export CSV'}
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="EPC Registry"
+        subtitle="Automatically generated fixed-length 96-bit EPC records derived from document file codes."
+        actions={canExport ? (
+          <Button
+            onClick={handleExport}
+            disabled={exporting || loading || records.length === 0 || !enabled}
+          >
+            {exporting && <InlineSpinner className="h-4 w-4 border-white/30 border-t-white" />}
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+        ) : null}
+      />
 
       {!enabled && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4">
-          EPC Registry is currently disabled by system configuration.
-        </div>
+        <AppSurface
+          padding="md"
+          className="border border-[var(--dms-color-border-default)] bg-[var(--dms-color-warning-soft)] text-[var(--dms-color-warning-ink)]"
+        >
+          <div className="text-sm font-semibold">EPC Registry is currently disabled by system configuration.</div>
+        </AppSurface>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      {errorMessage && (
+        <AppSurface
+          padding="md"
+          className="border border-[var(--dms-color-border-default)] bg-[var(--dms-color-danger-soft)] text-[var(--dms-color-danger-ink)]"
+        >
+          <div className="text-sm font-semibold">{errorMessage}</div>
+        </AppSurface>
+      )}
+
+      <AppSurface padding="lg" className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
-            <input
+            <label className="mb-1 block text-xs font-semibold text-ink-soft">Date From</label>
+            <TextInput
               type="date"
               value={filters.from}
               onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
-            <input
+            <label className="mb-1 block text-xs font-semibold text-ink-soft">Date To</label>
+            <TextInput
               type="date"
               value={filters.to}
               onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">File Code</label>
-            <input
+            <label className="mb-1 block text-xs font-semibold text-ink-soft">File Code</label>
+            <TextInput
               type="text"
               value={filters.fileCode}
               placeholder="Search file code"
               onChange={(e) => setFilters((prev) => ({ ...prev, fileCode: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div className="flex items-end gap-2">
-            <button
-              type="button"
-              onClick={handleSearch}
-              className="px-4 py-2 rounded-lg bg-slate-800 text-white font-medium hover:bg-slate-900"
-            >
+            <Button type="button" onClick={handleSearch}>
               Apply Filter
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleReset}>
               Reset
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </AppSurface>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Generated At</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">File Code</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">File Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Document Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Tracking Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">EPC Hex</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Version</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-gray-500">Loading EPC registry...</td>
-                </tr>
-              ) : records.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-gray-500">No EPC records found.</td>
-                </tr>
-              ) : (
-                records.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-700">
+      <AppSurface padding="none" className="overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 px-4 py-12 text-sm text-ink-muted">
+            <InlineSpinner />
+            Loading EPC registry...
+          </div>
+        ) : records.length === 0 ? (
+          <div className="p-5">
+            <EmptyPanelState
+              title="No EPC records found"
+              description="Try adjusting your filters or date range."
+            />
+          </div>
+        ) : (
+          <TableContainer className="rounded-none border-0">
+            <Table>
+              <thead>
+                <Tr className="hover:bg-transparent">
+                  <Th>Generated At</Th>
+                  <Th>File Code</Th>
+                  <Th>File Name</Th>
+                  <Th>Document Status</Th>
+                  <Th>Tracking Status</Th>
+                  <Th>EPC Hex</Th>
+                  <Th>Title</Th>
+                  <Th>Type</Th>
+                  <Th>Version</Th>
+                </Tr>
+              </thead>
+              <tbody>
+                {records.map((record) => (
+                  <Tr key={record.id}>
+                    <Td>
                       {record.generatedAt ? new Date(record.generatedAt).toLocaleString('en-GB') : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{record.fileCode}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{record.fileName}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    </Td>
+                    <Td className="font-semibold text-ink">{record.fileCode}</Td>
+                    <Td>{record.fileName}</Td>
+                    <Td>
                       {record.documentStatus ? <StatusBadge status={record.documentStatus} /> : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    </Td>
+                    <Td>
                       <TrackingStatusBadge status={record.trackingStatus} />
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono text-blue-700 break-all">{record.epcHex}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{record.document?.title || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{record.document?.documentType?.name || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{record.document?.version || '-'}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </Td>
+                    <Td className="break-all font-mono text-xs text-brand">{record.epcHex}</Td>
+                    <Td>{record.document?.title || '-'}</Td>
+                    <Td>{record.document?.documentType?.name || '-'}</Td>
+                    <Td>{record.document?.version || '-'}</Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableContainer>
+        )}
 
         <Pagination
           currentPage={page}
@@ -242,7 +251,7 @@ export default function RfidEpcRegistry() {
             setPage(1)
           }}
         />
-      </div>
+      </AppSurface>
     </div>
   )
 }
