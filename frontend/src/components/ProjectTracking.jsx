@@ -2015,6 +2015,7 @@ function ProjectDetail({ projectId }) {
       : 'Use "Add Next Phase" for enhancement, extension, or the next rollout under the same project.'
 
   const managerLabel = `${`${project?.manager?.firstName || ''} ${project?.manager?.lastName || ''}`.trim() || project?.manager?.email || '-'}`.trim()
+  const currentStageLabel = selectedPhase?.currentStage?.name || 'Not set'
   const openProjectControlConfirm = (config) => {
     setShowProjectControls(false)
     setConfirmModal(config)
@@ -2120,24 +2121,34 @@ function ProjectDetail({ projectId }) {
           )}
         />
 
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Status</div>
-            <div className="mt-1.5">
-              <ProjectStatusBadge status={project.status} />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--dms-color-success-soft)] bg-[linear-gradient(135deg,var(--dms-color-success-soft),var(--dms-color-surface))] px-5 py-4 shadow-sm">
+            <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 -translate-y-8 translate-x-8 rounded-full bg-white/20 blur-2xl" />
+            <div className="relative flex h-full flex-col justify-between gap-4">
+              <div className="space-y-1">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--dms-color-success-ink)]/80">Status</div>
+                <div className="text-sm text-ink-secondary">Live project condition for this workspace.</div>
+              </div>
+              <div className="flex items-end justify-between gap-3">
+                <div className="text-xl font-semibold text-ink">{formatLifecycleStatus(project.status)}</div>
+                <ProjectStatusBadge status={project.status} />
+              </div>
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Category</div>
-            <div className="mt-1.5 text-sm font-medium text-ink">{project.projectCategory?.name || '-'}</div>
-          </div>
-          <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Manager</div>
-            <div className="mt-1.5 truncate text-sm font-medium text-ink" title={managerLabel}>{managerLabel}</div>
-          </div>
-          <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-muted">Current Stage</div>
-            <div className="mt-1.5 truncate text-sm font-medium text-ink" title={selectedPhase?.currentStage?.name || 'Not set'}>{selectedPhase?.currentStage?.name || 'Not set'}</div>
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--dms-color-info-soft)] bg-[linear-gradient(135deg,var(--dms-color-info-soft),var(--dms-color-surface))] px-5 py-4 shadow-sm">
+            <div className="pointer-events-none absolute bottom-0 right-0 h-24 w-24 translate-x-8 translate-y-8 rounded-full bg-white/20 blur-2xl" />
+            <div className="relative flex h-full flex-col justify-between gap-4">
+              <div className="space-y-1">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--dms-color-info-ink)]/80">Current Stage</div>
+                <div className="text-sm text-ink-secondary">Current workflow checkpoint for the selected phase.</div>
+              </div>
+              <div className="flex items-end justify-between gap-3">
+                <div className="truncate text-xl font-semibold text-ink" title={currentStageLabel}>{currentStageLabel}</div>
+                <span className="inline-flex items-center rounded-full border border-[var(--dms-color-info-ink)]/15 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--dms-color-info-ink)]">
+                  Active Phase
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2223,10 +2234,6 @@ function ProjectDetail({ projectId }) {
               <div className="rounded-2xl border border-border bg-surface px-4 py-3">
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Deliverables</div>
                 <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.deliverables || '-'}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-surface px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">Project Description</div>
-                <div className="mt-2 whitespace-pre-line text-sm text-ink">{project.description || '-'}</div>
               </div>
             </div>
           </div>
