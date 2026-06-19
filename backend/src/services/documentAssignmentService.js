@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const folderPermissionService = require('./folderPermissionService')
+const confidentialAccessService = require('./confidentialAccessService')
 
 /**
  * Service for managing document assignments
@@ -164,6 +165,7 @@ class DocumentAssignmentService {
         folderId: true,
         stage: true,
         status: true,
+        isConfidential: true,
         reviewerId: true,
         firstApproverId: true,
         secondApproverId: true,
@@ -211,8 +213,14 @@ class DocumentAssignmentService {
       return true
     }
 
-    // Published, obsolete, and superseded documents are accessible to all
+    // Published, obsolete, and superseded documents are accessible to all UNLESS confidential
     if (['PUBLISHED', 'OBSOLETE', 'SUPERSEDED'].includes(document.status)) {
+      // For confidential documents, require explicit access check via canUserViewDocument
+      if (document.isConfidential) {
+        if (!user) return false
+        const ok = await confidentialAccessService.canUserViewDocument(document, user)
+        return ok
+      }
       return true;
     }
 

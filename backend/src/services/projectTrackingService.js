@@ -55,7 +55,7 @@ const buildLinkedDocumentAccessSelect = (user, roleIds = [], extraSelect = {}) =
   }
 }
 
-const canInteractWithLinkedDocument = (document, user) => {
+const canInteractWithLinkedDocument = (document, user, userRoleIds = []) => {
   if (!document) return false
   if (!document.isConfidential) return true
   if (!user) return false
@@ -63,12 +63,23 @@ const canInteractWithLinkedDocument = (document, user) => {
   const userId = Number.isFinite(Number(user.id)) ? Number(user.id) : null
   if (userId && (document.ownerId === userId || document.createdById === userId)) return true
 
-  return Array.isArray(document.confidentialAccess) && document.confidentialAccess.length > 0
+  // Verify user actually has an access entry matching them (userId or roleId)
+  if (Array.isArray(document.confidentialAccess) && document.confidentialAccess.length > 0) {
+    const normalizedRoleIds = Array.isArray(userRoleIds) ? userRoleIds.filter((id) => Number.isFinite(id)) : []
+    const hasMatchingEntry = document.confidentialAccess.some((entry) => {
+      if (userId && entry.userId === userId) return true
+      if (normalizedRoleIds.length > 0 && entry.roleId && normalizedRoleIds.includes(entry.roleId)) return true
+      return false
+    })
+    if (hasMatchingEntry) return true
+  }
+
+  return false
 }
 
-const serializeLinkedDocumentForUser = (document, user) => {
+const serializeLinkedDocumentForUser = (document, user, userRoleIds = []) => {
   if (!document) return document
-  const canAccess = canInteractWithLinkedDocument(document, user)
+  const canAccess = canInteractWithLinkedDocument(document, user, userRoleIds)
   const { ownerId, createdById, confidentialAccess, ...safeDocument } = document
   return {
     ...safeDocument,
@@ -725,7 +736,7 @@ exports.listIterationItems = async (iterationId, { user }) => {
       : item.stage,
     links: (item.links || []).map((link) => ({
       ...link,
-      document: serializeLinkedDocumentForUser(link.document, user)
+      document: serializeLinkedDocumentForUser(link.document, user, roleIds)
     }))
   }))
 
@@ -820,7 +831,7 @@ exports.unlinkDocumentFromItem = async (itemId, linkId, { user } = {}) => {
     })
     if (!link) throw new NotFoundError('Project document link')
 
-    if (!canInteractWithLinkedDocument(link.document, user)) {
+    if (!canInteractWithLinkedDocument(link.document, user, roleIds)) {
       throw new ForbiddenError('You do not have access to unlink this confidential document')
     }
 
@@ -887,7 +898,7 @@ exports.listIterationStageDocuments = async (iterationId, { user }) => {
 
   return links.map((link) => ({
     ...link,
-    document: serializeLinkedDocumentForUser(link.document, user),
+    document: serializeLinkedDocumentForUser(link.document, user, roleIds),
     stage: link.stage
       ? { ...link.stage, name: stageNameMap.get(link.stageId) || link.stage.name }
       : link.stage
@@ -966,7 +977,7 @@ exports.unlinkDocumentFromStage = async (iterationId, stageId, linkId, { user } 
   })
   if (!link) throw new NotFoundError('Project document link')
 
-  if (!canInteractWithLinkedDocument(link.document, user)) {
+  if (!canInteractWithLinkedDocument(link.document, user, roleIds)) {
     throw new ForbiddenError('You do not have access to unlink this confidential document')
   }
 
