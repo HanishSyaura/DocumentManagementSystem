@@ -3,6 +3,11 @@ import React, { useState, useEffect } from 'react'
 export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit }) {
   const [permissions, setPermissions] = useState({})
 
+  const formatActionLabel = (action) =>
+    String(action || '')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+
   // Define available modules with detailed submodules and their permissions
   // NOTE: Permission actions should match exactly what components check with hasPermission()
   const modules = [
@@ -55,7 +60,7 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
       id: 'projectTracking',
       name: 'Project Tracking',
       description: 'Track projects with document requirements by stage',
-      actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess']
+      actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess', 'projectControls', 'activityLogs', 'keyInChangeRequest', 'editProject', 'addNextPhase', 'moveToNextStage']
     },
     {
       id: 'configuration',
@@ -568,7 +573,7 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
                               <span className={`text-sm font-medium capitalize ${
                                 permissions[module.id]?.[action] ? 'text-blue-900' : 'text-gray-700'
                               }`}>
-                                {action}
+                                {formatActionLabel(action)}
                               </span>
                             </label>
                           ))}
@@ -638,7 +643,7 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
                                   <span className={`text-xs font-medium capitalize ${
                                     permissions[submodule.id]?.[action] ? 'text-blue-900' : 'text-gray-700'
                                   }`}>
-                                    {action}
+                                    {formatActionLabel(action)}
                                   </span>
                                 </label>
                               ))}

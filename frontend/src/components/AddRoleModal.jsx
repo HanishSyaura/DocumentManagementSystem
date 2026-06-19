@@ -6,6 +6,11 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
     description: initialData?.description || ''
   })
 
+  const formatActionLabel = (action) =>
+    String(action || '')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+
   const [permissions, setPermissions] = useState(initialData?.permissions || {})
   const [currentStep, setCurrentStep] = useState(1) // 1 = Basic Info, 2 = Permissions
 
@@ -61,7 +66,7 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
       id: 'projectTracking',
       name: 'Project Tracking',
       description: 'Track projects with document requirements by stage',
-      actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess']
+      actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess', 'projectControls', 'activityLogs', 'keyInChangeRequest', 'editProject', 'addNextPhase', 'moveToNextStage']
     },
     {
       id: 'configuration',
@@ -543,7 +548,7 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
                                 <span className={`text-sm font-medium capitalize ${
                                   permissions[module.id]?.[action] ? 'text-blue-900' : 'text-gray-700'
                                 }`}>
-                                  {action}
+                                  {formatActionLabel(action)}
                                 </span>
                               </label>
                             ))}
@@ -613,7 +618,7 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
                                     <span className={`text-xs font-medium capitalize ${
                                       permissions[submodule.id]?.[action] ? 'text-blue-900' : 'text-gray-700'
                                     }`}>
-                                      {action}
+                                      {formatActionLabel(action)}
                                     </span>
                                   </label>
                                 ))}

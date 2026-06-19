@@ -53,8 +53,8 @@ async function main() {
     // RFID EPC Registry (3 permissions)
     'documents.rfidRegistry': { view: true, export: true, manage: true },
 
-    // Project Tracking (9 permissions)
-    projectTracking: { view: true, searchProject: true, create: true, edit: true, delete: true, projectSetup: true, linkDocument: true, advanceStage: true, manageConfidentialAccess: true },
+    // Project Tracking (15 permissions)
+    projectTracking: { view: true, searchProject: true, create: true, edit: true, delete: true, projectSetup: true, linkDocument: true, advanceStage: true, manageConfidentialAccess: true, projectControls: true, activityLogs: true, keyInChangeRequest: true, editProject: true, addNextPhase: true, moveToNextStage: true },
     
     // Profile Settings (3 permissions)
     profileSettings: { view: true, edit: true, changePassword: true }

@@ -1551,6 +1551,12 @@ function ProjectDetail({ projectId }) {
   const canEdit = hasPermission('projectTracking', 'edit')
   const canDelete = hasPermission('projectTracking', 'delete')
   const canManageLinkedDocumentAccess = hasPermission('projectTracking', 'manageConfidentialAccess')
+  const canOpenProjectControls = hasPermission('projectTracking', 'projectControls') || canEdit || canDelete
+  const canViewActivityLogs = hasPermission('projectTracking', 'activityLogs') || hasPermission('projectTracking', 'view')
+  const canKeyInChangeRequest = hasPermission('projectTracking', 'keyInChangeRequest') || canEdit
+  const canEditProject = hasPermission('projectTracking', 'editProject') || canEdit
+  const canAddNextPhase = hasPermission('projectTracking', 'addNextPhase') || canCreate
+  const canMoveToNextStage = hasPermission('projectTracking', 'moveToNextStage') || canAdvance
 
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -2098,14 +2104,16 @@ function ProjectDetail({ projectId }) {
           subtitle="Track required documents, stage evidence, and confidential access for each phase."
           actions={(
             <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
-              {(canEdit || canDelete) ? (
+              {canOpenProjectControls ? (
                 <Button size="sm" variant="secondary" onClick={() => setShowProjectControls(true)}>
                   Project Controls
                 </Button>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="secondary" onClick={() => setShowActivity(true)}>Activity Logs</Button>
-                {canEdit ? (
+                {canViewActivityLogs ? (
+                  <Button size="sm" variant="secondary" onClick={() => setShowActivity(true)}>Activity Logs</Button>
+                ) : null}
+                {canKeyInChangeRequest ? (
                   <Button
                     size="sm"
                     variant="secondary"
@@ -2118,15 +2126,15 @@ function ProjectDetail({ projectId }) {
                     Key In Change Request
                   </Button>
                 ) : null}
-                {canEdit ? (
+                {canEditProject ? (
                   <Button size="sm" variant="secondary" onClick={() => setShowEditProject(true)}>Edit</Button>
                 ) : null}
-                {canCreate ? (
+                {canAddNextPhase ? (
                   <Button size="sm" variant="primary" onClick={() => setShowCreatePhase(true)} disabled={!isProjectActive}>
                     Add Next Phase
                   </Button>
                 ) : null}
-                {canAdvance ? (
+                {canMoveToNextStage ? (
                   <Button
                     size="sm"
                     variant="secondary"
