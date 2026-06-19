@@ -1161,7 +1161,6 @@ class DocumentService {
   async listDocuments(filters = {}, pagination = {}, userOrUserId = null) {
     const user = typeof userOrUserId === 'object' && userOrUserId ? userOrUserId : null
     const userId = user ? user.id : userOrUserId
-    const canViewConfidential = !!user?.permissions?.projectTracking?.viewConfidential
 
     const {
       status,
@@ -1187,7 +1186,7 @@ class DocumentService {
 
     const where = {}
 
-    if (userId && user && !canViewConfidential) {
+    if (userId && user) {
       const roleIds = await folderPermissionService.getRoleIdsByNames(user.roles || [])
       where.AND = [...(where.AND || []), confidentialAccessService.buildConfidentialWhereClause(user, roleIds)]
     }

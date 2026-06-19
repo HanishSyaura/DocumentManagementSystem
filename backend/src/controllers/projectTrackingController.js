@@ -151,9 +151,7 @@ exports.getProject = asyncHandler(async (req, res) => {
   const projectId = Number(req.params.projectId);
   if (!projectId) throw new ValidationError('Invalid projectId');
 
-  const canViewConfidential = !!req.user?.permissions?.projectTracking?.viewConfidential;
-
-  const project = await projectTrackingService.getProject(projectId, { canViewConfidential });
+  const project = await projectTrackingService.getProject(projectId, { user: req.user });
   return ResponseFormatter.success(res, { project }, 'Project retrieved successfully');
 });
 

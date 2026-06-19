@@ -25,8 +25,6 @@ class ConfidentialAccessService {
 
     if (!document.isConfidential) return true
 
-    if (user?.permissions?.projectTracking?.viewConfidential) return true
-
     if (document.ownerId === user.id || document.createdById === user.id) return true
 
     const roleIds = await folderPermissionService.getRoleIdsByNames(user?.roles || [])
@@ -45,7 +43,6 @@ class ConfidentialAccessService {
   buildConfidentialWhereClause(user, roleIds = []) {
     const userId = user?.id
     if (!userId) return { isConfidential: false }
-    if (user?.permissions?.projectTracking?.viewConfidential) return {}
 
     const rids = Array.isArray(roleIds) ? roleIds.filter((x) => Number.isFinite(x)) : []
 
@@ -166,8 +163,8 @@ class ConfidentialAccessService {
     })
     if (!reqRow) throw new NotFoundError('Requirement')
 
-    if (!actor?.permissions?.projectTracking?.manageTemplates) {
-      throw new ForbiddenError("You don't have permission to manage templates")
+    if (!actor?.permissions?.projectTracking?.projectSetup) {
+      throw new ForbiddenError("You don't have permission to manage project setup")
     }
 
     if (!reqRow.isConfidentialDefault) {
@@ -261,8 +258,8 @@ class ConfidentialAccessService {
       throw new ValidationError('Invalid requirement scope')
     }
 
-    if (!actor?.permissions?.projectTracking?.manageTemplates) {
-      throw new ForbiddenError("You don't have permission to manage templates")
+    if (!actor?.permissions?.projectTracking?.projectSetup) {
+      throw new ForbiddenError("You don't have permission to manage project setup")
     }
 
     const entries = this.normalizeEntries(payload)

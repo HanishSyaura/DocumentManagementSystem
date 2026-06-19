@@ -1976,7 +1976,10 @@ function ProjectDetail({ projectId }) {
     return currentStage === 'DRAFT' ? 'Continue Draft' : 'Go to File Directory'
   }
 
-  const canInteractWithDocument = (document) => document?.canAccess !== false
+  const canInteractWithDocument = (document) => {
+    if (!document?.isConfidential) return true
+    return document?.canAccess === true
+  }
 
   const showRestrictedDocumentAlert = (actionLabel = 'interact with this document') => {
     setAlertModal({
@@ -3957,7 +3960,10 @@ function Setup() {
 export default function ProjectTracking() {
   const { projectId } = useParams()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+  const canSearchProjects = hasPermission('projectTracking', 'searchProject')
+  const canOpenProjectSetup = hasPermission('projectTracking', 'projectSetup')
+  const canViewProjectDetail = hasPermission('projectTracking', 'view')
 
   const activeTab = String(searchParams.get('tab') || 'projects')
 
@@ -3977,15 +3983,27 @@ export default function ProjectTracking() {
   }, [projectId])
 
   const tabs = useMemo(() => {
-    const base = [
-      { id: 'projects', label: 'Projects' },
-      { id: 'search', label: 'Search' }
-    ]
-    if (hasPermission('projectTracking', 'manageTemplates')) {
+    const base = []
+    if (canSearchProjects) {
+      base.push({ id: 'projects', label: 'Projects' })
+      base.push({ id: 'search', label: 'Search' })
+    }
+    if (canOpenProjectSetup) {
       base.push({ id: 'setup', label: 'Project Setup' })
     }
     return base
-  }, [])
+  }, [canOpenProjectSetup, canSearchProjects])
+
+  const fallbackTab = tabs[0]?.id || 'projects'
+
+  useEffect(() => {
+    if (projectId) return
+    const allowedTabIds = new Set(tabs.map((tab) => tab.id))
+    if (!allowedTabIds.size) return
+    if (!allowedTabIds.has(activeTab)) {
+      setTab(fallbackTab)
+    }
+  }, [activeTab, fallbackTab, projectId, tabs])
 
   return (
     <div className="space-y-6">
@@ -4014,14 +4032,20 @@ export default function ProjectTracking() {
           </nav>
         </div>
         <div className="p-4 md:p-5">
-          {activeTab === 'setup' ? (
+          {activeTab === 'setup' && canOpenProjectSetup ? (
             <Setup />
-          ) : activeTab === 'search' ? (
+          ) : activeTab === 'search' && canSearchProjects ? (
             <DocumentsSearch />
-          ) : projectId ? (
+          ) : projectId && canViewProjectDetail ? (
             <ProjectDetail projectId={Number(projectId)} />
-          ) : (
+          ) : projectId ? (
+            <EmptyState title="No access" message="You do not have permission to view this project." />
+          ) : activeTab === 'projects' && canSearchProjects ? (
             <ProjectsList onOpenProject={(id) => navigate(`/project-tracking/${id}`)} />
+          ) : tabs.length === 0 ? (
+            <EmptyState title="No access" message="You do not have permission to access Project Tracking tabs." />
+          ) : (
+            <EmptyState title="No access" message="You do not have permission to open this tab." />
           )}
         </div>
       </AppSurface>

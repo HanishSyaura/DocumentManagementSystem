@@ -59,7 +59,6 @@ const canInteractWithLinkedDocument = (document, user) => {
   if (!document) return false
   if (!document.isConfidential) return true
   if (!user) return false
-  if (user?.permissions?.projectTracking?.viewConfidential) return true
 
   const userId = Number.isFinite(Number(user.id)) ? Number(user.id) : null
   if (userId && (document.ownerId === userId || document.createdById === userId)) return true
@@ -544,7 +543,7 @@ exports.createProject = async ({
   });
 };
 
-exports.getProject = async (projectId, { canViewConfidential }) => {
+exports.getProject = async (projectId, { user } = {}) => {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
@@ -570,16 +569,17 @@ exports.getProject = async (projectId, { canViewConfidential }) => {
     }))
   };
 
-  if (canViewConfidential) return projectWithStageView;
-
   const iterationIds = project.iterations.map((it) => it.id);
   if (iterationIds.length === 0) return projectWithStageView;
+
+  const roleIds = user ? await folderPermissionService.getRoleIdsByNames(user.roles || []) : []
+  const docWhere = user ? confidentialAccessService.buildConfidentialWhereClause(user, roleIds) : { isConfidential: false }
 
   const linkCounts = await prisma.projectDocumentLink.groupBy({
     by: ['projectIterationId'],
     where: {
       projectIterationId: { in: iterationIds },
-      document: { isConfidential: false }
+      document: docWhere
     },
     _count: { _all: true }
   });
@@ -1464,7 +1464,7 @@ exports.searchDocuments = async ({ projectId, q }, { user }) => {
   if (user?.id) {
     andWhere.push(documentAssignmentService.buildAccessWhereClause(user.id, roleIds))
   }
-  if (user && !user?.permissions?.projectTracking?.viewConfidential) {
+  if (user) {
     andWhere.push(confidentialAccessService.buildConfidentialWhereClause(user, roleIds))
   }
   if (projectId) {

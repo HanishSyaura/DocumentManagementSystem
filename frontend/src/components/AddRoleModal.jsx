@@ -61,7 +61,7 @@ export default function AddRoleModal({ onClose, onSubmit, initialData }) {
       id: 'projectTracking',
       name: 'Project Tracking',
       description: 'Track projects with document requirements by stage',
-      actions: ['view', 'create', 'edit', 'delete', 'manageTemplates', 'linkDocument', 'advanceStage', 'viewConfidential']
+      actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess']
     },
     {
       id: 'configuration',
