@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import Pagination from './Pagination'
 import EmptyState from './EmptyState'
@@ -1799,9 +1799,108 @@ function ProjectDetail({ projectId }) {
     return Array.from(byDocumentId.values()).sort((a, b) => new Date(b.linkedAt || 0).getTime() - new Date(a.linkedAt || 0).getTime())
   }, [items, stageDocuments])
 
-  const openDocumentWorkspace = (document) => {
+  const getFileNameFromContentDisposition = (value) => {
+    const headerValue = String(value || '')
+    const utf8Match = headerValue.match(/filename\*\s*=\s*UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ''))
+      } catch {
+        return utf8Match[1].trim().replace(/^"|"$/g, '')
+      }
+    }
+
+    const plainMatch = headerValue.match(/filename\s*=\s*("?)([^";]+)\1/i)
+    if (plainMatch?.[2]) return plainMatch[2].trim()
+    return null
+  }
+
+  const downloadDocument = async (document) => {
     if (!document?.id) return
-    navigate(`/documents/${document.id}`)
+
+    try {
+      const res = await api.get(`/documents/${document.id}/download`, {
+        responseType: 'blob'
+      })
+
+      const contentDisposition = res.headers?.['content-disposition'] || ''
+      const contentType = res.headers?.['content-type'] || ''
+      const fallbackName = document.fileName || document.title || document.fileCode || `document-${document.id}`
+      const downloadName = getFileNameFromContentDisposition(contentDisposition) || fallbackName
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: contentType || undefined }))
+      const link = window.document.createElement('a')
+
+      link.href = url
+      link.setAttribute('download', downloadName)
+      window.document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download linked document:', error)
+      setAlertModal({
+        show: true,
+        title: 'Download Failed',
+        message: 'Unable to download this file right now.',
+        type: 'warning'
+      })
+    }
+  }
+
+  const openDocumentWorkspace = async (document) => {
+    if (!document?.id) return
+
+    const currentStatus = String(document.status || '').toUpperCase()
+    if (currentStatus === 'DRAFT') {
+      navigate(`/drafts?docId=${document.id}&origin=project-tracking`)
+      return
+    }
+
+    await downloadDocument(document)
+  }
+
+  const openDocumentDirectory = async (document) => {
+    if (!document?.id) return
+
+    const currentStatus = String(document.status || '').toUpperCase()
+    if (currentStatus === 'DRAFT') {
+      navigate(`/drafts?docId=${document.id}&origin=project-tracking`)
+      return
+    }
+
+    try {
+      const res = await api.get(`/documents/${document.id}`)
+      const detailedDocument =
+        res.data?.data?.document ||
+        res.data?.document ||
+        res.data?.data ||
+        res.data
+
+      const stage = String(detailedDocument?.stage || document.stage || '').toUpperCase()
+      const folderId = Number.isFinite(parseInt(detailedDocument?.folderId, 10))
+        ? parseInt(detailedDocument.folderId, 10)
+        : null
+
+      if (stage === 'DRAFT') {
+        navigate(`/drafts?docId=${document.id}&origin=project-tracking`)
+        return
+      }
+
+      if (stage === 'PUBLISHED' && folderId) {
+        navigate(`/published?folderId=${folderId}&docId=${document.id}&origin=project-tracking`)
+        return
+      }
+
+      if (stage === 'PUBLISHED') {
+        navigate(`/published?docId=${document.id}&origin=project-tracking`)
+        return
+      }
+
+      navigate(`/review-approval?docId=${document.id}`)
+    } catch (error) {
+      console.error('Failed to resolve linked document route:', error)
+      navigate(`/documents/${document.id}`)
+    }
   }
 
   const handoffCreatedDraft = async (result) => {
@@ -1824,14 +1923,36 @@ function ProjectDetail({ projectId }) {
   }
 
   const unlinkItemDocument = async (itemId, linkId) => {
-    await api.delete(`/project-tracking/items/${itemId}/links/${linkId}`)
-    if (selectedIterationId) await loadItems(selectedIterationId)
+    try {
+      await api.delete(`/project-tracking/items/${itemId}/links/${linkId}`)
+      if (selectedIterationId) await loadItems(selectedIterationId)
+    } catch (error) {
+      console.error('Failed to unlink item document:', error)
+      const message = error?.response?.data?.message || error?.response?.data?.error || 'Unable to unlink this document right now.'
+      setAlertModal({
+        show: true,
+        title: 'Unlink Failed',
+        message,
+        type: 'warning'
+      })
+    }
   }
 
   const unlinkStageDocument = async (stageId, linkId) => {
     if (!selectedIterationId) return
-    await api.delete(`/project-tracking/iterations/${selectedIterationId}/stages/${stageId}/links/${linkId}`)
-    await loadItems(selectedIterationId)
+    try {
+      await api.delete(`/project-tracking/iterations/${selectedIterationId}/stages/${stageId}/links/${linkId}`)
+      await loadItems(selectedIterationId)
+    } catch (error) {
+      console.error('Failed to unlink stage document:', error)
+      const message = error?.response?.data?.message || error?.response?.data?.error || 'Unable to unlink this document right now.'
+      setAlertModal({
+        show: true,
+        title: 'Unlink Failed',
+        message,
+        type: 'warning'
+      })
+    }
   }
 
   const getDocumentWorkspaceLabel = (document) => (
@@ -2428,10 +2549,22 @@ function ProjectDetail({ projectId }) {
                   {consolidatedDocuments.map((entry) => (
                     <Tr key={entry.id} className="hover:bg-surface-muted">
                       <Td>
-                        <Link to={`/documents/${entry.document.id}`} className="font-medium text-brand hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => downloadDocument(entry.document)}
+                          className="font-medium text-brand hover:underline"
+                        >
                           {getDocumentCodeLabel(entry.document)}
-                        </Link>
-                        <div className="mt-1 text-ink-secondary">{getDocumentTitleLabel(entry.document)}</div>
+                        </button>
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={() => downloadDocument(entry.document)}
+                            className="text-left text-ink-secondary hover:underline"
+                          >
+                            {getDocumentTitleLabel(entry.document)}
+                          </button>
+                        </div>
                         <div className="mt-2 inline-flex items-center gap-2">
                           <ConfidentialBadge isConfidential={entry.document.isConfidential} />
                           <DocumentStatusBadge status={entry.document.status} />
@@ -2447,7 +2580,7 @@ function ProjectDetail({ projectId }) {
                         <DocumentStatusBadge status={entry.document.status} />
                       </Td>
                       <Td align="right">
-                        <button type="button" onClick={() => openDocumentWorkspace(entry.document)} className="text-brand hover:underline">
+                        <button type="button" onClick={() => openDocumentDirectory(entry.document)} className="text-brand hover:underline">
                           {String(entry.document.status || '').toUpperCase() === 'DRAFT' ? 'Continue Draft' : 'Open Workflow'}
                         </button>
                       </Td>
@@ -2529,10 +2662,20 @@ function ProjectDetail({ projectId }) {
                                 it.links.map((l) => (
                                   <div key={l.id} className="space-y-1">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <Link to={`/documents/${l.document.id}`} className="font-medium text-brand hover:underline">
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadDocument(l.document)}
+                                        className="font-medium text-brand hover:underline"
+                                      >
                                         {getDocumentCodeLabel(l.document)}
-                                      </Link>
-                                      <span className="text-ink-muted">{getDocumentTitleLabel(l.document)}</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => downloadDocument(l.document)}
+                                        className="text-left text-ink-muted hover:underline"
+                                      >
+                                        {getDocumentTitleLabel(l.document)}
+                                      </button>
                                     </div>
                                     <div className="inline-flex flex-wrap items-center gap-2">
                                       <ConfidentialBadge isConfidential={l.document.isConfidential} />
@@ -2587,7 +2730,7 @@ function ProjectDetail({ projectId }) {
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => openDocumentWorkspace(l.document)}
+                                      onClick={() => openDocumentDirectory(l.document)}
                                       className="font-medium text-ink-secondary hover:text-ink hover:underline"
                                     >
                                       {getDocumentDirectoryLabel(l.document)}
@@ -2655,10 +2798,20 @@ function ProjectDetail({ projectId }) {
                               <Td className="min-w-[260px] text-sm text-ink-secondary">
                                 <div className="space-y-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <Link to={`/documents/${l.document.id}`} className="font-medium text-brand hover:underline">
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDocument(l.document)}
+                                      className="font-medium text-brand hover:underline"
+                                    >
                                       {getDocumentCodeLabel(l.document)}
-                                    </Link>
-                                    <span className="text-ink-muted">{getDocumentTitleLabel(l.document)}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDocument(l.document)}
+                                      className="text-left text-ink-muted hover:underline"
+                                    >
+                                      {getDocumentTitleLabel(l.document)}
+                                    </button>
                                   </div>
                                   <div className="inline-flex flex-wrap items-center gap-2">
                                     <ConfidentialBadge isConfidential={l.document.isConfidential} />
@@ -2693,7 +2846,7 @@ function ProjectDetail({ projectId }) {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => openDocumentWorkspace(l.document)}
+                                    onClick={() => openDocumentDirectory(l.document)}
                                     className="font-medium text-ink-secondary hover:text-ink hover:underline"
                                   >
                                     {getDocumentDirectoryLabel(l.document)}

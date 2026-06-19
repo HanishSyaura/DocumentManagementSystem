@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api from '../api/axios'
 import BulkImportModal from './BulkImportModal'
 import DocumentViewerModal from './DocumentViewerModal'
@@ -22,6 +23,7 @@ import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
 
 export default function PublishedDocuments() {
   const { itemsPerPage, formatDate, t } = usePreferences()
+  const [searchParams] = useSearchParams()
   const toFolderId = (v) => {
     if (v === null || v === undefined || v === '') return null
     const n = parseInt(v, 10)
@@ -129,6 +131,7 @@ export default function PublishedDocuments() {
 
   // Get flattened folders for dropdown
   const flatFolders = flattenFolders(folders)
+  const deepLinkFolderId = useMemo(() => toFolderId(searchParams.get('folderId')), [searchParams])
   const selectedFolderMeta = useMemo(() => {
     if (!selectedFolder) return null
     return flatFolders.find((f) => f.id === selectedFolder) || null
@@ -141,6 +144,14 @@ export default function PublishedDocuments() {
     loadFolders()
     loadUserRole()
   }, [])
+
+  useEffect(() => {
+    if (!deepLinkFolderId || folders.length === 0) return
+
+    setSelectedFolder(deepLinkFolderId)
+    setBreadcrumbs(buildBreadcrumbsFrom(folders, deepLinkFolderId))
+    expandPathToFolder(deepLinkFolderId)
+  }, [deepLinkFolderId, folders])
 
   useEffect(() => {
     loadDocuments()

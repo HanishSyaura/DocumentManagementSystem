@@ -759,7 +759,8 @@ exports.unlinkDocumentFromItem = async (itemId, linkId) => {
       where: {
         id: linkId,
         itemId,
-        projectIterationId: { not: null }
+        projectIterationId: item.projectIterationId,
+        stageId: item.stageId
       },
       include: {
         document: {
@@ -771,12 +772,18 @@ exports.unlinkDocumentFromItem = async (itemId, linkId) => {
 
     await tx.projectDocumentLink.delete({ where: { id: link.id } })
 
-    const remainingPublished = await tx.projectDocumentLink.count({
+    const remainingLinks = await tx.projectDocumentLink.findMany({
       where: {
         itemId,
-        document: { status: 'PUBLISHED' }
+        projectIterationId: item.projectIterationId
+      },
+      select: {
+        document: {
+          select: { status: true }
+        }
       }
     })
+    const remainingPublished = remainingLinks.filter((entry) => entry.document?.status === 'PUBLISHED').length
 
     let updatedItem = { id: item.id, status: item.status }
     if (remainingPublished === 0 && item.status === 'COMPLETE') {

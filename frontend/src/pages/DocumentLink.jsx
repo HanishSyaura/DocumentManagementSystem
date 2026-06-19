@@ -43,7 +43,9 @@ export default function DocumentLink() {
         }
 
         if (stage === 'PUBLISHED') {
-          navigate(`/published?docId=${docId}`, { replace: true })
+          const rawFolderId = parseInt(doc?.folderId, 10)
+          const folderQuery = Number.isFinite(rawFolderId) ? `&folderId=${rawFolderId}` : ''
+          navigate(`/published?docId=${docId}${folderQuery}`, { replace: true })
           return
         }
 
@@ -65,4 +67,3 @@ export default function DocumentLink() {
     </div>
   )
 }
-
