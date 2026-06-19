@@ -2129,9 +2129,8 @@ function ProjectDetail({ projectId }) {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--dms-color-success-ink)]/80">Status</div>
                 <div className="text-sm text-ink-secondary">Live project condition for this workspace.</div>
               </div>
-              <div className="flex items-end justify-between gap-3">
+              <div className="flex items-end gap-3">
                 <div className="text-xl font-semibold text-ink">{formatLifecycleStatus(project.status)}</div>
-                <ProjectStatusBadge status={project.status} />
               </div>
             </div>
           </div>
@@ -2145,7 +2144,7 @@ function ProjectDetail({ projectId }) {
               <div className="flex items-end justify-between gap-3">
                 <div className="truncate text-xl font-semibold text-ink" title={currentStageLabel}>{currentStageLabel}</div>
                 <span className="inline-flex items-center rounded-full border border-[var(--dms-color-info-ink)]/15 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--dms-color-info-ink)]">
-                  Active Phase
+                  In Progress
                 </span>
               </div>
             </div>
