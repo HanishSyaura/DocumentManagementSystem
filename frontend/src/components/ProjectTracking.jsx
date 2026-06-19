@@ -1959,9 +1959,10 @@ function ProjectDetail({ projectId }) {
     String(document?.status || '').toUpperCase() === 'DRAFT' ? 'Continue Draft' : 'View File'
   )
 
-  const getDocumentDirectoryLabel = (document) => (
-    String(document?.status || '').toUpperCase() === 'DRAFT' ? 'Open Workflow' : 'Go To Document'
-  )
+  const getDocumentDirectoryLabel = (document) => {
+    const currentStage = String(document?.stage || document?.status || '').toUpperCase()
+    return currentStage === 'DRAFT' ? 'Continue Draft' : 'Go to File Directory'
+  }
 
   const getLinkedDocumentTypeLabel = (link) => (
     link?.document?.documentType?.name || link?.documentType?.name || 'Other Document'
@@ -2587,7 +2588,7 @@ function ProjectDetail({ projectId }) {
                       </Td>
                       <Td align="right">
                         <button type="button" onClick={() => openDocumentDirectory(entry.document)} className="text-brand hover:underline">
-                          {String(entry.document.status || '').toUpperCase() === 'DRAFT' ? 'Continue Draft' : 'Open Workflow'}
+                          {getDocumentDirectoryLabel(entry.document)}
                         </button>
                       </Td>
                     </Tr>
