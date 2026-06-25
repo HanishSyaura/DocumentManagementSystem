@@ -19,10 +19,15 @@ export default function AppShell({
     const target = e.target instanceof Element ? e.target : null
     if (!target) return
 
-    if (mainEl.contains(target)) return
-
     let node = target
+    let insideMain = false
+
     while (node && node !== shellEl) {
+      if (node === mainEl) {
+        insideMain = true
+        break
+      }
+
       const style = window.getComputedStyle(node)
       const overflowY = style.overflowY
       const canScrollY =
@@ -32,6 +37,8 @@ export default function AppShell({
       if (canScrollY) return
       node = node.parentElement
     }
+
+    if (!insideMain && !mainEl.contains(target)) return
 
     mainEl.scrollTop += e.deltaY
   }, [])
