@@ -32,7 +32,7 @@ function TabNavigation({ activeTab, onTabChange, t }) {
   ]
 
   return (
-    <div className="border-b border-gray-200 mb-6" data-tour-id="profile-tabbar">
+    <div className="mb-6 border-b border-border" data-tour-id="profile-tabbar">
       <nav className="flex space-x-8 overflow-x-auto" aria-label="Settings Tabs">
         {tabs.map((tab) => (
           <button
@@ -41,8 +41,8 @@ function TabNavigation({ activeTab, onTabChange, t }) {
             data-tour-id={`profile-tab-${tab.id}`}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-ink-muted hover:text-ink hover:border-border'
             }`}
           >
             <span>{tab.icon}</span>
@@ -214,7 +214,7 @@ function ProfileInformation() {
     <div className="space-y-6">
       {/* Profile Picture */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('profile_picture')}</h3>
+        <h3 className="mb-4 text-lg font-semibold text-ink">{t('profile_picture')}</h3>
         <div className="flex items-center gap-6">
           <div className="relative">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden">
@@ -226,11 +226,11 @@ function ProfileInformation() {
             </div>
           </div>
           <div className="flex-1">
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="mb-3 text-sm text-ink-secondary">
               {t('upload_photo_desc')}
             </p>
             <div className="flex gap-3">
-              <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer text-sm font-medium">
+              <label className="cursor-pointer rounded-lg bg-brand px-4 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-brand-hover">
                 {t('upload_new_photo')}
                 <input
                   type="file"
@@ -245,7 +245,7 @@ function ProfileInformation() {
                     setProfileImage(null)
                     setProfileImageFile(null)
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-ink-secondary transition-colors hover:bg-surface-muted hover:text-ink"
                 >
                   {t('remove')}
                 </button>
@@ -257,50 +257,50 @@ function ProfileInformation() {
 
       {/* Personal Information */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('personal_info')}</h3>
+        <h3 className="mb-4 text-lg font-semibold text-ink">{t('personal_info')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('first_name')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('last_name')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('email_address')} <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('phone_number')}
             </label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
         </div>
@@ -308,23 +308,23 @@ function ProfileInformation() {
 
       {/* Work Information */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('work_info')}</h3>
+        <h3 className="mb-4 text-lg font-semibold text-ink">{t('work_info')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('employee_id')}</label>
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">{t('employee_id')}</label>
             <input
               type="text"
               value={formData.employeeId}
               disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed outline-none"
+              className="w-full cursor-not-allowed rounded-lg border border-border bg-surface-muted px-3 py-2 text-ink-muted outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('department')}</label>
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">{t('department')}</label>
             <select
               value={formData.department}
               onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             >
               <option value="">{t('select_department')}</option>
               {departments.map(dept => (
@@ -333,21 +333,21 @@ function ProfileInformation() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('position')}</label>
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">{t('position')}</label>
             <input
               type="text"
               value={formData.position}
               onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('date_joined')}</label>
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">{t('date_joined')}</label>
             <input
               type="date"
               value={formData.dateJoined}
               disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed outline-none"
+              className="w-full cursor-not-allowed rounded-lg border border-border bg-surface-muted px-3 py-2 text-ink-muted outline-none"
             />
           </div>
         </div>
@@ -357,14 +357,14 @@ function ProfileInformation() {
       <div className="flex justify-end gap-3">
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          className="rounded-lg border border-border px-6 py-2 font-medium text-ink-secondary transition-colors hover:bg-surface-muted hover:text-ink"
         >
           {t('cancel')}
         </button>
         <button
           onClick={handleSave}
           disabled={loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+          className="rounded-lg bg-brand px-6 py-2 font-medium text-ink-inverse transition-colors hover:bg-brand-hover disabled:opacity-50"
         >
           {loading ? t('saving') : t('save_changes')}
         </button>
@@ -660,33 +660,33 @@ function SecuritySettings() {
     <div className="space-y-6">
       {/* Change Password */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('change_password')}</h3>
+        <h3 className="mb-4 text-lg font-semibold text-ink">{t('change_password')}</h3>
         <div className="space-y-4 max-w-md">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('current_password')}
             </label>
             <input
               type="password"
               value={passwords.current}
               onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('new_password')}
             </label>
             <input
               type="password"
               value={passwords.new}
               onChange={(e) => handleNewPasswordChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             {passwords.new && (
               <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-surface-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-300 ${
                         passwordStrength.score <= 2 ? 'bg-red-500' :
@@ -710,8 +710,8 @@ function SecuritySettings() {
                   </span>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
-                  <p className="text-xs font-medium text-gray-700 mb-2">{t('pass_req_title')}</p>
+                <div className="rounded-lg bg-surface-muted p-3 space-y-1.5 border border-border">
+                  <p className="mb-2 text-xs font-medium text-ink-secondary">{t('pass_req_title')}</p>
                   <div className="flex items-center gap-2">
                     {passwordStrength.hasMinLength ?
                       <CheckCircleIcon className="h-4 w-4 text-green-500" /> :
@@ -757,20 +757,20 @@ function SecuritySettings() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-ink-secondary">
               {t('confirm_new_password')}
             </label>
             <input
               type="password"
               value={passwords.confirm}
               onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-ink outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
           <button
             onClick={handlePasswordChange}
             disabled={changingPassword}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+            className="rounded-lg bg-brand px-6 py-2 font-medium text-ink-inverse transition-colors hover:bg-brand-hover disabled:opacity-50"
           >
             {changingPassword ? t('updating') : t('update_password')}
           </button>
@@ -781,8 +781,8 @@ function SecuritySettings() {
       <div className="card p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('two_factor_auth')}</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <h3 className="mb-2 text-lg font-semibold text-ink">{t('two_factor_auth')}</h3>
+            <p className="mb-4 text-sm text-ink-secondary">
               {t('two_factor_desc')}
             </p>
           </div>
@@ -793,24 +793,24 @@ function SecuritySettings() {
               onChange={(e) => handleToggle2FA(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-border after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand"></div>
           </label>
         </div>
         {twoFactorEnabled && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-4 p-4 rounded-lg border border-[var(--dms-color-info-ink)]/20 bg-[var(--dms-color-info-soft)]">
+            <p className="text-sm text-[var(--dms-color-info-ink)]">
               {t('two_factor_enabled_desc')}
             </p>
-            <p className="text-xs text-blue-700 mt-1">
+            <p className="mt-1 text-xs text-[var(--dms-color-info-ink)]">
               Method: {twoFactorMethod === 'app' ? 'Authenticator App' : 'Email Verification'}
             </p>
           </div>
         )}
-        <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+        <div className="mt-4 p-4 border border-border rounded-lg bg-surface-muted">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-gray-900">Authenticator App</p>
-              <p className="text-xs text-gray-600 mt-0.5">
+              <p className="text-sm font-medium text-ink">Authenticator App</p>
+              <p className="mt-0.5 text-xs text-ink-secondary">
                 {hasAuthenticator
                   ? 'Configured. You can use app code during login when available.'
                   : 'Set up Google/Microsoft Authenticator for stronger 2FA.'}
@@ -820,7 +820,7 @@ function SecuritySettings() {
               <button
                 onClick={handleSetupAuthenticator}
                 disabled={settingUpAuthenticator}
-                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium bg-brand text-ink-inverse rounded hover:bg-brand-hover disabled:opacity-50"
               >
                 {settingUpAuthenticator ? 'Generating...' : 'Set Up App'}
               </button>
@@ -834,13 +834,13 @@ function SecuritySettings() {
           )}
 
           {authenticatorSetup && (
-            <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg space-y-3">
+            <div className="mt-4 p-3 bg-surface border border-border rounded-lg space-y-3">
               <div className="flex justify-center">
-                <img src={authenticatorSetup.qrCodeDataUrl} alt="Authenticator QR Code" className="w-44 h-44 rounded border border-gray-200" />
+                <img src={authenticatorSetup.qrCodeDataUrl} alt="Authenticator QR Code" className="w-44 h-44 rounded border border-border" />
               </div>
               <div>
-                <p className="text-xs text-gray-600 mb-1">Manual key (if QR scan unavailable):</p>
-                <p className="text-xs font-mono break-all bg-gray-100 p-2 rounded border border-gray-200">
+                <p className="text-xs text-ink-secondary mb-1">Manual key (if QR scan unavailable):</p>
+                <p className="text-xs font-mono break-all bg-surface-muted p-2 rounded border border-border text-ink">
                   {authenticatorSetup.manualKey}
                 </p>
               </div>
@@ -850,12 +850,12 @@ function SecuritySettings() {
                   value={authenticatorCode}
                   onChange={(e) => setAuthenticatorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="Enter 6-digit code"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-border rounded-lg text-sm outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
                 />
                 <button
                   onClick={handleVerifyAuthenticator}
                   disabled={verifyingAuthenticator}
-                  className="px-3 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  className="px-3 py-2 text-sm font-medium bg-[var(--dms-color-success-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 disabled:opacity-50"
                 >
                   {verifyingAuthenticator ? 'Verifying...' : 'Verify'}
                 </button>
@@ -864,8 +864,8 @@ function SecuritySettings() {
           )}
         </div>
         {!twoFactorEnabled && hasAuthenticator && (
-          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800">
+          <div className="mt-3 p-3 rounded-lg border border-[var(--dms-color-warning-ink)]/20 bg-[var(--dms-color-warning-soft)]">
+            <p className="text-xs text-[var(--dms-color-warning-ink)]">
               Authenticator is configured but 2FA is currently disabled. Toggle 2FA on to enforce it on your account.
             </p>
           </div>
@@ -874,36 +874,36 @@ function SecuritySettings() {
 
       {/* Active Sessions */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('active_sessions')}</h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <h3 className="text-lg font-semibold text-ink mb-4">{t('active_sessions')}</h3>
+        <p className="text-sm text-ink-secondary mb-4">
           {t('active_sessions_desc')}
         </p>
         <div className="space-y-3">
           {loadingSessions ? (
-            <p className="text-sm text-gray-500">{t('loading_sessions')}</p>
+            <p className="text-sm text-ink-muted">{t('loading_sessions')}</p>
           ) : sessions.length === 0 ? (
-            <p className="text-sm text-gray-500">{t('no_active_sessions')}</p>
+            <p className="text-sm text-ink-muted">{t('no_active_sessions')}</p>
           ) : sessions.map((session) => (
-            <div key={session.id} className="border border-gray-200 rounded-lg p-4">
+            <div key={session.id} className="border border-border rounded-lg p-4 bg-surface">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-gray-900">{session.device}</p>
+                    <p className="font-medium text-ink">{session.device}</p>
                     {session.current && (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
+                      <span className="px-2 py-0.5 bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] text-xs font-medium rounded">
                         {t('current')}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">{session.location}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm text-ink-secondary">{session.location}</p>
+                  <p className="text-xs text-ink-muted mt-1">
                     IP: {session.ip} • Last active: {session.lastActive}
                   </p>
                 </div>
                 {!session.current && (
                   <button
                     onClick={() => handleTerminateSession(session.id)}
-                    className="text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="text-sm text-[var(--dms-color-danger-ink)] hover:opacity-90 font-medium"
                   >
                     {t('terminate')}
                   </button>
@@ -1026,11 +1026,11 @@ function NotificationSettings() {
   }
 
   const NotificationToggle = ({ label, description, emailChecked, inAppChecked, onEmailChange, onInAppChange }) => (
-    <div className="py-3 border-b border-gray-100 last:border-0">
+    <div className="py-3 border-b border-border last:border-0">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="font-medium text-gray-900 text-sm">{label}</p>
-          <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+          <p className="font-medium text-ink text-sm">{label}</p>
+          <p className="text-xs text-ink-muted mt-0.5">{description}</p>
         </div>
         <div className="flex gap-4 ml-4">
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -1038,18 +1038,18 @@ function NotificationSettings() {
               type="checkbox"
               checked={emailChecked}
               onChange={onEmailChange}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-brand border-border rounded focus:ring-brand/20"
             />
-            <span className="text-xs text-gray-600">Email</span>
+            <span className="text-xs text-ink-secondary">Email</span>
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={inAppChecked}
               onChange={onInAppChange}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-brand border-border rounded focus:ring-brand/20"
             />
-            <span className="text-xs text-gray-600">In-App</span>
+            <span className="text-xs text-ink-secondary">In-App</span>
           </label>
         </div>
       </div>
@@ -1058,7 +1058,7 @@ function NotificationSettings() {
 
   const NotificationCategory = ({ title, icon, items }) => (
     <div className="card p-5 mb-4">
-      <h4 className="text-md font-semibold text-gray-900 mb-3 flex items-center gap-2">
+      <h4 className="text-md font-semibold text-ink mb-3 flex items-center gap-2">
         <span>{icon}</span> {title}
       </h4>
       <div>
@@ -1115,7 +1115,7 @@ function NotificationSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
       </div>
     )
   }
@@ -1124,8 +1124,8 @@ function NotificationSettings() {
     <div className="space-y-4">
       {/* Header */}
       <div className="card p-5">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('notification_preferences')}</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-ink mb-2">{t('notification_preferences')}</h3>
+        <p className="text-sm text-ink-secondary">
           {t('notification_desc')}
         </p>
       </div>
@@ -1160,14 +1160,14 @@ function NotificationSettings() {
 
       {/* Email Digest */}
       <div className="card p-5">
-        <h4 className="text-md font-semibold text-gray-900 mb-2">📧 {t('email_digest')}</h4>
-        <p className="text-sm text-gray-600 mb-3">
+        <h4 className="text-md font-semibold text-ink mb-2">📧 {t('email_digest')}</h4>
+        <p className="text-sm text-ink-secondary mb-3">
           {t('email_digest_desc')}
         </p>
         <select
           value={settings.digestFrequency}
           onChange={(e) => setSettings({ ...settings, digestFrequency: e.target.value })}
-          className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+          className="w-full max-w-xs px-3 py-2 border border-border rounded-lg outline-none text-sm bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
         >
           <option value="realtime">Real-time (Send immediately)</option>
           <option value="hourly">Hourly Digest</option>
@@ -1181,7 +1181,7 @@ function NotificationSettings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+          className="px-6 py-2 bg-brand text-ink-inverse rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
         >
           {saving ? t('saving') : t('save_notification_settings')}
         </button>
@@ -1270,14 +1270,14 @@ function PreferencesSettings() {
     <div className="space-y-6">
       {/* Localization */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('localization')}</h3>
+        <h3 className="text-lg font-semibold text-ink mb-4">{t('localization')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('language')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('language')}</label>
             <select
               value={preferences.language}
               onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="en">English</option>
               <option value="ms">Bahasa Malaysia</option>
@@ -1285,11 +1285,11 @@ function PreferencesSettings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('timezone')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('timezone')}</label>
             <select
               value={preferences.timezone}
               onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="Asia/Kuala_Lumpur">Kuala Lumpur (GMT+8)</option>
               <option value="Asia/Singapore">Singapore (GMT+8)</option>
@@ -1298,11 +1298,11 @@ function PreferencesSettings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('date_format')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('date_format')}</label>
             <select
               value={preferences.dateFormat}
               onChange={(e) => setPreferences({ ...preferences, dateFormat: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="DD/MM/YYYY">DD/MM/YYYY (20/11/2025)</option>
               <option value="MM/DD/YYYY">MM/DD/YYYY (11/20/2025)</option>
@@ -1310,11 +1310,11 @@ function PreferencesSettings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('time_format')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('time_format')}</label>
             <select
               value={preferences.timeFormat}
               onChange={(e) => setPreferences({ ...preferences, timeFormat: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="24h">24-hour (14:30)</option>
               <option value="12h">12-hour (2:30 PM)</option>
@@ -1325,14 +1325,14 @@ function PreferencesSettings() {
 
       {/* Display Preferences */}
       <div className="card p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('display_preferences')}</h3>
+        <h3 className="text-lg font-semibold text-ink mb-4">{t('display_preferences')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('items_per_page')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('items_per_page')}</label>
             <select
               value={preferences.itemsPerPage}
               onChange={(e) => setPreferences({ ...preferences, itemsPerPage: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value={10}>10 items</option>
               <option value={15}>15 items</option>
@@ -1342,11 +1342,11 @@ function PreferencesSettings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{t('default_view')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">{t('default_view')}</label>
             <select
               value={preferences.defaultView}
               onChange={(e) => setPreferences({ ...preferences, defaultView: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-3 py-2 border border-border rounded-lg outline-none bg-surface text-ink focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="list">List View</option>
               <option value="grid">Grid View</option>
@@ -1357,30 +1357,30 @@ function PreferencesSettings() {
       </div>
 
       {/* Account Actions */}
-      <div className="card p-6 border-red-200">
-        <h3 className="text-lg font-semibold text-red-600 mb-4">{t('danger_zone')}</h3>
+      <div className="card p-6 border border-[var(--dms-color-danger-ink)]/20">
+        <h3 className="text-lg font-semibold text-[var(--dms-color-danger-ink)] mb-4">{t('danger_zone')}</h3>
         <div className="space-y-4">
-          <div className="flex items-start justify-between p-4 border border-red-200 rounded-lg bg-red-50">
+          <div className="flex items-start justify-between p-4 border border-[var(--dms-color-danger-ink)]/20 rounded-lg bg-[var(--dms-color-danger-soft)]">
             <div className="flex-1">
-              <p className="font-medium text-gray-900">{t('export_data')}</p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="font-medium text-ink">{t('export_data')}</p>
+              <p className="text-sm text-ink-secondary mt-1">
                 {t('export_data_desc')}
               </p>
             </div>
-            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white transition-colors text-sm font-medium whitespace-nowrap ml-4">
+            <button className="px-4 py-2 border border-border bg-surface text-ink-secondary rounded-lg hover:bg-surface-muted transition-colors text-sm font-medium whitespace-nowrap ml-4">
               {t('export_btn')}
             </button>
           </div>
-          <div className="flex items-start justify-between p-4 border border-red-300 rounded-lg bg-red-50">
+          <div className="flex items-start justify-between p-4 border border-[var(--dms-color-danger-ink)]/30 rounded-lg bg-[var(--dms-color-danger-soft)]">
             <div className="flex-1">
-              <p className="font-medium text-red-600">{t('deactivate_account')}</p>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="font-medium text-[var(--dms-color-danger-ink)]">{t('deactivate_account')}</p>
+              <p className="text-sm text-ink-secondary mt-1">
                 {t('deactivate_desc')}
               </p>
             </div>
             <button 
               onClick={handleDeactivate}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium whitespace-nowrap ml-4"
+              className="px-4 py-2 bg-[var(--dms-color-danger-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 transition-colors text-sm font-medium whitespace-nowrap ml-4"
             >
               {t('deactivate_btn')}
             </button>
@@ -1393,7 +1393,7 @@ function PreferencesSettings() {
         <button
           onClick={handleSave}
           disabled={saving || loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+          className="px-6 py-2 bg-brand text-ink-inverse rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
         >
           {saving ? t('saving') : t('save_preferences')}
         </button>
@@ -1429,8 +1429,8 @@ export default function ProfileSettings() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('profile_settings')}</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-ink">{t('profile_settings')}</h1>
+          <p className="mt-2 text-sm text-ink-secondary">
             {t('manage_account')}
           </p>
         </div>

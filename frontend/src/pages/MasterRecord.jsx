@@ -555,39 +555,39 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
       <div className="card p-4">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_version_date_from')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_version_date_from')}</label>
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_version_date_to')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_version_date_to')}</label>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_previous_version')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_previous_version')}</label>
             <input
               type="text"
               placeholder="e.g., 02a"
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_updated_by')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_updated_by')}</label>
             <select
               value={filters.owner}
               onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:bg-surface-muted disabled:text-ink-soft"
               disabled={users.length === 0}
             >
               <option value="all">{t('mr_all_users')}</option>
@@ -599,11 +599,11 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('project_category')}</label>
             <select
               value={filters.projectCategoryId}
               onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:bg-surface-muted disabled:text-ink-soft"
               disabled={projectCategories.length === 0}
             >
               <option value="all">All Categories</option>
@@ -615,20 +615,20 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_search')}</label>
             <input
               type="text"
               placeholder={t('mr_file_code_placeholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--dms-color-success-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -641,24 +641,24 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_previous_version')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_new_version')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_version_date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_updated_by')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_change_summary')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('actions')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('file_code')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('project_category')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_previous_version')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_new_version')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_version_date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_updated_by')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_change_summary')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="9" className="px-4 py-8 text-center text-ink-muted">
                     {t('mr_loading_versions')}
                   </td>
                 </tr>
@@ -685,19 +685,19 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
                 </tr>
               ) : (
                 paginatedVersions.map((version) => (
-                <tr key={version.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-blue-600">{version.fileCode}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{version.title}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.projectCategory}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.previousVersion}</td>
+                <tr key={version.id} className="hover:bg-surface-muted">
+                  <td className="px-4 py-3 text-sm font-medium text-brand">{version.fileCode}</td>
+                  <td className="px-4 py-3 text-sm text-ink">{version.title}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.projectCategory}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.previousVersion}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                    <span className="px-2 py-1 text-xs font-medium bg-[var(--dms-color-info-soft)] text-[var(--dms-color-info-ink)] rounded">
                       {version.newVersion}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.versionDate}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.updatedBy}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{version.changeSummary}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.versionDate}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.updatedBy}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary max-w-xs truncate">{version.changeSummary}</td>
                   <td className="px-4 py-3 text-sm">
                     <ActionMenu
                       actions={[
@@ -855,29 +855,29 @@ function ObsoleteRegister({ projectCategories = [] }) {
       <div className="card p-4">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_obsolete_date_from')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_obsolete_date_from')}</label>
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_obsolete_date_to')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_obsolete_date_to')}</label>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('document_type')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('document_type')}</label>
             <select
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="all">{t('mr_all_types')}</option>
               <option value="procedure">Procedure</option>
@@ -887,11 +887,11 @@ function ObsoleteRegister({ projectCategories = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_reason')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_reason')}</label>
             <select
               value={filters.reason}
               onChange={(e) => setFilters({ ...filters, reason: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="all">{t('mr_all_reasons')}</option>
               <option value="decommissioned">System decommissioned</option>
@@ -901,11 +901,11 @@ function ObsoleteRegister({ projectCategories = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('project_category')}</label>
             <select
               value={filters.projectCategoryId}
               onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:bg-surface-muted disabled:text-ink-soft"
               disabled={projectCategories.length === 0}
             >
               <option value="all">All Categories</option>
@@ -917,20 +917,20 @@ function ObsoleteRegister({ projectCategories = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_search')}</label>
             <input
               type="text"
               placeholder={t('mr_file_code_placeholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--dms-color-success-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -943,23 +943,23 @@ function ObsoleteRegister({ projectCategories = [] }) {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('type')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_obsolete_date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_reason')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_replaced_by')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('actions')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('file_code')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('type')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('project_category')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_obsolete_date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_reason')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_replaced_by')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-4 py-8 text-center text-ink-muted">
                     {t('mr_loading_documents')}
                   </td>
                 </tr>
@@ -986,14 +986,14 @@ function ObsoleteRegister({ projectCategories = [] }) {
                 </tr>
               ) : (
                 paginatedDocuments.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-600">{doc.fileCode}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{doc.title}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{doc.type}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{doc.projectCategory}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{doc.obsoleteDate}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{doc.reason}</td>
-                  <td className="px-4 py-3 text-sm text-blue-600 font-medium">{doc.replacedBy}</td>
+                <tr key={doc.id} className="hover:bg-surface-muted">
+                  <td className="px-4 py-3 text-sm font-medium text-ink-secondary">{doc.fileCode}</td>
+                  <td className="px-4 py-3 text-sm text-ink">{doc.title}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{doc.type}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{doc.projectCategory}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{doc.obsoleteDate}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{doc.reason}</td>
+                  <td className="px-4 py-3 text-sm text-brand font-medium">{doc.replacedBy}</td>
                   <td className="px-4 py-3 text-sm">
                     <ActionMenu
                       actions={[
@@ -1142,49 +1142,49 @@ function OldVersionRegister({ projectCategories = [] }) {
       <div className="card p-4">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_archived_date_from')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_archived_date_from')}</label>
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_archived_date_to')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_archived_date_to')}</label>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_old_version')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_old_version')}</label>
             <input
               type="text"
               placeholder="e.g., 1.0"
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_current_version')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_current_version')}</label>
             <input
               type="text"
               placeholder="e.g., 2.2"
               value={filters.owner}
               onChange={(e) => setFilters({ ...filters, owner: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('project_category')}</label>
             <select
               value={filters.projectCategoryId}
               onChange={(e) => setFilters({ ...filters, projectCategoryId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:bg-surface-muted disabled:text-ink-soft"
               disabled={projectCategories.length === 0}
             >
               <option value="all">All Categories</option>
@@ -1196,20 +1196,20 @@ function OldVersionRegister({ projectCategories = [] }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_search')}</label>
             <input
               type="text"
               placeholder={t('mr_file_code_placeholder')}
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-[var(--dms-color-success-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 transition-colors flex items-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1222,23 +1222,23 @@ function OldVersionRegister({ projectCategories = [] }) {
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('file_code')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_doc_title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('project_category')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_old_version')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_current_version')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_archived_date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('mr_retention_until')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('actions')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('file_code')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('project_category')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_old_version')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_current_version')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_archived_date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('mr_retention_until')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-4 py-8 text-center text-ink-muted">
                     {t('mr_loading_versions')}
                   </td>
                 </tr>
@@ -1265,18 +1265,18 @@ function OldVersionRegister({ projectCategories = [] }) {
                 </tr>
               ) : (
                 paginatedVersions.map((version) => (
-                <tr key={version.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-blue-600">{version.fileCode}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{version.title}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.projectCategory}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.version}</td>
+                <tr key={version.id} className="hover:bg-surface-muted">
+                  <td className="px-4 py-3 text-sm font-medium text-brand">{version.fileCode}</td>
+                  <td className="px-4 py-3 text-sm text-ink">{version.title}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.projectCategory}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.version}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                    <span className="px-2 py-1 text-xs font-medium bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)] rounded">
                       {version.currentVersion}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.archivedDate}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{version.retentionUntil}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.archivedDate}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{version.retentionUntil}</td>
                   <td className="px-4 py-3 text-sm">
                     <ActionMenu
                       actions={[
@@ -1430,21 +1430,21 @@ function ConsolidatedRegister() {
       <div className="card p-4">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('mr_search')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('mr_search')}</label>
             <input
               type="text"
               placeholder={t('mr_file_code_placeholder')}
               value={filters.search}
               onChange={(e) => { setFilters({ ...filters, search: e.target.value }); setCurrentPage(1) }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('project_category')}</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1">{t('project_category')}</label>
             <select
               value={filters.projectCategoryId}
               onChange={(e) => { setFilters({ ...filters, projectCategoryId: e.target.value }); setCurrentPage(1) }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-lg bg-surface text-ink outline-none transition-colors focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:bg-surface-muted disabled:text-ink-soft"
               disabled={projectCategories.length === 0}
             >
               <option value="all">All Categories</option>
@@ -1458,7 +1458,7 @@ function ConsolidatedRegister() {
           <div className="md:col-span-2 flex items-end justify-end gap-3">
             <button
               onClick={exportExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="px-4 py-2 bg-[var(--dms-color-success-ink)] text-[color:var(--dms-color-bg-canvas)] rounded-lg hover:opacity-90 transition-colors"
             >
               {t('mr_export_excel')}
             </button>
@@ -1468,23 +1468,23 @@ function ConsolidatedRegister() {
 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-surface-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('file_code')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('mr_doc_title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('type')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('project_category')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('mr_rev')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('mr_register')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('file_code')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('mr_doc_title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('type')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('project_category')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('mr_rev')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-muted uppercase tracking-wider">{t('mr_register')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-surface divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">{t('loading')}</td>
+                  <td colSpan={8} className="px-4 py-8 text-center text-ink-muted">{t('loading')}</td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
@@ -1504,14 +1504,14 @@ function ConsolidatedRegister() {
                 </tr>
               ) : rows.map((r) => (
                 <tr key={r.fileCode}>
-                  <td className="px-4 py-3 text-sm font-mono text-blue-600">{r.fileCode}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{r.documentTitle}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.documentType}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.projectCategory}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.date ? new Date(r.date).toLocaleDateString('en-GB') : ''}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.status}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{normalizeRevision(r.rev, r.fileCode)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{r.register}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-brand">{r.fileCode}</td>
+                  <td className="px-4 py-3 text-sm text-ink">{r.documentTitle}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{r.documentType}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{r.projectCategory}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{r.date ? new Date(r.date).toLocaleDateString('en-GB') : ''}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{r.status}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{normalizeRevision(r.rev, r.fileCode)}</td>
+                  <td className="px-4 py-3 text-sm text-ink-secondary">{r.register}</td>
                 </tr>
               ))}
             </tbody>

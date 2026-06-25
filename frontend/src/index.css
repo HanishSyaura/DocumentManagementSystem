@@ -124,11 +124,11 @@ body {
   --dms-color-bg-sidebar-hover: rgba(148, 163, 184, 0.1);
   --dms-color-bg-sidebar-active: rgba(59, 130, 246, 0.24);
   --dms-sidebar-text: #e2e8f0;
-  --dms-color-text-primary: #e5eefb;
-  --dms-color-text-secondary: #cbd5e1;
-  --dms-color-text-muted: #94a3b8;
-  --dms-color-text-soft: #64748b;
-  --dms-color-text-inverse: #f8fafc;
+  --dms-color-text-primary: #f8fafc;
+  --dms-color-text-secondary: #e2e8f0;
+  --dms-color-text-muted: #cbd5e1;
+  --dms-color-text-soft: #94a3b8;
+  --dms-color-text-inverse: #ffffff;
   --dms-color-border-default: rgba(148, 163, 184, 0.16);
   --dms-color-border-strong: rgba(148, 163, 184, 0.3);
   --dms-color-success-soft: #052e2b;
