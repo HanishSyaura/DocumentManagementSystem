@@ -49,7 +49,7 @@ const buildLinkedDocumentAccessSelect = (user, roleIds = [], extraSelect = {}) =
     createdById: true,
     confidentialAccess: {
       where: accessMatch.length > 0 ? { OR: accessMatch } : { id: -1 },
-      select: { id: true }
+      select: { id: true, userId: true, roleId: true }
     },
     ...extraSelect
   }
@@ -1465,7 +1465,6 @@ exports.deleteProjectChangeRequest = async (changeRequestId, { deletedById } = {
 
 exports.searchDocuments = async ({ projectId, q }, { user }) => {
   const query = String(q || '').trim()
-  if (!query) return []
 
   const normalizeSearchValue = (value) => String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
   const normalizedQuery = normalizeSearchValue(query)
@@ -1480,6 +1479,8 @@ exports.searchDocuments = async ({ projectId, q }, { user }) => {
   }
   if (projectId) {
     andWhere.push({ projectLinks: { some: { iteration: { projectId } } } })
+  } else {
+    andWhere.push({ projectLinks: { some: {} } })
   }
 
   let docs
@@ -1518,6 +1519,37 @@ exports.searchDocuments = async ({ projectId, q }, { user }) => {
     throw error
   }
 
+  const toResult = (doc) => {
+    const latestLink = doc.projectLinks[0] || null
+    return {
+      id: doc.id,
+      fileCode: doc.fileCode,
+      title: doc.title,
+      status: doc.status,
+      isConfidential: doc.isConfidential,
+      updatedAt: doc.updatedAt,
+      documentTypeId: doc.documentTypeId,
+      documentType: doc.documentType,
+      document: {
+        id: doc.id,
+        fileCode: doc.fileCode,
+        title: doc.title,
+        status: doc.status,
+        isConfidential: doc.isConfidential,
+        updatedAt: doc.updatedAt,
+        documentTypeId: doc.documentTypeId,
+        documentType: doc.documentType
+      },
+      iteration: latestLink?.iteration || null,
+      stage: latestLink?.stage || null,
+      item: latestLink?.item || null
+    }
+  }
+
+  if (!query) {
+    return docs.slice(0, 200).map(toResult)
+  }
+
   const scored = docs
     .map((doc) => {
       const normalizedFileCode = normalizeSearchValue(doc.fileCode)
@@ -1542,33 +1574,10 @@ exports.searchDocuments = async ({ projectId, q }, { user }) => {
       if (normalizedTitleMatch) score += 30
       if (normalizedDescriptionMatch) score += 10
 
-      const latestLink = doc.projectLinks[0] || null
       return {
         score,
         updatedAt: doc.updatedAt,
-        result: {
-          id: doc.id,
-          fileCode: doc.fileCode,
-          title: doc.title,
-          status: doc.status,
-          isConfidential: doc.isConfidential,
-          updatedAt: doc.updatedAt,
-          documentTypeId: doc.documentTypeId,
-          documentType: doc.documentType,
-          document: {
-            id: doc.id,
-            fileCode: doc.fileCode,
-            title: doc.title,
-            status: doc.status,
-            isConfidential: doc.isConfidential,
-            updatedAt: doc.updatedAt,
-            documentTypeId: doc.documentTypeId,
-            documentType: doc.documentType
-          },
-          iteration: latestLink?.iteration || null,
-          stage: latestLink?.stage || null,
-          item: latestLink?.item || null
-        }
+        result: toResult(doc)
       }
     })
     .filter(Boolean)

@@ -198,6 +198,10 @@ router.put('/config/rfid-epc-registry', authenticate, configController.updateRfi
 router.get('/config/retention-policy', authenticate, configController.getRetentionPolicySettings);
 router.put('/config/retention-policy', authenticate, configController.updateRetentionPolicySettings);
 
+// Expiry Tracking Settings
+router.get('/config/expiry-tracking', authenticate, configController.getExpiryTrackingSettings);
+router.put('/config/expiry-tracking', authenticate, configController.updateExpiryTrackingSettings);
+
 // Notification Settings
 router.get('/config/notification-settings', authenticate, configController.getNotificationSettings);
 router.put('/config/notification-settings', authenticate, configController.updateNotificationSettings);

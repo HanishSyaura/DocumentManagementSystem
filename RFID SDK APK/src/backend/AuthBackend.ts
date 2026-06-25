@@ -13,12 +13,24 @@ export const AuthBackend = {
     return authStore.subscribe(listener);
   },
 
-  signIn(email: string): Promise<AuthState> {
-    return authStore.signIn(email);
+  setBaseUrl(baseUrl: string): Promise<AuthState> {
+    return authStore.setBaseUrl(baseUrl);
+  },
+
+  signIn(baseUrl: string, email: string, password: string): Promise<AuthState> {
+    return authStore.signIn({ baseUrl, email, password });
   },
 
   signOut(): Promise<AuthState> {
     return authStore.signOut();
+  },
+
+  getJson<T>(path: string): Promise<T> {
+    return authStore.getJson<T>(path);
+  },
+
+  postJson<T>(path: string, body?: unknown): Promise<T> {
+    return authStore.postJson<T>(path, body);
   },
 };
 

@@ -55,6 +55,9 @@ async function main() {
 
     // Project Tracking (15 permissions)
     projectTracking: { view: true, searchProject: true, create: true, edit: true, delete: true, projectSetup: true, linkDocument: true, advanceStage: true, manageConfidentialAccess: true, projectControls: true, activityLogs: true, keyInChangeRequest: true, editProject: true, addNextPhase: true, moveToNextStage: true },
+
+    // Expiry Tracking (4 permissions)
+    expiryTracking: { view: true, edit: true, renew: true, export: true },
     
     // Profile Settings (3 permissions)
     profileSettings: { view: true, edit: true, changePassword: true }

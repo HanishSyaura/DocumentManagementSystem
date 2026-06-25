@@ -143,7 +143,7 @@ class WorkflowController {
    */
   publishDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.documentId);
-    const { folderId, notes, newFileName } = req.body;
+    const { folderId, notes, newFileName, expiryInfo } = req.body;
 
     if (!folderId) {
       return ResponseFormatter.validationError(res, [
@@ -156,7 +156,8 @@ class WorkflowController {
       req.user.id,
       parseInt(folderId),
       notes,
-      newFileName
+      newFileName,
+      expiryInfo
     );
 
     // Log publication

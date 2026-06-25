@@ -17,6 +17,13 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
   const [folderId, setFolderId] = useState(selectedFolderId || '')
   const [projectCategoryId, setProjectCategoryId] = useState('')
   const [description, setDescription] = useState('')
+  const getToday = () => new Date().toISOString().slice(0, 10)
+  const [expiryInfo, setExpiryInfo] = useState({
+    trackingEnabled: false,
+    startDate: getToday(),
+    expiryDate: '',
+    remarks: ''
+  })
   const [fileItems, setFileItems] = useState([])
   const [isDragging, setIsDragging] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -124,6 +131,12 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
     setFileItems([])
     setDescription('')
     setProjectCategoryId('')
+    setExpiryInfo({
+      trackingEnabled: false,
+      startDate: getToday(),
+      expiryDate: '',
+      remarks: ''
+    })
     setFormError('')
     setDocumentTypes([])
     setNumberingSettings(null)
@@ -245,7 +258,8 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       nonClientFileCode: checked ? (item.fileCode || item.nonClientFileCode) : item.nonClientFileCode,
       fileCode: checked ? '' : (item.nonClientFileCode || item.fileCode),
       nonClientDocumentTypeId: checked ? (item.documentTypeId || item.nonClientDocumentTypeId) : item.nonClientDocumentTypeId,
-      documentTypeId: checked ? (nextClientTypeId || item.documentTypeId) : (item.nonClientDocumentTypeId || item.documentTypeId)
+      documentTypeId: checked ? (nextClientTypeId || item.documentTypeId) : (item.nonClientDocumentTypeId || item.documentTypeId),
+      expiryOverrideEnabled: checked ? false : Boolean(item.expiryOverrideEnabled)
     }
   }
 
@@ -277,6 +291,13 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           nonClientDocumentTypeId: autoMatchDocumentTypeId(extracted.fileCode),
           projectCategoryId: projectCategoryId || '',
           isClientDocument: false,
+          expiryOverrideEnabled: false,
+          expiryOverride: {
+            trackingEnabled: false,
+            startDate: getToday(),
+            expiryDate: '',
+            remarks: ''
+          },
           collapsed: true
         }
         byKey.set(key, allClientChecked ? applyClientDeclaration(base, true) : base)
@@ -350,8 +371,17 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       setFormError(t('bulk_import_error_select_files'))
       return
     }
+    if (expiryInfo.trackingEnabled && (!String(expiryInfo.startDate || '').trim() || !String(expiryInfo.expiryDate || '').trim())) {
+      setFormError('Start date and expiry date are required when expiry tracking is enabled.')
+      return
+    }
     for (let i = 0; i < fileItems.length; i++) {
       const item = fileItems[i]
+      if (item.expiryOverrideEnabled && item.expiryOverride?.trackingEnabled && (!String(item.expiryOverride?.startDate || '').trim() || !String(item.expiryOverride?.expiryDate || '').trim())) {
+        setFormError('Start date and expiry date are required when expiry tracking is enabled.')
+        setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
+        return
+      }
       if (!item.isClientDocument && !String(item.fileCode || '').trim()) {
         setFormError(String(t('bulk_import_error_file_code_required')).replace('{name}', String(item.file.name)))
         setFileItems((prev) => prev.map((it, idx) => idx === i ? { ...it, collapsed: false } : it))
@@ -369,6 +399,14 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
       const payload = {
         folderId,
         description,
+        expiryInfo: expiryInfo.trackingEnabled
+          ? {
+              trackingEnabled: true,
+              startDate: expiryInfo.startDate,
+              expiryDate: expiryInfo.expiryDate,
+              remarks: expiryInfo.remarks
+            }
+          : { trackingEnabled: false },
         files: fileItems.map((it) => it.file),
         filesMeta: fileItems.map((it) => ({
           fileCode: String(it.fileCode || '').trim(),
@@ -376,7 +414,15 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
           documentTypeId: it.documentTypeId ? parseInt(it.documentTypeId) : null,
           projectCategoryId: it.projectCategoryId ? parseInt(it.projectCategoryId) : null,
           isClientDocument: Boolean(it.isClientDocument),
-          relativePath: String(it.relativePath || '').trim()
+          relativePath: String(it.relativePath || '').trim(),
+          expiryInfo: it.expiryOverrideEnabled
+            ? {
+                trackingEnabled: Boolean(it.expiryOverride?.trackingEnabled),
+                startDate: it.expiryOverride?.startDate || '',
+                expiryDate: it.expiryOverride?.expiryDate || '',
+                remarks: it.expiryOverride?.remarks || ''
+              }
+            : null
         }))
       }
       try {
@@ -511,6 +557,55 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
               />
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-900">
+                <input
+                  type="checkbox"
+                  checked={expiryInfo.trackingEnabled}
+                  onChange={(e) => setExpiryInfo((prev) => ({
+                    ...prev,
+                    trackingEnabled: e.target.checked,
+                    startDate: prev.startDate || getToday()
+                  }))}
+                />
+                Track Expiry (apply to all imported documents)
+              </label>
+              {expiryInfo.trackingEnabled ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={expiryInfo.startDate}
+                      onChange={(e) => setExpiryInfo((prev) => ({ ...prev, startDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Date</label>
+                    <input
+                      type="date"
+                      value={expiryInfo.expiryDate}
+                      onChange={(e) => setExpiryInfo((prev) => ({ ...prev, expiryDate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Expiry Remarks</label>
+                    <textarea
+                      value={expiryInfo.remarks}
+                      onChange={(e) => setExpiryInfo((prev) => ({ ...prev, remarks: e.target.value }))}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                      placeholder="Optional expiry remarks"
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div
@@ -730,6 +825,95 @@ export default function BulkImportModal({ isOpen, onClose, onSubmit, folders, se
                                   </option>
                                 ))}
                               </select>
+                            </div>
+
+                            <div className="md:col-span-2 border border-gray-200 rounded-lg p-3">
+                              <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-800">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4"
+                                  checked={Boolean(it.expiryOverrideEnabled)}
+                                  disabled={Boolean(it.isClientDocument)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked
+                                    setFileItems((prev) => prev.map((x, i) => {
+                                      if (i !== idx) return x
+                                      return {
+                                        ...x,
+                                        expiryOverrideEnabled: checked,
+                                        expiryOverride: checked
+                                          ? {
+                                              trackingEnabled: Boolean(expiryInfo.trackingEnabled),
+                                              startDate: expiryInfo.startDate || getToday(),
+                                              expiryDate: expiryInfo.expiryDate || '',
+                                              remarks: expiryInfo.remarks || ''
+                                            }
+                                          : x.expiryOverride
+                                      }
+                                    }))
+                                  }}
+                                />
+                                <span>Override expiry for this file</span>
+                              </label>
+                              {it.expiryOverrideEnabled ? (
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <label className="inline-flex items-center gap-2 text-xs font-medium text-gray-800 md:col-span-2">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4"
+                                      checked={Boolean(it.expiryOverride?.trackingEnabled)}
+                                      onChange={(e) => {
+                                        const enabled = e.target.checked
+                                        setFileItems((prev) => prev.map((x, i) => {
+                                          if (i !== idx) return x
+                                          return {
+                                            ...x,
+                                            expiryOverride: {
+                                              ...(x.expiryOverride || {}),
+                                              trackingEnabled: enabled,
+                                              startDate: (x.expiryOverride?.startDate || expiryInfo.startDate || getToday())
+                                            }
+                                          }
+                                        }))
+                                      }}
+                                    />
+                                    <span>Track expiry (this file)</span>
+                                  </label>
+                                  {it.expiryOverride?.trackingEnabled ? (
+                                    <>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
+                                        <input
+                                          type="date"
+                                          value={it.expiryOverride?.startDate || ''}
+                                          onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, expiryOverride: { ...(x.expiryOverride || {}), startDate: e.target.value } } : x))}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                                          required
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Expiry Date</label>
+                                        <input
+                                          type="date"
+                                          value={it.expiryOverride?.expiryDate || ''}
+                                          onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, expiryOverride: { ...(x.expiryOverride || {}), expiryDate: e.target.value } } : x))}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white"
+                                          required
+                                        />
+                                      </div>
+                                      <div className="md:col-span-2">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Expiry Remarks</label>
+                                        <textarea
+                                          value={it.expiryOverride?.remarks || ''}
+                                          onChange={(e) => setFileItems((prev) => prev.map((x, i) => i === idx ? { ...x, expiryOverride: { ...(x.expiryOverride || {}), remarks: e.target.value } } : x))}
+                                          rows={2}
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+                                        />
+                                      </div>
+                                    </>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
 
                             <div className="md:col-span-2">

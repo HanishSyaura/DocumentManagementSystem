@@ -21,6 +21,7 @@ import Layout from './components/Layout'
 import SessionProvider from './components/SessionProvider'
 import RfidEpcRegistry from './components/RfidEpcRegistry'
 import ProjectTracking from './components/ProjectTracking'
+import ExpiryTracking from './components/ExpiryTracking'
 import { PreferencesProvider } from './contexts/PreferencesContext'
 import api from './api/axios'
 import { applyCompanyInfo, applyTheme, persistBranding, readCompanyInfo, readThemeSettings } from './utils/branding'
@@ -110,6 +111,16 @@ export default function App() {
             <ProtectedRoute module="projectTracking" action="view">
               <Layout>
                 <ProjectTracking />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expiry-tracking"
+          element={
+            <ProtectedRoute module="expiryTracking" action="view">
+              <Layout>
+                <ExpiryTracking />
               </Layout>
             </ProtectedRoute>
           }

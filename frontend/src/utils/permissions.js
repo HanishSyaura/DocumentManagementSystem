@@ -148,6 +148,7 @@ export const isAdmin = () => {
 export const MODULE_ROUTES = {
   'dashboard': '/dashboard',
   'projectTracking': '/project-tracking',
+  'expiryTracking': '/expiry-tracking',
   'documents.draft': '/drafts',
   'documents.review': '/review-approval',
   'documents.published': '/published',

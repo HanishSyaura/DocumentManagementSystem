@@ -1,262 +1,271 @@
-import React, { useState, useEffect } from 'react';
-import api from '../api/axios';
+import React, { useEffect, useMemo, useState } from 'react'
+import api from '../api/axios'
+import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
+import AppSurface from './ui/AppSurface'
+import Button from './ui/Button'
+import TextInput from './ui/TextInput'
+import TextArea from './ui/TextArea'
+import SelectField from './ui/SelectField'
 
-const PublishDocumentModal = ({ isOpen, onClose, document, onPublish }) => {
-  const [folders, setFolders] = useState([]);
-  const [selectedFolder, setSelectedFolder] = useState('');
-  const [newFileName, setNewFileName] = useState('');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const toDateInputValue = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return local.toISOString().slice(0, 10)
+}
+
+function Field({ label, children, hint = null }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-semibold text-ink">{label}</label>
+      {children}
+      {hint ? <p className="mt-1 text-xs text-ink-soft">{hint}</p> : null}
+    </div>
+  )
+}
+
+export default function PublishDocumentModal({ isOpen, onClose, document, onPublish }) {
+  const [folders, setFolders] = useState([])
+  const [selectedFolder, setSelectedFolder] = useState('')
+  const [newFileName, setNewFileName] = useState('')
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [expirySettings, setExpirySettings] = useState({
+    expiringSoonDays: 60,
+    reminder1Days: 90,
+    reminder2Days: 60,
+    reminder3Days: 30,
+    reminder4Days: 7
+  })
+  const [expiryInfo, setExpiryInfo] = useState({
+    trackingEnabled: false,
+    startDate: '',
+    expiryDate: '',
+    remarks: ''
+  })
 
   useEffect(() => {
-    if (isOpen) {
-      fetchFolders();
-      // Initialize with current filename
-      setNewFileName(document?.fileName || '');
-    }
-  }, [isOpen, document]);
+    if (!isOpen) return
+    const requiresExpiryTracking = Boolean(document?.documentTypeConfig?.requiresExpiryTracking)
+    setSelectedFolder('')
+    setNewFileName(document?.fileName || '')
+    setNotes('')
+    setError('')
+    setExpiryInfo({
+      trackingEnabled: requiresExpiryTracking,
+      startDate: toDateInputValue(new Date()),
+      expiryDate: '',
+      remarks: ''
+    })
+    void fetchFolders()
+    void fetchExpirySettings()
+  }, [isOpen, document])
 
-  // Flatten nested folder hierarchy into a list with visual indentation
-  const flattenFolders = (folderList, level = 0, parentPath = []) => {
-    let result = [];
-    folderList.forEach(folder => {
-      const currentPath = [...parentPath, folder.name];
-      const hasChildren = folder.children && folder.children.length > 0;
-      
-      // Create proper indentation
-      let prefix = '';
-      if (level > 0) {
-        prefix = '\u00A0\u00A0'.repeat(level - 1) + '\u2514\u2500 ';
-      }
-      
+  const flattenFolders = (folderList, level = 0) => {
+    const result = []
+    folderList.forEach((folder) => {
+      const prefix = level > 0 ? `${'  '.repeat(level - 1)}└─ ` : ''
       result.push({
         id: folder.id,
-        name: folder.name,
-        displayName: prefix + folder.name,
-        level: level,
-        path: currentPath.join(' › ')
-      });
-      
-      if (hasChildren) {
-        result = result.concat(flattenFolders(folder.children, level + 1, currentPath));
+        displayName: `${prefix}${folder.name}`
+      })
+      if (folder.children?.length) {
+        result.push(...flattenFolders(folder.children, level + 1))
       }
-    });
-    return result;
-  };
+    })
+    return result
+  }
+
+  const flatFolders = useMemo(() => flattenFolders(folders), [folders])
 
   const fetchFolders = async () => {
     try {
-      const response = await api.get('/folders');
-      const folderList = response.data.data?.folders || response.data.folders || [];
-      // Store the hierarchical folder structure
-      setFolders(folderList);
-    } catch (error) {
-      console.error('Error fetching folders:', error);
-      setError('Error fetching folders');
+      const response = await api.get('/folders')
+      setFolders(response.data?.data?.folders || response.data?.folders || [])
+    } catch (fetchError) {
+      console.error('Error fetching folders:', fetchError)
+      setError('Failed to load folders')
     }
-  };
-  
-  // Get flattened folders for display
-  const flatFolders = flattenFolders(folders);
+  }
+
+  const fetchExpirySettings = async () => {
+    try {
+      const response = await api.get('/system/config/expiry-tracking')
+      setExpirySettings(response.data?.data?.settings || expirySettings)
+    } catch (fetchError) {
+      console.error('Error fetching expiry settings:', fetchError)
+    }
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!selectedFolder) {
-      setError('Please select a folder for publication');
-      return;
+      setError('Please select a destination folder')
+      return
     }
 
-    setLoading(true);
-    setError('');
+    if (expiryInfo.trackingEnabled && (!expiryInfo.startDate || !expiryInfo.expiryDate)) {
+      setError('Start date and expiry date are required when expiry tracking is enabled')
+      return
+    }
+
+    setLoading(true)
+    setError('')
 
     try {
       const response = await api.post(`/workflow/publish/${document.id}`, {
-        folderId: parseInt(selectedFolder),
+        folderId: parseInt(selectedFolder, 10),
         notes,
         newFileName: newFileName.trim() || null,
-      });
+        expiryInfo: expiryInfo.trackingEnabled
+          ? {
+              trackingEnabled: true,
+              startDate: expiryInfo.startDate,
+              expiryDate: expiryInfo.expiryDate,
+              remarks: expiryInfo.remarks
+            }
+          : { trackingEnabled: false }
+      })
 
-      if (response.data) {
-        onPublish(response.data.data.document);
-        handleClose();
-      }
-    } catch (error) {
-      console.error('Error publishing document:', error);
-      setError(error.response?.data?.message || 'Failed to publish document');
+      onPublish(response.data?.data?.document)
+      onClose()
+    } catch (submitError) {
+      console.error('Error publishing document:', submitError)
+      setError(submitError.response?.data?.message || 'Failed to publish document')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleClose = () => {
-    setSelectedFolder('');
-    setNewFileName('');
-    setNotes('');
-    setError('');
-    onClose();
-  };
-
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Publish Document</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Modal onClose={onClose} closeOnBackdrop size="lg">
+      <ModalHeader
+        title="Publish Document"
+        subtitle="Finalize publication destination and optional expiry tracking setup."
+        onClose={onClose}
+      />
+      <form onSubmit={handleSubmit}>
+        <ModalBody className="space-y-6">
+          {error ? (
+            <AppSurface padding="md" variant="panel" className="border border-[var(--dms-color-danger-soft)] bg-[var(--dms-color-danger-soft)]/40 text-sm text-[var(--dms-color-danger-ink)]">
+              {error}
+            </AppSurface>
+          ) : null}
 
-        <form onSubmit={handleSubmit} className="p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-600">{error}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="File Code">
+              <TextInput value={document?.fileCode || ''} readOnly className="bg-surface-muted text-ink-muted" />
+            </Field>
+            <Field label="Version">
+              <TextInput value={document?.version || ''} readOnly className="bg-surface-muted text-ink-muted" />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Document Title">
+                <TextInput value={document?.title || ''} readOnly className="bg-surface-muted text-ink-muted" />
+              </Field>
             </div>
-          )}
-
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  File Code
-                </label>
-                <input
-                  type="text"
-                  value={document?.fileCode || ''}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Version
-                </label>
-                <input
-                  type="text"
-                  value={document?.version || ''}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-                />
-              </div>
+            <Field label="Document Type">
+              <TextInput value={document?.documentType || ''} readOnly className="bg-surface-muted text-ink-muted" />
+            </Field>
+            <Field label="File Name" hint="You may rename the file before publishing.">
+              <TextInput value={newFileName} onChange={(e) => setNewFileName(e.target.value)} placeholder="Enter published file name" />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Destination Folder">
+                <SelectField value={selectedFolder} onChange={(e) => setSelectedFolder(e.target.value)} required>
+                  <option value="">Select folder</option>
+                  {flatFolders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>{folder.displayName}</option>
+                  ))}
+                </SelectField>
+              </Field>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Document Title
-              </label>
-              <input
-                type="text"
-                value={document?.title || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Document Type
-              </label>
-              <input
-                type="text"
-                value={document?.documentType?.name || document?.documentType || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                File Name (Rename if needed)
-              </label>
-              <input
-                type="text"
-                value={newFileName}
-                onChange={(e) => setNewFileName(e.target.value)}
-                placeholder="Enter new file name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                You can rename the file before publishing. Leave as-is to keep the original name.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Destination Folder <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedFolder}
-                onChange={(e) => setSelectedFolder(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                required
-              >
-                <option value="">-- Select Folder --</option>
-                {flatFolders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.displayName}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Select the folder where this document will be published
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Publication Notes (Optional)
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any notes about this publication..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                rows={4}
-              />
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Publishing this document will:
-              </p>
-              <ul className="mt-2 text-sm text-blue-700 list-disc list-inside space-y-1">
-                <li>Move the document to the selected published folder</li>
-                <li>Update the document status to "Published"</li>
-                <li>Make it available in the Published Documents module</li>
-                <li>Update the document register with publication details</li>
-              </ul>
+            <div className="md:col-span-2">
+              <Field label="Publication Notes">
+                <TextArea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add publication notes if needed" />
+              </Field>
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-6">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={loading}
-            >
-              {loading ? 'Publishing...' : 'Publish Document'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+          <AppSurface padding="lg" variant="panel" className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-ink">Expiry Info</h3>
+                <p className="mt-1 text-sm text-ink-muted">
+                  Expiry tracking is linked directly to this document. No second data entry is required in the expiry module.
+                </p>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+                <input
+                  type="checkbox"
+                  checked={expiryInfo.trackingEnabled}
+                  onChange={(e) => setExpiryInfo((prev) => ({ ...prev, trackingEnabled: e.target.checked }))}
+                  className="h-4 w-4 rounded border-border text-brand focus-visible:ring-2 focus-visible:ring-brand/30"
+                />
+                Track Expiry
+              </label>
+            </div>
 
-export default PublishDocumentModal;
+            {expiryInfo.trackingEnabled ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Start Date">
+                    <TextInput type="date" value={expiryInfo.startDate} onChange={(e) => setExpiryInfo((prev) => ({ ...prev, startDate: e.target.value }))} required />
+                  </Field>
+                  <Field label="Expiry Date">
+                    <TextInput type="date" value={expiryInfo.expiryDate} onChange={(e) => setExpiryInfo((prev) => ({ ...prev, expiryDate: e.target.value }))} required />
+                  </Field>
+                  <div className="md:col-span-2">
+                    <Field label="Expiry Remarks">
+                      <TextArea rows={3} value={expiryInfo.remarks} onChange={(e) => setExpiryInfo((prev) => ({ ...prev, remarks: e.target.value }))} placeholder="Optional expiry remarks" />
+                    </Field>
+                  </div>
+                </div>
+
+                <AppSurface padding="md" variant="panel" className="grid gap-3 md:grid-cols-5">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Expiring Soon</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{expirySettings.expiringSoonDays} day(s)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Reminder 1</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{expirySettings.reminder1Days} day(s)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Reminder 2</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{expirySettings.reminder2Days} day(s)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Reminder 3</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{expirySettings.reminder3Days} day(s)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Reminder 4</p>
+                    <p className="mt-1 text-sm font-semibold text-ink">{expirySettings.reminder4Days} day(s)</p>
+                  </div>
+                </AppSurface>
+              </>
+            ) : (
+              <AppSurface padding="md" variant="panel" className="text-sm text-ink-muted">
+                Expiry tracking is disabled for this publication. The document will still publish normally and other flows remain unaffected.
+              </AppSurface>
+            )}
+          </AppSurface>
+
+          <AppSurface padding="md" variant="panel" className="text-sm text-ink-muted">
+            Publishing will move the document into the selected folder, mark it as published, update the document register, and create or update the expiry profile when tracking is enabled.
+          </AppSurface>
+        </ModalBody>
+        <ModalFooter>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button type="submit" disabled={loading}>{loading ? 'Publishing...' : 'Publish Document'}</Button>
+        </ModalFooter>
+      </form>
+    </Modal>
+  )
+}

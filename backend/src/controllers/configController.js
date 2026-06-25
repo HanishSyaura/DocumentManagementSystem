@@ -27,7 +27,7 @@ exports.getDocumentTypes = asyncHandler(async (req, res) => {
  * @access  Private (Admin only)
  */
 exports.createDocumentType = asyncHandler(async (req, res) => {
-  const { name, prefix, description } = req.body;
+  const { name, prefix, description, requiresExpiryTracking, allowRenewal } = req.body;
 
   // Validation
   if (!name || !prefix) {
@@ -60,7 +60,9 @@ exports.createDocumentType = asyncHandler(async (req, res) => {
   const documentType = await configService.createDocumentType({
     name: normalizedName,
     prefix: normalizedPrefix,
-    description
+    description,
+    requiresExpiryTracking,
+    allowRenewal
   });
 
   return ResponseFormatter.success(
@@ -78,13 +80,15 @@ exports.createDocumentType = asyncHandler(async (req, res) => {
  */
 exports.updateDocumentType = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, prefix, description, isActive } = req.body;
+  const { name, prefix, description, isActive, requiresExpiryTracking, allowRenewal } = req.body;
 
   const documentType = await configService.updateDocumentType(id, {
     name: typeof name === 'string' ? name.trim() : name,
     prefix: typeof prefix === 'string' ? prefix.trim() : prefix,
     description,
-    isActive
+    isActive,
+    requiresExpiryTracking,
+    allowRenewal
   });
 
   return ResponseFormatter.success(
@@ -481,6 +485,32 @@ exports.updateRetentionPolicySettings = asyncHandler(async (req, res) => {
     'Retention policy settings updated successfully'
   );
 });
+
+exports.getExpiryTrackingSettings = asyncHandler(async (_req, res) => {
+  const settings = await configService.getExpiryTrackingSettings()
+
+  return ResponseFormatter.success(
+    res,
+    { settings },
+    'Expiry tracking settings retrieved successfully'
+  )
+})
+
+exports.updateExpiryTrackingSettings = asyncHandler(async (req, res) => {
+  const settings = req.body
+
+  if (!settings || typeof settings !== 'object') {
+    throw new ValidationError('Invalid settings data')
+  }
+
+  const updatedSettings = await configService.updateExpiryTrackingSettings(settings)
+
+  return ResponseFormatter.success(
+    res,
+    { settings: updatedSettings },
+    'Expiry tracking settings updated successfully'
+  )
+})
 
 /**
  * @desc    Get notification settings

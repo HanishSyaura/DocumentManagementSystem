@@ -54,9 +54,14 @@ const authenticate = async (req, res, next) => {
 
     // Attach user to request
     const mergedPermissions = session.user.roles.reduce((acc, r) => {
-      const rolePermissions = typeof r.role.permissions === 'string' 
-        ? JSON.parse(r.role.permissions) 
-        : r.role.permissions;
+      let rolePermissions = r.role.permissions
+      if (typeof rolePermissions === 'string') {
+        try {
+          rolePermissions = JSON.parse(rolePermissions)
+        } catch {
+          rolePermissions = null
+        }
+      }
 
       if (!rolePermissions || typeof rolePermissions !== 'object') return acc
 

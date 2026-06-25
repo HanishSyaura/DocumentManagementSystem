@@ -15,6 +15,10 @@ class NotificationService {
       'DOCUMENT_REJECTED',
       'DOCUMENT_RETURNED',
       'VERSION_UPDATE',
+      'DOCUMENT_EXPIRING',
+      'DOCUMENT_EXPIRED',
+      'RENEWAL_IN_PROGRESS',
+      'RENEWAL_COMPLETED',
       'SYSTEM_ALERT'
     ])
   }
@@ -47,6 +51,10 @@ class NotificationService {
       documentAssigned: 'DOCUMENT_ASSIGNED',
       statusChanged: 'STATUS_CHANGED',
       versionUpdate: 'VERSION_UPDATE',
+      documentExpiring: 'DOCUMENT_EXPIRING',
+      documentExpired: 'DOCUMENT_EXPIRED',
+      renewalInProgress: 'RENEWAL_IN_PROGRESS',
+      renewalCompleted: 'RENEWAL_COMPLETED',
       reviewRequired: 'REVIEW_REQUIRED',
       approvalRequired: 'APPROVAL_REQUIRED',
       acknowledgementRequired: 'ACKNOWLEDGMENT_REQUIRED',

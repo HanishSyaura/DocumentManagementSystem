@@ -63,6 +63,12 @@ export default function EditSystemRolePermissionsModal({ role, onClose, onSubmit
       actions: ['view', 'searchProject', 'create', 'edit', 'delete', 'projectSetup', 'linkDocument', 'advanceStage', 'manageConfidentialAccess', 'projectControls', 'activityLogs', 'keyInChangeRequest', 'editProject', 'addNextPhase', 'moveToNextStage']
     },
     {
+      id: 'expiryTracking',
+      name: 'Expiry Tracking',
+      description: 'Track document expiry, renewal workflow, and expiry reporting',
+      actions: ['view', 'edit', 'renew', 'export']
+    },
+    {
       id: 'configuration',
       name: 'Configuration',
       description: 'System configuration and settings',

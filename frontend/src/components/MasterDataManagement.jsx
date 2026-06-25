@@ -9,6 +9,8 @@ import Modal, { ModalBody, ModalFooter, ModalHeader } from './ui/Modal'
 import Button from './ui/Button'
 import TextInput from './ui/TextInput'
 import TextArea from './ui/TextArea'
+import AppSurface from './ui/AppSurface'
+import { Table, TableContainer, Td, Th, Tr } from './ui/Table'
 
 const VALID_MASTERDATA_TABS = ['departments', 'project-categories', 'document-types']
 
@@ -49,7 +51,9 @@ function DocumentTypeModal({ isOpen, onClose, onSubmit, initialData }) {
   const [formData, setFormData] = useState({
     name: '',
     prefix: '',
-    description: ''
+    description: '',
+    requiresExpiryTracking: false,
+    allowRenewal: true
   })
 
   useEffect(() => {
@@ -57,13 +61,17 @@ function DocumentTypeModal({ isOpen, onClose, onSubmit, initialData }) {
       setFormData({
         name: initialData.name || '',
         prefix: initialData.prefix || '',
-        description: initialData.description || ''
+        description: initialData.description || '',
+        requiresExpiryTracking: Boolean(initialData.requiresExpiryTracking),
+        allowRenewal: initialData.allowRenewal !== undefined ? Boolean(initialData.allowRenewal) : true
       })
     } else {
       setFormData({
         name: '',
         prefix: '',
-        description: ''
+        description: '',
+        requiresExpiryTracking: false,
+        allowRenewal: true
       })
     }
   }, [initialData, isOpen])
@@ -117,6 +125,45 @@ function DocumentTypeModal({ isOpen, onClose, onSubmit, initialData }) {
                 placeholder={t('mdm_optional_desc')}
               />
             </div>
+
+            <AppSurface variant="panel" padding="md" className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-ink">Expiry Tracking</h4>
+                <p className="mt-1 text-xs text-ink-soft">
+                  Control whether documents of this type are enrolled into the expiry tracking module by default.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={formData.requiresExpiryTracking}
+                  onChange={(e) => setFormData({ ...formData, requiresExpiryTracking: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand/30"
+                />
+                <div>
+                  <span className="block text-sm font-medium text-ink">Require Expiry Tracking</span>
+                  <span className="mt-1 block text-xs text-ink-soft">
+                    Published documents of this type will prompt for expiry information in the publish flow.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={formData.allowRenewal}
+                  onChange={(e) => setFormData({ ...formData, allowRenewal: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-brand focus:ring-brand/30"
+                />
+                <div>
+                  <span className="block text-sm font-medium text-ink">Allow Renewal</span>
+                  <span className="mt-1 block text-xs text-ink-soft">
+                    Lets tracked documents of this type use the renewal flow to create a new document version.
+                  </span>
+                </div>
+              </label>
+            </AppSurface>
           </div>
         </ModalBody>
         <ModalFooter>
@@ -358,6 +405,20 @@ function DocumentTypesManagement() {
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize))
   const pageItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
+  const renderPill = (label, variant = 'neutral') => {
+    const classes = {
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      warning: 'bg-amber-50 text-amber-700 border-amber-200',
+      neutral: 'bg-surface-muted text-ink-secondary border-border'
+    }
+
+    return (
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${classes[variant] || classes.neutral}`}>
+        {label}
+      </span>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <ConfirmModal
@@ -386,22 +447,19 @@ function DocumentTypesManagement() {
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{t('mdm_doc_types')}</h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="text-lg font-semibold text-ink">{t('mdm_doc_types')}</h3>
+          <p className="mt-1 text-sm text-ink-soft">
             {t('mdm_doc_types_desc')}
           </p>
         </div>
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-        >
+        <Button onClick={handleAdd}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           {t('mdm_add_doc_type')}
-        </button>
+        </Button>
       </div>
 
       {/* Search */}
@@ -409,70 +467,80 @@ function DocumentTypesManagement() {
         <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input
+        <TextInput
           type="text"
           placeholder={t('mdm_search_name_prefix')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+          className="pl-10"
         />
       </div>
-      <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+      <label className="inline-flex items-center gap-2 text-sm text-ink-secondary">
         <input
           type="checkbox"
           checked={showInactive}
           onChange={(e) => setShowInactive(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 rounded border-border text-brand focus:ring-brand/30"
         />
         {t('show_inactive')}
       </label>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <TableContainer>
+        <Table>
           <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_name')}</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('mdm_prefix')}</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('description')}</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('status')}</th>
-              <th className="text-right py-3 px-4 font-semibold text-gray-700 text-xs uppercase tracking-wider">{t('action')}</th>
-            </tr>
+            <Tr className="bg-surface-muted hover:bg-surface-muted">
+              <Th>{t('mdm_name')}</Th>
+              <Th>{t('mdm_prefix')}</Th>
+              <Th>{t('description')}</Th>
+              <Th>Expiry Tracking</Th>
+              <Th>Renewal</Th>
+              <Th>{t('status')}</Th>
+              <Th align="right">{t('action')}</Th>
+            </Tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="5" className="text-center py-8 text-gray-500">
+              <Tr className="hover:bg-transparent">
+                <Td colSpan="7" className="py-8 text-center text-ink-soft">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand"></div>
                     <span>{t('loading')}</span>
                   </div>
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ) : filteredItems.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="text-center py-8 text-gray-500">
+              <Tr className="hover:bg-transparent">
+                <Td colSpan="7" className="py-8 text-center text-ink-soft">
                   {t('mdm_no_doc_types')}
-                </td>
-              </tr>
+                </Td>
+              </Tr>
             ) : (
               pageItems.map((item) => (
-                <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4 text-gray-900 font-medium">{item.name}</td>
-                  <td className="py-4 px-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-sm font-mono font-semibold">
+                <Tr key={item.id}>
+                  <Td className="font-medium text-ink">{item.name}</Td>
+                  <Td>
+                    <span className="inline-flex items-center rounded-xl border border-brand/20 bg-brand/10 px-2.5 py-1 text-sm font-semibold text-brand">
                       {item.prefix}
                     </span>
-                  </td>
-                  <td className="py-4 px-4 text-gray-600 text-sm">{item.description || '-'}</td>
-                  <td className="py-4 px-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${
-                      item.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {item.isActive ? t('mdm_active') : t('mdm_inactive')}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-right">
+                  </Td>
+                  <Td>{item.description || '-'}</Td>
+                  <Td>
+                    {renderPill(
+                      item.requiresExpiryTracking ? 'Required' : 'Optional',
+                      item.requiresExpiryTracking ? 'success' : 'neutral'
+                    )}
+                  </Td>
+                  <Td>
+                    {renderPill(
+                      item.allowRenewal ? 'Enabled' : 'Disabled',
+                      item.allowRenewal ? 'warning' : 'neutral'
+                    )}
+                  </Td>
+                  <Td>
+                    {renderPill(item.isActive ? t('mdm_active') : t('mdm_inactive'), item.isActive ? 'success' : 'neutral')}
+                  </Td>
+                  <Td align="right">
                     <ActionMenu
                       actions={item.isActive ? [
                         { label: t('rp_edit'), onClick: () => handleEdit(item) },
@@ -482,13 +550,13 @@ function DocumentTypesManagement() {
                         { label: t('rp_delete'), onClick: () => handleDelete(item.id), variant: 'destructive' }
                       ]}
                     />
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))
             )}
           </tbody>
-        </table>
-      </div>
+        </Table>
+      </TableContainer>
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}

@@ -79,10 +79,23 @@ export function applyTheme(themeObj) {
   if (themeObj.warningColor) root.style.setProperty('--dms-warning', themeObj.warningColor)
   if (themeObj.errorColor) root.style.setProperty('--dms-error', themeObj.errorColor)
   if (themeObj.infoColor) root.style.setProperty('--dms-info', themeObj.infoColor)
-  if (themeObj.textPrimary) root.style.setProperty('--dms-text-primary', themeObj.textPrimary)
-  if (themeObj.textSecondary) root.style.setProperty('--dms-text-secondary', themeObj.textSecondary)
-  if (themeObj.textMuted) root.style.setProperty('--dms-text-muted', themeObj.textMuted)
-  if (themeObj.textDisabled) root.style.setProperty('--dms-text-disabled', themeObj.textDisabled)
+  if (themeObj.textPrimary) {
+    root.style.setProperty('--dms-text-primary', themeObj.textPrimary)
+    root.style.setProperty('--dms-color-text-primary', themeObj.textPrimary)
+  }
+  if (themeObj.textSecondary) {
+    root.style.setProperty('--dms-text-secondary', themeObj.textSecondary)
+    root.style.setProperty('--dms-color-text-secondary', themeObj.textSecondary)
+  }
+  if (themeObj.textMuted) {
+    root.style.setProperty('--dms-text-muted', themeObj.textMuted)
+    root.style.setProperty('--dms-color-text-muted', themeObj.textMuted)
+    root.style.setProperty('--dms-color-text-soft', themeObj.textMuted)
+  }
+  if (themeObj.textDisabled) {
+    root.style.setProperty('--dms-text-disabled', themeObj.textDisabled)
+    root.style.setProperty('--dms-color-text-soft', themeObj.textDisabled)
+  }
   if (themeObj.borderLight) root.style.setProperty('--dms-border-light', themeObj.borderLight)
   if (themeObj.borderMedium) root.style.setProperty('--dms-border-medium', themeObj.borderMedium)
   if (themeObj.borderDark) root.style.setProperty('--dms-border-dark', themeObj.borderDark)

@@ -3140,7 +3140,7 @@ function ProjectDetail({ projectId }) {
                 <Button
                   size="sm"
                   variant="danger"
-                  className="bg-transparent text-[var(--dms-color-danger-ink)] border-[var(--dms-color-danger-ink)] hover:bg-[var(--dms-color-danger-soft)]"
+                  className="border-black bg-black text-white hover:border-black hover:bg-neutral-900 hover:text-white"
                   onClick={() =>
                     openProjectControlConfirm({
                       show: true,
@@ -3295,6 +3295,7 @@ function DocumentsSearch() {
   const [projectId, setProjectId] = useState('')
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
   const [results, setResults] = useState([])
 
   useEffect(() => {
@@ -3311,6 +3312,7 @@ function DocumentsSearch() {
 
   const search = async () => {
     setLoading(true)
+    setHasSearched(true)
     try {
       const params = { q }
       if (projectId) params.projectId = projectId
@@ -3320,6 +3322,10 @@ function DocumentsSearch() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    search()
+  }, [projectId])
 
   return (
     <div className="space-y-4">
@@ -3350,6 +3356,8 @@ function DocumentsSearch() {
           <InlineSpinner className="h-4 w-4" />
           <span className="text-sm text-ink-muted">Searching...</span>
         </AppSurface>
+      ) : !hasSearched ? (
+        <EmptyState title="Search documents" message="Use the filters and keyword search to find documents." />
       ) : results.length === 0 ? (
         <EmptyState title="No results" message="Try another keyword or search criteria." />
       ) : (

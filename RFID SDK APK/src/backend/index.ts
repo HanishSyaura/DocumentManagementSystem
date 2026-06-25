@@ -1,5 +1,7 @@
 export { AuthBackend } from './AuthBackend';
+export { RegistryBackend } from './RegistryBackend';
 export { RfidBackend } from './RfidBackend';
+export type { ProjectCategory, RegistryRecord } from './RegistryBackend';
 export type {
   BeepingAssistLevel,
   InventoryScanMode,

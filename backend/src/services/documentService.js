@@ -1112,9 +1112,20 @@ class DocumentService {
       }
     }
 
-    if (document.isConfidential && user) {
-      const ok = await confidentialAccessService.canUserViewDocument(document, user)
-      if (!ok) throw new ForbiddenError('You do not have access to this confidential document')
+    if (document.isConfidential) {
+      if (user) {
+        const ok = await confidentialAccessService.canUserViewDocument(document, user)
+        if (!ok) throw new ForbiddenError('You do not have access to this confidential document')
+      } else if (userId) {
+        if (document.ownerId !== userId && document.createdById !== userId) {
+          const count = await prisma.documentConfidentialAccess.count({
+            where: { documentId: document.id, userId, canView: true }
+          })
+          if (count === 0) throw new ForbiddenError('You do not have access to this confidential document')
+        }
+      } else {
+        throw new ForbiddenError('You do not have access to this confidential document')
+      }
     }
 
     return document;
@@ -1189,6 +1200,29 @@ class DocumentService {
     if (userId && user) {
       const roleIds = await folderPermissionService.getRoleIdsByNames(user.roles || [])
       where.AND = [...(where.AND || []), confidentialAccessService.buildConfidentialWhereClause(user, roleIds)]
+    } else if (userId) {
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { isConfidential: false },
+            {
+              AND: [
+                { isConfidential: true },
+                {
+                  OR: [
+                    { ownerId: userId },
+                    { createdById: userId },
+                    { confidentialAccess: { some: { userId, canView: true } } }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } else {
+      where.AND = [...(where.AND || []), { isConfidential: false }]
     }
 
     // Enforce assignment-based access control

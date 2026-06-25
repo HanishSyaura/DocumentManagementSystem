@@ -29,7 +29,9 @@ const rolePermissions = {
     'logsReport.analytics': { view: true },
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
     'documents.rfidRegistry': { view: true, export: true, manage: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    projectTracking: { view: true, searchProject: true, create: true, edit: true, delete: true, projectSetup: true, linkDocument: true, advanceStage: true, manageConfidentialAccess: true, projectControls: true, activityLogs: true, keyInChangeRequest: true, editProject: true, addNextPhase: true, moveToNextStage: true },
+    expiryTracking: { view: true, edit: true, renew: true, export: true }
   },
 
   // Document Controller - manages document lifecycle
@@ -46,7 +48,8 @@ const rolePermissions = {
     'logsReport.activityLogs': { view: true, filter: true, export: true },
     masterRecord: { view: true, search: true, filter: true, export: true, download: true },
     'documents.rfidRegistry': { view: true, export: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+  profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true, edit: true, renew: true, export: true }
   },
 
   // Reviewer - can review documents
@@ -58,7 +61,8 @@ const rolePermissions = {
     'documents.superseded': { view: true, read: true, download: true },
     myDocumentsStatus: { view: true },
     masterRecord: { view: true, search: true, filter: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true }
   },
 
   // Approver - can approve/reject documents
@@ -70,7 +74,8 @@ const rolePermissions = {
     'documents.superseded': { view: true, read: true, download: true },
     myDocumentsStatus: { view: true },
     masterRecord: { view: true, search: true, filter: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true }
   },
 
   // Acknowledger - can acknowledge document requests
@@ -82,7 +87,8 @@ const rolePermissions = {
     newDocumentRequest: { view: true, acknowledge: true },
     myDocumentsStatus: { view: true },
     masterRecord: { view: true, search: true, filter: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true }
   },
 
   // Drafter - can create and edit drafts
@@ -96,7 +102,8 @@ const rolePermissions = {
     'configuration.templates': { view: true, read: true, download: true },
     'configuration.templateRequests': { view: true, create: true, read: true },
     masterRecord: { view: true, search: true, filter: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true }
   },
 
   // Viewer - read-only access
@@ -106,7 +113,8 @@ const rolePermissions = {
     'documents.superseded': { view: true, read: true, download: true },
     myDocumentsStatus: { view: true },
     masterRecord: { view: true, search: true, filter: true },
-    profileSettings: { view: true, edit: true, changePassword: true }
+    profileSettings: { view: true, edit: true, changePassword: true },
+    expiryTracking: { view: true }
   }
 };
 

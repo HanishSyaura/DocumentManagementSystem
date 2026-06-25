@@ -3513,6 +3513,11 @@ function DocumentSettings() {
     draftRetention: 30,
     archivedRetention: 365,
     deletedRetention: 90,
+    expiringSoonDays: 60,
+    reminder1Days: 90,
+    reminder2Days: 60,
+    reminder3Days: 30,
+    reminder4Days: 7,
     rfidEpcRegistryEnabled: false
   })
   const [saving, setSaving] = useState(false)
@@ -3532,11 +3537,12 @@ function DocumentSettings() {
   const loadSettings = async () => {
     try {
       // Load all settings from backend
-      const [numberingRes, fileUploadRes, versionRes, retentionRes, rfidRes] = await Promise.all([
+      const [numberingRes, fileUploadRes, versionRes, retentionRes, expiryRes, rfidRes] = await Promise.all([
         api.get('/system/config/document-numbering').catch(err => ({ data: { success: false } })),
         api.get('/system/config/file-upload').catch(err => ({ data: { success: false } })),
         api.get('/system/config/version-control').catch(err => ({ data: { success: false } })),
         api.get('/system/config/retention-policy').catch(err => ({ data: { success: false } })),
+        api.get('/system/config/expiry-tracking').catch(err => ({ data: { success: false } })),
         api.get('/system/config/rfid-epc-registry').catch(err => ({ data: { success: false } }))
       ])
 
@@ -3577,6 +3583,15 @@ function DocumentSettings() {
         loadedSettings.draftRetention = retentionSettings.draftRetention
         loadedSettings.archivedRetention = retentionSettings.archivedRetention
         loadedSettings.deletedRetention = retentionSettings.deletedRetention
+      }
+
+      if (expiryRes.data.success && expiryRes.data.data.settings) {
+        const expirySettings = expiryRes.data.data.settings
+        loadedSettings.expiringSoonDays = expirySettings.expiringSoonDays
+        loadedSettings.reminder1Days = expirySettings.reminder1Days
+        loadedSettings.reminder2Days = expirySettings.reminder2Days
+        loadedSettings.reminder3Days = expirySettings.reminder3Days
+        loadedSettings.reminder4Days = expirySettings.reminder4Days
       }
 
       if (rfidRes.data.success && rfidRes.data.data.settings) {
@@ -3700,6 +3715,21 @@ function DocumentSettings() {
       } catch (error) {
         console.error('Failed to save retention policy settings:', error)
         saveErrors.push('retention policy')
+      }
+
+      try {
+        const expiryTrackingSettings = {
+          expiringSoonDays: settings.expiringSoonDays,
+          reminder1Days: settings.reminder1Days,
+          reminder2Days: settings.reminder2Days,
+          reminder3Days: settings.reminder3Days,
+          reminder4Days: settings.reminder4Days
+        }
+
+        await api.put('/system/config/expiry-tracking', expiryTrackingSettings)
+      } catch (error) {
+        console.error('Failed to save expiry tracking settings:', error)
+        saveErrors.push('expiry tracking')
       }
 
       try {
@@ -4094,6 +4124,36 @@ function DocumentSettings() {
           </div>
         </div>
       </div>
+
+      <AppSurface padding="lg" variant="panel" className="space-y-4">
+        <div className="space-y-1">
+          <h4 className="text-base font-semibold text-ink">Expiry Tracking Settings</h4>
+          <p className="text-sm text-ink-muted">Configure status threshold and reminder schedule for tracked documents.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-ink">Expiring Soon Days</label>
+            <TextInput type="number" min="0" value={settings.expiringSoonDays} onChange={(e) => setSettings(prev => ({ ...prev, expiringSoonDays: parseInt(e.target.value, 10) || 0 }))} />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-ink">Reminder 1</label>
+            <TextInput type="number" min="0" value={settings.reminder1Days} onChange={(e) => setSettings(prev => ({ ...prev, reminder1Days: parseInt(e.target.value, 10) || 0 }))} />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-ink">Reminder 2</label>
+            <TextInput type="number" min="0" value={settings.reminder2Days} onChange={(e) => setSettings(prev => ({ ...prev, reminder2Days: parseInt(e.target.value, 10) || 0 }))} />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-ink">Reminder 3</label>
+            <TextInput type="number" min="0" value={settings.reminder3Days} onChange={(e) => setSettings(prev => ({ ...prev, reminder3Days: parseInt(e.target.value, 10) || 0 }))} />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-ink">Reminder 4</label>
+            <TextInput type="number" min="0" value={settings.reminder4Days} onChange={(e) => setSettings(prev => ({ ...prev, reminder4Days: parseInt(e.target.value, 10) || 0 }))} />
+          </div>
+        </div>
+        <p className="text-xs text-ink-soft">Status logic uses `Expiring Soon Days`, while reminders are sent on the configured day thresholds before expiry.</p>
+      </AppSurface>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <div className="bg-white border-b border-gray-200 px-6 py-4">

@@ -80,6 +80,7 @@ model User {
   projectSetupRequirementDefaultAccessEntries ProjectSetupDocumentRequirementDefaultConfidentialAccess[]
   projectSetupRequirementOverrideAccessEntries ProjectSetupDocumentRequirementOverrideConfidentialAccess[]
   createdProjectChangeRequests ProjectChangeRequest[] @relation("ProjectChangeRequestCreator")
+  expiryWatchers            DocumentExpiryWatcher[]
 
   @@index([email])
   @@index([employeeId])
@@ -209,6 +210,8 @@ model DocumentType {
   prefix      String   @unique // e.g., "DOC", "MoM", "PP"
   description String?
   isActive    Boolean  @default(true)
+  requiresExpiryTracking Boolean @default(false)
+  allowRenewal Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -362,6 +365,8 @@ model Document {
   epcRegistryRecords     DocumentEpcRegistryRecord[]
   projectLinks           ProjectDocumentLink[]
   confidentialAccess     DocumentConfidentialAccess[]
+  expiryProfile          DocumentExpiryProfile?
+  expiryRenewalHistory   DocumentExpiryRenewalHistory[]
 
   @@unique([fileCode, projectCategoryId])
   @@index([fileCode])
@@ -439,6 +444,20 @@ enum WorkflowStage {
 
   // Legacy stage (deprecated but kept for backward compatibility)
   APPROVAL
+}
+
+enum ExpiryStatus {
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRING_TODAY
+  EXPIRED
+}
+
+enum RenewalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
 }
 
 model Project {
@@ -814,9 +833,89 @@ model DocumentVersion {
   document          Document                  @relation(fields: [documentId], references: [id], onDelete: Cascade)
   uploadedBy        User                      @relation("VersionUploader", fields: [uploadedById], references: [id])
   epcRegistryRecord DocumentEpcRegistryRecord?
+  expiryRenewalHistory DocumentExpiryRenewalHistory[]
 
   @@index([documentId])
   @@index([version])
+}
+
+model DocumentExpiryProfile {
+  id                   Int           @id @default(autoincrement())
+  documentId           Int           @unique
+  trackingEnabled      Boolean       @default(true)
+  startDate            DateTime?
+  expiryDate           DateTime?
+  expiryStatus         ExpiryStatus  @default(ACTIVE)
+  renewalStatus        RenewalStatus @default(NOT_STARTED)
+  expiringSoonDays     Int?
+  reminder1Days        Int?
+  reminder2Days        Int?
+  reminder3Days        Int?
+  reminder4Days        Int?
+  lastReminder1SentAt  DateTime?
+  lastReminder2SentAt  DateTime?
+  lastReminder3SentAt  DateTime?
+  lastReminder4SentAt  DateTime?
+  remarks              String?       @db.Text
+  companySnapshot      String?
+  departmentSnapshot   String?
+  folderSnapshotName   String?
+  currentVersionSnapshot String?
+  trackingDisabledAt   DateTime?
+  trackingDisabledBy   Int?
+  trackingDisabledReason String?     @db.Text
+  createdBy            Int?
+  updatedBy            Int?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  renewalHistory DocumentExpiryRenewalHistory[]
+  watchers DocumentExpiryWatcher[]
+
+  @@index([expiryStatus])
+  @@index([renewalStatus])
+  @@index([trackingEnabled])
+  @@index([expiryDate])
+}
+
+model DocumentExpiryRenewalHistory {
+  id                  Int           @id @default(autoincrement())
+  documentId          Int
+  expiryProfileId     Int
+  documentVersionId   Int?
+  fromVersion         String?
+  toVersion           String?
+  previousExpiryDate  DateTime?
+  newExpiryDate       DateTime?
+  renewalStatusBefore RenewalStatus?
+  renewalStatusAfter  RenewalStatus?
+  remarks             String?       @db.Text
+  renewedBy           Int?
+  renewedAt           DateTime      @default(now())
+
+  document        Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  expiryProfile   DocumentExpiryProfile @relation(fields: [expiryProfileId], references: [id], onDelete: Cascade)
+  documentVersion DocumentVersion?      @relation(fields: [documentVersionId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([expiryProfileId])
+  @@index([renewedAt])
+}
+
+model DocumentExpiryWatcher {
+  id              Int      @id @default(autoincrement())
+  expiryProfileId Int
+  userId          Int
+  createdById     Int?
+  createdAt       DateTime @default(now())
+
+  expiryProfile DocumentExpiryProfile @relation(fields: [expiryProfileId], references: [id], onDelete: Cascade)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expiryProfileId, userId], map: "DEW_profile_user_key")
+  @@index([expiryProfileId])
+  @@index([userId])
 }
 
 model DocumentEpcRegistryRecord {
@@ -1192,6 +1291,10 @@ enum NotificationType {
   DOCUMENT_REJECTED
   DOCUMENT_RETURNED
   VERSION_UPDATE
+  DOCUMENT_EXPIRING
+  DOCUMENT_EXPIRED
+  RENEWAL_IN_PROGRESS
+  RENEWAL_COMPLETED
   SYSTEM_ALERT
 }
 

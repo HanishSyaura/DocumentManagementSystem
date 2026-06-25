@@ -547,7 +547,7 @@ class WorkflowService {
    * Publish document
    * Transition: READY_TO_PUBLISH → PUBLISHED
    */
-  async publishDocument(documentId, userId, folderId, notes = null, newFileName = null) {
+  async publishDocument(documentId, userId, folderId, notes = null, newFileName = null, expiryInfo = null) {
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       include: { documentType: true, owner: true }
@@ -674,6 +674,15 @@ class WorkflowService {
       await projectTrackingService.handleDocumentPublished(documentId);
     } catch (error) {
       console.error('Failed to update project tracking items for published document:', error);
+    }
+
+    try {
+      if (document.documentType?.requiresExpiryTracking || expiryInfo?.trackingEnabled) {
+        const expiryTrackingService = require('./expiryTrackingService')
+        await expiryTrackingService.syncProfileFromDocument(documentId, expiryInfo || {}, userId)
+      }
+    } catch (error) {
+      console.error('Failed to sync expiry tracking profile on publish:', error)
     }
 
     return updated;

@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const retentionService = require('./services/retentionService');
+const expiryReminderService = require('./services/expiryReminderService');
 
 dotenv.config();
 
@@ -48,4 +49,7 @@ app.listen(port, () => {
   // Initialize retention policy cleanup scheduler
   retentionService.scheduleRetentionCleanup();
   console.log('Retention policy scheduler initialized');
+
+  expiryReminderService.scheduleDailyProcessing();
+  console.log('Expiry tracking scheduler initialized');
 });

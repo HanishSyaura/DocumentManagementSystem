@@ -14,20 +14,23 @@ import { Colors } from '../styles/theme';
 import { AuthBackend } from '../backend';
 
 export default function SignInScreen() {
+  const [serverUrl, setServerUrl] = useState(() => AuthBackend.getState().baseUrl.replace(/\/api$/, '') || 'http://10.0.2.2:4000');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = useMemo(() => {
-    return email.trim().length > 0 && password.length > 0;
-  }, [email, password]);
+    return serverUrl.trim().length > 0 && email.trim().length > 0 && password.length > 0;
+  }, [serverUrl, email, password]);
 
   const submit = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
-      await AuthBackend.signIn(email.trim());
+      await AuthBackend.signIn(serverUrl.trim(), email.trim(), password);
+    } catch (error: any) {
+      Alert.alert('Sign in failed', error?.message || 'Unable to connect to the server.');
     } finally {
       setSubmitting(false);
     }
@@ -49,6 +52,22 @@ export default function SignInScreen() {
 
         <Text style={styles.title}>Sign In</Text>
         <Text style={styles.subtitle}>Welcome back</Text>
+
+        <View style={styles.fieldBlock}>
+          <Text style={styles.fieldLabel}>Server URL</Text>
+          <View style={styles.inputWrap}>
+            <Icon name="server-network" size={18} color={Colors.textSecondary} />
+            <TextInput
+              value={serverUrl}
+              onChangeText={setServerUrl}
+              placeholder="http://your-server:4000"
+              placeholderTextColor="#9aa3ad"
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        </View>
 
         <View style={styles.fieldBlock}>
           <Text style={styles.fieldLabel}>Email</Text>
@@ -89,7 +108,7 @@ export default function SignInScreen() {
 
         <TouchableOpacity
           style={styles.forgotWrap}
-          onPress={() => Alert.alert('Forgot password', 'Reset flow akan dibuat bila web/API sudah ready.')}
+          onPress={() => Alert.alert('Forgot password', 'Reset flow is not wired in the mobile app yet.')}
         >
           <Text style={styles.forgotText}>Forgot password?</Text>
         </TouchableOpacity>

@@ -107,6 +107,34 @@ class ConfigService {
     };
   }
 
+  getDefaultExpiryTrackingSettings() {
+    return {
+      expiringSoonDays: 60,
+      reminder1Days: 90,
+      reminder2Days: 60,
+      reminder3Days: 30,
+      reminder4Days: 7
+    }
+  }
+
+  normalizeExpiryTrackingSettings(input) {
+    const defaults = this.getDefaultExpiryTrackingSettings()
+    const source = (input && typeof input === 'object') ? input : {}
+    const toPositiveInt = (value, fallback) => {
+      const parsed = parseInt(value, 10)
+      if (!Number.isFinite(parsed) || parsed < 0) return fallback
+      return parsed
+    }
+
+    return {
+      expiringSoonDays: toPositiveInt(source.expiringSoonDays, defaults.expiringSoonDays),
+      reminder1Days: toPositiveInt(source.reminder1Days, defaults.reminder1Days),
+      reminder2Days: toPositiveInt(source.reminder2Days, defaults.reminder2Days),
+      reminder3Days: toPositiveInt(source.reminder3Days, defaults.reminder3Days),
+      reminder4Days: toPositiveInt(source.reminder4Days, defaults.reminder4Days)
+    }
+  }
+
   /**
    * Get all document types
    */
@@ -212,12 +240,14 @@ class ConfigService {
    * Create new document type
    */
   async createDocumentType(data) {
-    const { name, prefix, description } = data;
+    const { name, prefix, description, requiresExpiryTracking, allowRenewal } = data;
     return await prisma.documentType.create({
       data: {
         name,
         prefix,
         description,
+        requiresExpiryTracking: Boolean(requiresExpiryTracking),
+        allowRenewal: allowRenewal !== undefined ? Boolean(allowRenewal) : true,
         isActive: true
       }
     });
@@ -227,14 +257,16 @@ class ConfigService {
    * Update document type
    */
   async updateDocumentType(id, data) {
-    const { name, prefix, description, isActive } = data;
+    const { name, prefix, description, isActive, requiresExpiryTracking, allowRenewal } = data;
     return await prisma.documentType.update({
       where: { id: parseInt(id) },
       data: {
         name,
         prefix,
         description,
-        isActive
+        isActive,
+        requiresExpiryTracking,
+        allowRenewal
       }
     });
   }
@@ -626,6 +658,45 @@ class ConfigService {
     });
 
     return JSON.parse(config.value);
+  }
+
+  // ============================================
+  // EXPIRY TRACKING SETTINGS
+  // ============================================
+
+  async getExpiryTrackingSettings() {
+    const config = await prisma.configuration.findUnique({
+      where: { key: 'expiry_tracking_settings' }
+    })
+
+    if (config?.value) {
+      try {
+        return this.normalizeExpiryTrackingSettings(JSON.parse(config.value))
+      } catch (error) {
+        console.error('Failed to parse expiry tracking settings:', error)
+      }
+    }
+
+    return this.getDefaultExpiryTrackingSettings()
+  }
+
+  async updateExpiryTrackingSettings(settings) {
+    const normalizedSettings = this.normalizeExpiryTrackingSettings(settings)
+    const settingsJson = JSON.stringify(normalizedSettings)
+    const config = await prisma.configuration.upsert({
+      where: { key: 'expiry_tracking_settings' },
+      update: {
+        value: settingsJson,
+        description: 'Expiry tracking thresholds and reminder schedule'
+      },
+      create: {
+        key: 'expiry_tracking_settings',
+        value: settingsJson,
+        description: 'Expiry tracking thresholds and reminder schedule'
+      }
+    })
+
+    return this.normalizeExpiryTrackingSettings(JSON.parse(config.value))
   }
 
   // ============================================

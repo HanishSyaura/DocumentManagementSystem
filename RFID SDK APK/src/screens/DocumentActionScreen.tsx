@@ -1,70 +1,34 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../styles/theme';
-import { RfidBackend } from '../backend';
+import { RegistryBackend, RfidBackend, type ProjectCategory, type RegistryRecord } from '../backend';
 
 type ActionType = 'check-in' | 'check-out' | 'archive';
 
-type DocumentRecord = {
-  id: string;
-  fileCode: string;
-  title: string;
-  epc: string;
-  projectCategory: string;
-  version: string;
-  lastUpdated: string;
-  documentStatus: string;
-  trackingStatus: string;
+const normalizeHex = (value: string) => String(value ?? '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+
+const formatDate = (value?: string | null) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString();
 };
 
-const mockDocuments: DocumentRecord[] = [
-  {
-    id: '1',
-    fileCode: 'MoM01260616001',
-    title: 'Minutes of Meeting Project 16 June 2026',
-    epc: '301646F608001D000F88AF41',
-    projectCategory: 'Internal',
-    version: '1.0',
-    lastUpdated: '16/06/2026',
-    documentStatus: 'Published',
-    trackingStatus: 'Registered',
-  },
-  {
-    id: '2',
-    fileCode: 'MoM01260616002',
-    title: 'Minutes of Meeting Project 16 June 2026',
-    epc: '301646F608001D000F88AF42',
-    projectCategory: 'Internal',
-    version: '1.0',
-    lastUpdated: '16/06/2026',
-    documentStatus: 'Published',
-    trackingStatus: 'Registered',
-  },
-  {
-    id: '3',
-    fileCode: 'MoM01260616003',
-    title: 'Minutes of Meeting Project 16 June 2026',
-    epc: '301646F608001D000F88AF43',
-    projectCategory: 'Internal',
-    version: '1.0',
-    lastUpdated: '16/06/2026',
-    documentStatus: 'Published',
-    trackingStatus: 'Registered',
-  },
-  {
-    id: '4',
-    fileCode: 'MoM01260616004',
-    title: 'Minutes of Meeting Project 16 June 2026',
-    epc: '301646F608001D000F88AF44',
-    projectCategory: 'Internal',
-    version: '1.0',
-    lastUpdated: '16/06/2026',
-    documentStatus: 'Published',
-    trackingStatus: 'Registered',
-  },
-];
+const buildUnknownRecord = (epcHex: string): RegistryRecord => ({
+  id: `unknown-${epcHex}`,
+  fileCode: 'UNREGISTERED',
+  fileName: '-',
+  epcHex,
+  epcScheme: '-',
+  trackingStatus: 'UNREGISTERED',
+  trackingUpdatedAt: null,
+  generatedAt: null,
+  documentStatus: 'Not Found',
+  document: null,
+});
 
 const getScreenTitle = (action: ActionType) => {
   if (action === 'check-in') return 'Check-In Document';
@@ -90,10 +54,10 @@ const getConfirmLabel = (action: ActionType) => {
   return 'Confirm Archive';
 };
 
-const getTrackingStatusAfterConfirm = (action: ActionType) => {
-  if (action === 'check-in') return 'Checked-In';
-  if (action === 'check-out') return 'Checked-Out';
-  return 'Archived';
+const getTrackingEndpoint = (action: ActionType): 'check-in' | 'check-out' | 'archive' => {
+  if (action === 'check-in') return 'check-in';
+  if (action === 'check-out') return 'check-out';
+  return 'archive';
 };
 
 const ResultCard = ({
@@ -101,7 +65,7 @@ const ResultCard = ({
   expanded,
   onToggle,
 }: {
-  item: DocumentRecord;
+  item: RegistryRecord;
   expanded: boolean;
   onToggle: () => void;
 }) => {
@@ -111,12 +75,12 @@ const ResultCard = ({
         <View style={styles.resultLeft}>
           <Text style={styles.resultFileCode}>{item.fileCode}</Text>
           <Text style={styles.resultTitle} numberOfLines={1}>
-            {item.title}
+            {item.document?.title || item.fileName || 'Unknown document'}
           </Text>
         </View>
         <View style={styles.resultRight}>
           <Text style={styles.resultEpc} numberOfLines={1}>
-            {item.epc}
+            {item.epcHex}
           </Text>
           <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={22} color={Colors.textSecondary} />
         </View>
@@ -126,27 +90,27 @@ const ResultCard = ({
         <View style={styles.detailSection}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>EPC Code:</Text>
-            <Text style={styles.detailValue}>{item.epc}</Text>
+            <Text style={styles.detailValue}>{item.epcHex}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Project Category:</Text>
-            <Text style={styles.detailValue}>{item.projectCategory}</Text>
+            <Text style={styles.detailValue}>{item.document?.projectCategory?.name || '-'}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Version:</Text>
-            <Text style={styles.detailValue}>{item.version}</Text>
+            <Text style={styles.detailValue}>{item.document?.version || '-'}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Last Updated:</Text>
-            <Text style={styles.detailValue}>{item.lastUpdated}</Text>
+            <Text style={styles.detailValue}>{formatDate(item.document?.updatedAt || item.generatedAt)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Document Status:</Text>
-            <Text style={styles.detailValue}>{item.documentStatus}</Text>
+            <Text style={styles.detailValue}>{item.documentStatus || '-'}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Tracking Status:</Text>
-            <Text style={styles.detailValue}>{item.trackingStatus}</Text>
+            <Text style={styles.detailValue}>{item.trackingStatus || '-'}</Text>
           </View>
         </View>
       ) : null}
@@ -157,9 +121,13 @@ const ResultCard = ({
 export default function DocumentActionScreen({ action }: { action: ActionType }) {
   const navigation = useNavigation<any>();
 
+  const [projectCategoryId, setProjectCategoryId] = useState('');
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [screenError, setScreenError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [results, setResults] = useState<DocumentRecord[]>([]);
+  const [results, setResults] = useState<RegistryRecord[]>([]);
 
   const scanningRef = useRef(false);
   const tagsSubRef = useRef<{ remove: () => void } | null>(null);
@@ -169,11 +137,35 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
   const emptyTitle = useMemo(() => getEmptyTitle(action), [action]);
   const emptyIcon = useMemo(() => getEmptyIcon(action), [action]);
   const confirmLabel = useMemo(() => getConfirmLabel(action), [action]);
+  const trackingEndpoint = useMemo(() => getTrackingEndpoint(action), [action]);
+
+  const fetchLookup = async (epcHexes: string[]) => {
+    if (!projectCategoryId) {
+      throw new Error('Select a project category first.');
+    }
+
+    const normalized = Array.from(new Set(epcHexes.map(normalizeHex).filter(Boolean)));
+    if (normalized.length === 0) return;
+
+    const response = await RegistryBackend.lookupByEpcHexes({
+      projectCategoryId,
+      epcHexes: normalized,
+    });
+
+    const byEpc = new Map(response.records.map(record => [normalizeHex(record.epcHex), record]));
+    setResults(normalized.map(epcHex => byEpc.get(epcHex) || buildUnknownRecord(epcHex)));
+    setExpandedId(normalized.length === 1 ? (byEpc.get(normalized[0]) || buildUnknownRecord(normalized[0])).id : null);
+  };
 
   const startScan = () => {
     if (scanningRef.current) return;
+    if (!projectCategoryId) {
+      setScreenError('Select a project category before scanning.');
+      return;
+    }
     scanningRef.current = true;
     setIsScanning(true);
+    setScreenError(null);
     RfidBackend.startInventory();
   };
 
@@ -185,29 +177,31 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
   };
 
   useEffect(() => {
+    let mounted = true;
+    RegistryBackend.getProjectCategories()
+      .then(next => {
+        if (!mounted) return;
+        setCategories(next);
+        if (!projectCategoryId && next.length > 0) {
+          setProjectCategoryId(String(next[0].id));
+        }
+      })
+      .catch((error: any) => {
+        if (!mounted) return;
+        setScreenError(error?.message || 'Unable to load project categories.');
+      });
+
     tagsSubRef.current?.remove();
     tagsSubRef.current = RfidBackend.onTags(tags => {
       if (!scanningRef.current) return;
-      const epc = tags?.[0]?.epc;
-      if (!epc) return;
-
-      setResults(prev => {
-        if (prev.some(p => p.epc === epc)) return prev;
-        const matched = mockDocuments.find(d => d.epc.toLowerCase() === epc.toLowerCase());
-        const next = matched
-          ? { ...matched }
-          : {
-              id: `${Date.now()}`,
-              fileCode: epc.slice(-10),
-              title: 'Unknown Document',
-              epc,
-              projectCategory: '-',
-              version: '-',
-              lastUpdated: '-',
-              documentStatus: '-',
-              trackingStatus: 'Registered',
-            };
-        return [...prev, next];
+      const nextEpcs = Array.from(
+        new Set([
+          ...results.map(item => normalizeHex(item.epcHex)),
+          ...tags.map(tag => normalizeHex(tag?.epc || '')).filter(Boolean),
+        ]),
+      );
+      void fetchLookup(nextEpcs).catch((error: any) => {
+        setScreenError(error?.message || 'RFID lookup failed.');
       });
     });
 
@@ -226,16 +220,33 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
     });
 
     return () => {
+      mounted = false;
       tagsSubRef.current?.remove();
       triggerSubRef.current?.remove();
       stopScan();
     };
-  }, []);
+  }, [projectCategoryId, results]);
 
-  const confirm = () => {
-    const nextStatus = getTrackingStatusAfterConfirm(action);
-    setResults(prev => prev.map(item => ({ ...item, trackingStatus: nextStatus })));
-    stopScan();
+  const confirm = async () => {
+    if (results.length === 0) return;
+    setBusy(true);
+    setScreenError(null);
+    try {
+      const updated = await Promise.all(
+        results.map(item =>
+          RegistryBackend.updateTracking(trackingEndpoint, {
+            epcHex: item.epcHex,
+            fileCode: item.fileCode !== 'UNREGISTERED' ? item.fileCode : undefined,
+          }),
+        ),
+      );
+      setResults(updated);
+      stopScan();
+    } catch (error: any) {
+      setScreenError(error?.message || 'Tracking update failed.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const showEmpty = results.length === 0;
@@ -258,6 +269,18 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
       </View>
 
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.fieldLabel}>Project Category</Text>
+        <View style={styles.pickerWrap}>
+          <Picker selectedValue={projectCategoryId} onValueChange={setProjectCategoryId} style={styles.picker}>
+            <Picker.Item label="Select Project Category" value="" />
+            {categories.map(category => (
+              <Picker.Item key={category.id} label={category.name} value={String(category.id)} />
+            ))}
+          </Picker>
+        </View>
+
+        {screenError ? <Text style={styles.errorText}>{screenError}</Text> : null}
+
         {showEmpty ? (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIconCircle}>
@@ -267,9 +290,10 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
             <Text style={styles.emptySubtitle}>Push trigger or "Scan" button to start scanning RFID Tag</Text>
 
             <TouchableOpacity
-              style={[styles.scanButton, isScanning ? styles.scanButtonActive : null]}
+              style={[styles.scanButton, isScanning || busy ? styles.scanButtonActive : null]}
               activeOpacity={0.85}
               onPress={() => (isScanning ? stopScan() : startScan())}
+              disabled={busy}
             >
               <Text style={styles.scanButtonText}>Scan Documents</Text>
             </TouchableOpacity>
@@ -292,8 +316,8 @@ export default function DocumentActionScreen({ action }: { action: ActionType })
 
         {!showEmpty ? (
           <View style={styles.confirmWrap}>
-            <TouchableOpacity style={styles.confirmButton} activeOpacity={0.85} onPress={confirm}>
-              <Text style={styles.confirmButtonText}>{confirmLabel}</Text>
+            <TouchableOpacity style={styles.confirmButton} activeOpacity={0.85} onPress={() => void confirm()} disabled={busy}>
+              {busy ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.confirmButtonText}>{confirmLabel}</Text>}
             </TouchableOpacity>
           </View>
         ) : null}
@@ -323,6 +347,17 @@ const styles = StyleSheet.create({
   headerRightSpacer: { width: 36, height: 36 },
   body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 20 },
+  fieldLabel: { fontSize: 12, color: Colors.textSecondary, fontWeight: '700', marginBottom: 6 },
+  pickerWrap: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  picker: { height: 46, width: '100%' },
+  errorText: { marginBottom: 10, color: Colors.danger, fontSize: 12, fontWeight: '800' },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 86, paddingHorizontal: 20 },
   emptyIconCircle: {
     width: 112,

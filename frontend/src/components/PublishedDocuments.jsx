@@ -600,6 +600,7 @@ export default function PublishedDocuments() {
       formData.append('folderId', uploadData.folderId)
       if (uploadData.description) formData.append('description', uploadData.description)
       if (uploadData.filesMeta) formData.append('filesMeta', JSON.stringify(uploadData.filesMeta))
+      if (uploadData.expiryInfo) formData.append('expiryInfo', JSON.stringify(uploadData.expiryInfo))
       if (uploadData.allowReassign) formData.append('allowReassign', 'true')
       uploadData.files.forEach((file) => formData.append('files', file))
 

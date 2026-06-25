@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,28 +16,45 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../styles/theme';
-import { RfidBackend } from '../backend';
+import { RegistryBackend, RfidBackend, type ProjectCategory, type RegistryRecord } from '../backend';
 import { BarcodeService } from '../services/BarcodeService';
 
-type DocumentRecord = {
-  id: string;
-  fileCode: string;
-  title: string;
-  epc: string;
-  projectCategory: string;
-  version: string;
-  lastUpdated: string;
-  documentStatus: string;
-  trackingStatus: string;
+const normalizeHex = (value: string) => String(value ?? '').replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+
+const looksLikeEpc = (value: string) => {
+  const cleaned = normalizeHex(value);
+  return cleaned.length >= 8 && cleaned.length % 2 === 0;
 };
+
+const formatDate = (value?: string | null) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString();
+};
+
+const buildUnknownRecord = (epcHex: string): RegistryRecord => ({
+  id: `unknown-${epcHex}`,
+  fileCode: 'UNREGISTERED',
+  fileName: '-',
+  epcHex,
+  epcScheme: '-',
+  trackingStatus: 'UNREGISTERED',
+  trackingUpdatedAt: null,
+  generatedAt: null,
+  documentStatus: 'Not Found',
+  document: null,
+});
 
 export default function SearchScreen() {
   const navigation = useNavigation<any>();
-
-  const [projectCategory, setProjectCategory] = useState<string>('');
+  const [projectCategoryId, setProjectCategoryId] = useState('');
+  const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [results, setResults] = useState<DocumentRecord[]>([]);
+  const [results, setResults] = useState<RegistryRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [screenError, setScreenError] = useState<string | null>(null);
 
   const [scanModalVisible, setScanModalVisible] = useState(false);
   const [scanBusy, setScanBusy] = useState(false);
@@ -58,23 +75,6 @@ export default function SearchScreen() {
   const locateSubRef = useRef<{ remove: () => void } | null>(null);
   const beepTimerRef = useRef<any>(null);
   const lastBlinkRef = useRef<number>(0);
-
-  const dataSource = useMemo<DocumentRecord[]>(
-    () => [
-      {
-        id: '1',
-        fileCode: 'MoM01260616001',
-        title: 'Minutes of Meeting Project 16 June 2026',
-        epc: '301646F608001D000F88AF41',
-        projectCategory: 'Internal',
-        version: '1.0',
-        lastUpdated: '16/06/2026',
-        documentStatus: 'Published',
-        trackingStatus: 'Registered',
-      },
-    ],
-    [],
-  );
 
   const resetScanSubscriptions = () => {
     rfidSubRef.current?.remove();
@@ -102,32 +102,58 @@ export default function SearchScreen() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    RegistryBackend.getProjectCategories()
+      .then(next => {
+        if (!mounted) return;
+        setCategories(next);
+        if (!projectCategoryId && next.length > 0) {
+          setProjectCategoryId(String(next[0].id));
+        }
+      })
+      .catch((error: any) => {
+        if (!mounted) return;
+        setScreenError(error?.message || 'Unable to load project categories.');
+      });
+
     return () => {
+      mounted = false;
       stopLocate();
       resetScanSubscriptions();
     };
   }, []);
 
-  const normalizeHex = (value: string) => {
-    const cleaned = value.replace(/[^0-9a-fA-F]/g, '').toUpperCase();
-    return cleaned;
-  };
+  const fetchLookup = async (epcHexes: string[]) => {
+    if (!projectCategoryId) {
+      throw new Error('Select a project category first.');
+    }
 
-  const looksLikeEpc = (value: string) => {
-    const cleaned = normalizeHex(value);
-    return cleaned.length >= 8 && cleaned.length % 2 === 0;
+    const normalized = Array.from(new Set(epcHexes.map(normalizeHex).filter(Boolean)));
+    if (normalized.length === 0) {
+      setResults([]);
+      setExpandedId(null);
+      return;
+    }
+
+    const response = await RegistryBackend.lookupByEpcHexes({
+      projectCategoryId,
+      epcHexes: normalized,
+    });
+
+    const byEpc = new Map(response.records.map(record => [normalizeHex(record.epcHex), record]));
+    const merged = normalized.map(epcHex => byEpc.get(epcHex) || buildUnknownRecord(epcHex));
+    setResults(merged);
+    setExpandedId(merged.length === 1 ? merged[0].id : null);
   };
 
   const resolveLocateTargetEpc = (): string | null => {
     const expanded = results.find(r => r.id === expandedId);
-    if (expanded?.epc) return normalizeHex(expanded.epc);
+    if (expanded?.epcHex) return normalizeHex(expanded.epcHex);
 
     const q = query.trim();
     if (!q) return null;
     if (looksLikeEpc(q)) return normalizeHex(q);
-
-    const byCode = dataSource.find(d => d.fileCode.toLowerCase() === q.toLowerCase());
-    return byCode?.epc ? normalizeHex(byCode.epc) : null;
+    return null;
   };
 
   const computeBeepInterval = (level: 'off' | 'low' | 'medium' | 'high', rssi: number | null) => {
@@ -136,12 +162,8 @@ export default function SearchScreen() {
     const x = Math.max(0, Math.min(100, raw));
     const t = x / 100;
 
-    if (level === 'low') {
-      return Math.round(800 - t * 450);
-    }
-    if (level === 'medium') {
-      return Math.round(650 - t * 470);
-    }
+    if (level === 'low') return Math.round(800 - t * 450);
+    if (level === 'medium') return Math.round(650 - t * 470);
     return Math.round(450 - t * 370);
   };
 
@@ -153,7 +175,7 @@ export default function SearchScreen() {
 
     if (!locatingRef.current || !targetEpc || !ledAssist.locateEnabled || interval == null) return;
 
-    const doBeep = () => {
+    beepTimerRef.current = setTimeout(() => {
       if (!locatingRef.current) return;
       if (global.soundEnabled) {
         try {
@@ -166,9 +188,7 @@ export default function SearchScreen() {
         } catch {}
       }
       scheduleBeepLoop(targetEpc);
-    };
-
-    beepTimerRef.current = setTimeout(doBeep, interval);
+    }, interval);
   };
 
   const startLocate = () => {
@@ -188,7 +208,7 @@ export default function SearchScreen() {
 
     const targetEpc = resolveLocateTargetEpc();
     if (!targetEpc) {
-      setLocateError('Target not found. Select a card or key in File Code / EPC.');
+      setLocateError('Select a result or search using an EPC value before locate.');
       return;
     }
 
@@ -222,50 +242,44 @@ export default function SearchScreen() {
     }
   };
 
-  const runSearch = () => {
-    const q = query.trim().toLowerCase();
-    const cat = projectCategory.trim().toLowerCase();
-
-    if (!q && !cat) {
+  const runSearch = async () => {
+    if (!projectCategoryId) {
+      setScreenError('Select a project category first.');
+      return;
+    }
+    if (!query.trim()) {
       setResults([]);
       setExpandedId(null);
+      setScreenError(null);
       return;
     }
 
-    const filtered = dataSource.filter(item => {
-      if (cat && item.projectCategory.toLowerCase() !== cat) return false;
-      if (!q) return true;
-      return (
-        item.fileCode.toLowerCase().includes(q) ||
-        item.epc.toLowerCase().includes(q) ||
-        item.title.toLowerCase().includes(q)
-      );
-    });
-
-    setResults(filtered);
-    setExpandedId(filtered.length === 1 ? filtered[0].id : null);
-  };
-
-  const resolveScannedRecord = (epc: string): DocumentRecord => {
-    const normalized = normalizeHex(epc);
-    const found = dataSource.find(d => normalizeHex(d.epc) === normalized);
-    if (found) return found;
-    return {
-      id: `scan-${normalized}`,
-      fileCode: 'UNREGISTERED',
-      title: 'Unknown Tag (Not in system)',
-      epc: normalized,
-      projectCategory: '-',
-      version: '-',
-      lastUpdated: '-',
-      documentStatus: 'Not Found',
-      trackingStatus: 'Unregistered',
-    };
+    setLoading(true);
+    setScreenError(null);
+    try {
+      if (looksLikeEpc(query)) {
+        await fetchLookup([query]);
+      } else {
+        const response = await RegistryBackend.searchRecords({
+          projectCategoryId,
+          query,
+        });
+        setResults(response.records);
+        setExpandedId(response.records.length === 1 ? response.records[0].id : null);
+      }
+    } catch (error: any) {
+      setResults([]);
+      setExpandedId(null);
+      setScreenError(error?.message || 'Search failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const scanRfidNearby = async () => {
     setScanBusy(true);
     setScanError(null);
+    setScreenError(null);
     resetScanSubscriptions();
     setExpandedId(null);
 
@@ -291,15 +305,16 @@ export default function SearchScreen() {
 
     rfidSubRef.current = RfidBackend.onTags(tags => {
       let changed = false;
-      tags.forEach(t => {
-        const epc = t?.epc ? normalizeHex(t.epc) : '';
-        if (!epc) return;
-        if (seen.has(epc)) return;
+      tags.forEach(tag => {
+        const epc = normalizeHex(tag?.epc || '');
+        if (!epc || seen.has(epc)) return;
         seen.add(epc);
         changed = true;
       });
       if (!changed) return;
-      setResults(Array.from(seen).map(resolveScannedRecord));
+      void fetchLookup(Array.from(seen)).catch((error: any) => {
+        setScreenError(error?.message || 'RFID lookup failed.');
+      });
     });
 
     try {
@@ -314,6 +329,7 @@ export default function SearchScreen() {
     if (!query.trim()) {
       return scanRfidNearby();
     }
+
     setScanBusy(true);
     setScanError(null);
     resetScanSubscriptions();
@@ -331,13 +347,17 @@ export default function SearchScreen() {
       const first = tags?.[0]?.epc;
       if (!first) return;
       clearTimeout(timeoutId);
-      setQuery(first);
+      const nextQuery = normalizeHex(first);
+      setQuery(nextQuery);
       setScanBusy(false);
       setScanModalVisible(false);
       resetScanSubscriptions();
       try {
         RfidBackend.stopInventory();
       } catch {}
+      void fetchLookup([nextQuery]).catch((error: any) => {
+        setScreenError(error?.message || 'RFID lookup failed.');
+      });
     });
 
     try {
@@ -347,9 +367,6 @@ export default function SearchScreen() {
       setScanBusy(false);
       setScanError('RFID scan failed');
       resetScanSubscriptions();
-      try {
-        RfidBackend.stopInventory();
-      } catch {}
     }
   };
 
@@ -403,7 +420,7 @@ export default function SearchScreen() {
   };
 
   useEffect(() => {
-    const sub = RfidBackend.onTrigger(state => {
+    const sub = RfidBackend.onTrigger(triggerState => {
       if (isLocating) return;
       const behavior = RfidBackend.getGlobal().triggerBehavior;
 
@@ -416,15 +433,16 @@ export default function SearchScreen() {
 
         rfidSubRef.current = RfidBackend.onTags(tags => {
           let changed = false;
-          tags.forEach(t => {
-            const epc = t?.epc ? normalizeHex(t.epc) : '';
-            if (!epc) return;
-            if (triggerSeenRef.current.has(epc)) return;
+          tags.forEach(tag => {
+            const epc = normalizeHex(tag?.epc || '');
+            if (!epc || triggerSeenRef.current.has(epc)) return;
             triggerSeenRef.current.add(epc);
             changed = true;
           });
           if (!changed) return;
-          setResults(Array.from(triggerSeenRef.current).map(resolveScannedRecord));
+          void fetchLookup(Array.from(triggerSeenRef.current)).catch((error: any) => {
+            setScreenError(error?.message || 'RFID lookup failed.');
+          });
         });
 
         try {
@@ -446,22 +464,22 @@ export default function SearchScreen() {
       };
 
       if (behavior === 'toggle') {
-        if (state === 'DOWN') {
+        if (triggerState === 'DOWN') {
           if (triggerScanRef.current) stopTriggerScan();
           else startTriggerScan();
         }
         return;
       }
 
-      if (state === 'DOWN') startTriggerScan();
-      else if (state === 'UP') stopTriggerScan();
+      if (triggerState === 'DOWN') startTriggerScan();
+      else if (triggerState === 'UP') stopTriggerScan();
     });
 
     return () => {
       sub.remove();
       triggerScanRef.current = false;
     };
-  }, [isLocating, dataSource]);
+  }, [isLocating, projectCategoryId]);
 
   return (
     <View style={styles.container}>
@@ -483,10 +501,11 @@ export default function SearchScreen() {
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
         <Text style={styles.fieldLabel}>Project Category</Text>
         <View style={styles.pickerWrap}>
-          <Picker selectedValue={projectCategory} onValueChange={setProjectCategory} style={styles.picker}>
+          <Picker selectedValue={projectCategoryId} onValueChange={setProjectCategoryId} style={styles.picker}>
             <Picker.Item label="Select Project Category" value="" />
-            <Picker.Item label="Internal" value="Internal" />
-            <Picker.Item label="External" value="External" />
+            {categories.map(category => (
+              <Picker.Item key={category.id} label={category.name} value={String(category.id)} />
+            ))}
           </Picker>
         </View>
 
@@ -504,8 +523,8 @@ export default function SearchScreen() {
             />
           </View>
 
-          <TouchableOpacity style={styles.searchButton} activeOpacity={0.85} onPress={runSearch}>
-            <Text style={styles.searchButtonText}>Search</Text>
+          <TouchableOpacity style={styles.searchButton} activeOpacity={0.85} onPress={() => void runSearch()}>
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.searchButtonText}>Search</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -549,6 +568,8 @@ export default function SearchScreen() {
 
         {locateError ? <Text style={styles.locateError}>{locateError}</Text> : null}
 
+        {screenError ? <Text style={styles.locateError}>{screenError}</Text> : null}
+
         {results.length === 0 ? (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIconCircle}>
@@ -572,12 +593,12 @@ export default function SearchScreen() {
                     <View style={styles.resultLeft}>
                       <Text style={styles.resultFileCode}>{item.fileCode}</Text>
                       <Text style={styles.resultTitle} numberOfLines={1}>
-                        {item.title}
+                        {item.document?.title || item.fileName || 'Unknown document'}
                       </Text>
                     </View>
                     <View style={styles.resultRight}>
                       <Text style={styles.resultEpc} numberOfLines={1}>
-                        {item.epc}
+                        {item.epcHex}
                       </Text>
                       <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={22} color={Colors.textSecondary} />
                     </View>
@@ -587,27 +608,27 @@ export default function SearchScreen() {
                     <View style={styles.detailSection}>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>EPC Code:</Text>
-                        <Text style={styles.detailValue}>{item.epc}</Text>
+                        <Text style={styles.detailValue}>{item.epcHex}</Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Project Category:</Text>
-                        <Text style={styles.detailValue}>{item.projectCategory}</Text>
+                        <Text style={styles.detailValue}>{item.document?.projectCategory?.name || '-'}</Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Version:</Text>
-                        <Text style={styles.detailValue}>{item.version}</Text>
+                        <Text style={styles.detailValue}>{item.document?.version || '-'}</Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Last Updated:</Text>
-                        <Text style={styles.detailValue}>{item.lastUpdated}</Text>
+                        <Text style={styles.detailValue}>{formatDate(item.document?.updatedAt || item.generatedAt)}</Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Document Status:</Text>
-                        <Text style={styles.detailValue}>{item.documentStatus}</Text>
+                        <Text style={styles.detailValue}>{item.documentStatus || '-'}</Text>
                       </View>
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Tracking Status:</Text>
-                        <Text style={styles.detailValue}>{item.trackingStatus}</Text>
+                        <Text style={styles.detailValue}>{item.trackingStatus || '-'}</Text>
                       </View>
                     </View>
                   ) : null}

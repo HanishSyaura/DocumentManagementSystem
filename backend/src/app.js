@@ -19,6 +19,7 @@ const usersRoutes = require('./routes/users');
 const rolesRoutes = require('./routes/roles');
 const epcRegistryRoutes = require('./routes/epcRegistry');
 const projectTrackingRoutes = require('./routes/projectTracking');
+const expiryTrackingRoutes = require('./routes/expiryTracking');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -86,7 +87,8 @@ app.get(['/api', '/api/'], (req, res) => {
       templates: '/api/templates',
       notifications: '/api/notifications',
       epcRegistry: '/api/epc-registry',
-      projectTracking: '/api/project-tracking'
+      projectTracking: '/api/project-tracking',
+      expiryTracking: '/api/expiry-tracking'
     }
   }, 'API root');
 });
@@ -106,6 +108,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/roles', rolesRoutes);
 app.use('/api/epc-registry', epcRegistryRoutes);
 app.use('/api/project-tracking', projectTrackingRoutes);
+app.use('/api/expiry-tracking', expiryTrackingRoutes);
 app.use('/api/public', require('./routes/public'));
 
 // Alias routes for easier frontend access

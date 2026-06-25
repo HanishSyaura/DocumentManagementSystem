@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import api from '../api/axios'
 import ActionMenu from '../components/ActionMenu'
 import ConfirmModal, { AlertModal } from '../components/ConfirmModal'
+import EmptyState from '../components/EmptyState'
 import Pagination from '../components/Pagination'
 import AppSurface from '../components/ui/AppSurface'
 import Button from '../components/ui/Button'
@@ -13,6 +14,51 @@ import { TableContainer, Table, Th, Td, Tr } from '../components/ui/Table'
 import TextInput from '../components/ui/TextInput'
 import { usePreferences } from '../contexts/PreferencesContext'
 import { isAdmin } from '../utils/permissions'
+
+const MASTER_RECORD_DEBUG_URL = 'http://127.0.0.1:7777/event'
+const reportMasterRecordDebug = (hypothesisId, location, msg, data = {}, runId = 'pre-fix') => {
+  fetch(MASTER_RECORD_DEBUG_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'master-record-tabs',
+      runId,
+      hypothesisId,
+      location,
+      msg,
+      data,
+      ts: Date.now()
+    })
+  }).catch(() => {})
+}
+
+const escapeHtmlCell = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const downloadExcelTable = (fileName, headers, rows) => {
+  const html = `
+    <table>
+      <thead>
+        <tr>${headers.map((header) => `<th>${escapeHtmlCell(header)}</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtmlCell(cell)}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  `
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+  const link = window.document.createElement('a')
+  link.href = window.URL.createObjectURL(blob)
+  link.download = fileName
+  link.click()
+  window.URL.revokeObjectURL(link.href)
+}
 
 // Tab Navigation Component
 function TabNavigation({ activeTab, onTabChange }) {
@@ -434,8 +480,45 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
     }
   }
 
-  const handleExport = () => {
-    alert('Exporting New Version Register...')
+  const handleExport = async () => {
+    // #region debug-point B:new-version-export
+    reportMasterRecordDebug('B', 'MasterRecord.jsx:handleExport:new-versions', '[DEBUG] New Version export clicked', {
+      totalRows: versions.length,
+      filters
+    })
+    // #endregion
+    try {
+      const res = await api.get('/reports/master-record/version-register', { params: filters })
+      const exportRows = res.data?.data?.records || []
+      const rows = exportRows.map((record) => [
+        record.fileCode || '',
+        record.documentTitle || '',
+        record.projectCategory || '',
+        record.previousVersion || '',
+        record.newVersion || '',
+        record.versionDate ? new Date(record.versionDate).toLocaleDateString('en-GB') : '',
+        record.updatedBy || '',
+        record.changeSummary || ''
+      ])
+
+      downloadExcelTable(
+        `new_version_register_${new Date().toISOString().slice(0, 10)}.xls`,
+        [
+          t('file_code'),
+          t('mr_doc_title'),
+          t('project_category'),
+          t('mr_previous_version'),
+          t('mr_new_version'),
+          t('mr_version_date'),
+          t('mr_updated_by'),
+          t('mr_change_summary')
+        ],
+        rows
+      )
+    } catch (error) {
+      console.error('Failed to export new version register:', error)
+      alert(t('mr_export_failed_desc'))
+    }
   }
 
   const handlePageChange = (newPage) => {
@@ -575,6 +658,16 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
               ) : paginatedVersions.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="px-4 py-8">
+                    {/* #region debug-point A:new-version-empty */}
+                    {(() => {
+                      reportMasterRecordDebug('A', 'MasterRecord.jsx:empty:new-versions', '[DEBUG] Rendering New Version empty state', {
+                        totalRows: versions.length,
+                        filteredRows: paginatedVersions.length,
+                        filters
+                      })
+                      return null
+                    })()}
+                    {/* #endregion */}
                     <EmptyState
                       message={t('mr_no_versions')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_new_versions')}
@@ -677,6 +770,12 @@ function ObsoleteRegister({ projectCategories = [] }) {
   }
 
   const handleExport = () => {
+    // #region debug-point A:obsolete-export
+    reportMasterRecordDebug('A', 'MasterRecord.jsx:handleExport:obsolete', '[DEBUG] Obsolete export clicked', {
+      totalRows: documents.length,
+      filters
+    })
+    // #endregion
     alert('Exporting Obsolete Register...')
   }
 
@@ -818,6 +917,16 @@ function ObsoleteRegister({ projectCategories = [] }) {
               ) : paginatedDocuments.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-4 py-8">
+                    {/* #region debug-point A:obsolete-empty */}
+                    {(() => {
+                      reportMasterRecordDebug('A', 'MasterRecord.jsx:empty:obsolete', '[DEBUG] Rendering Obsolete empty state', {
+                        totalRows: documents.length,
+                        filteredRows: paginatedDocuments.length,
+                        filters
+                      })
+                      return null
+                    })()}
+                    {/* #endregion */}
                     <EmptyState
                       message={t('mr_no_obsolete_docs')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_obsolete_yet')}
@@ -915,6 +1024,12 @@ function OldVersionRegister({ projectCategories = [] }) {
   }
 
   const handleExport = () => {
+    // #region debug-point A:old-version-export
+    reportMasterRecordDebug('A', 'MasterRecord.jsx:handleExport:old-versions', '[DEBUG] Old Version export clicked', {
+      totalRows: versions.length,
+      filters
+    })
+    // #endregion
     alert('Exporting Old Version Register...')
   }
 
@@ -1048,6 +1163,16 @@ function OldVersionRegister({ projectCategories = [] }) {
               ) : paginatedVersions.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="px-4 py-8">
+                    {/* #region debug-point A:old-version-empty */}
+                    {(() => {
+                      reportMasterRecordDebug('A', 'MasterRecord.jsx:empty:old-versions', '[DEBUG] Rendering Old Version empty state', {
+                        totalRows: versions.length,
+                        filteredRows: paginatedVersions.length,
+                        filters
+                      })
+                      return null
+                    })()}
+                    {/* #endregion */}
                     <EmptyState
                       message={t('mr_no_old_versions')}
                       description={filters.search ? t('mr_try_adjust') : t('mr_no_archived_versions')}
@@ -1163,12 +1288,56 @@ function ConsolidatedRegister() {
   }
 
   const exportExcel = async () => {
-    setAlertModal({
-      show: true,
-      title: t('download'),
-      message: 'Excel export is disabled.',
-      type: 'info'
+    // #region debug-point B:consolidated-export
+    reportMasterRecordDebug('B', 'MasterRecord.jsx:handleExport:consolidated', '[DEBUG] Consolidated export clicked', {
+      totalRows: rows.length,
+      filters,
+      pagination
     })
+    // #endregion
+    try {
+      const res = await api.get('/reports/master-record/consolidated', {
+        params: {
+          search: filters.search,
+          projectCategoryId: filters.projectCategoryId,
+          export: 'excel'
+        }
+      })
+      const exportRows = res.data?.data?.rows || []
+      const rowsForExport = exportRows.map((row) => [
+        row.fileCode || '',
+        row.documentTitle || '',
+        row.documentType || '',
+        row.projectCategory || '',
+        row.date ? new Date(row.date).toLocaleDateString('en-GB') : '',
+        row.status || '',
+        row.rev || '',
+        row.register || ''
+      ])
+
+      downloadExcelTable(
+        `consolidated_registry_${new Date().toISOString().slice(0, 10)}.xls`,
+        [
+          t('file_code'),
+          t('mr_doc_title'),
+          t('type'),
+          t('project_category'),
+          t('date'),
+          t('status'),
+          t('mr_rev'),
+          t('mr_register')
+        ],
+        rowsForExport
+      )
+    } catch (error) {
+      console.error('Failed to export consolidated register:', error)
+      setAlertModal({
+        show: true,
+        title: t('mr_export_failed'),
+        message: t('mr_export_failed_desc'),
+        type: 'error'
+      })
+    }
   }
 
 
@@ -1238,6 +1407,16 @@ function ConsolidatedRegister() {
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-8">
+                    {/* #region debug-point A:consolidated-empty */}
+                    {(() => {
+                      reportMasterRecordDebug('A', 'MasterRecord.jsx:empty:consolidated', '[DEBUG] Rendering Consolidated empty state', {
+                        totalRows: rows.length,
+                        filters,
+                        pagination
+                      })
+                      return null
+                    })()}
+                    {/* #endregion */}
                     <EmptyState title={t('no_data')} message={t('no_records')} />
                   </td>
                 </tr>
@@ -1271,7 +1450,7 @@ function ConsolidatedRegister() {
 
       {alertModal.show && (
         <AlertModal
-          isOpen={alertModal.show}
+          show={alertModal.show}
           onClose={() => setAlertModal({ ...alertModal, show: false })}
           title={alertModal.title}
           message={alertModal.message}

@@ -127,7 +127,7 @@ class DocumentController {
   });
 
   bulkImportPublished = asyncHandler(async (req, res) => {
-    const { folderId, description, title, filesMeta, allowReassign } = req.body;
+    const { folderId, description, title, filesMeta, allowReassign, expiryInfo } = req.body;
 
     const errors = [];
     if (!folderId) errors.push({ field: 'folderId', message: 'Folder is required' });
@@ -155,6 +155,22 @@ class DocumentController {
         parsedMeta = null
       }
     }
+
+    let parsedExpiryInfo = null
+    if (typeof expiryInfo === 'string' && expiryInfo.trim()) {
+      try {
+        const v = JSON.parse(expiryInfo)
+        if (v && typeof v === 'object') parsedExpiryInfo = v
+      } catch (_) {
+        parsedExpiryInfo = null
+      }
+    } else if (expiryInfo && typeof expiryInfo === 'object') {
+      parsedExpiryInfo = expiryInfo
+    }
+
+    const normalizedExpiryInfo = parsedExpiryInfo && typeof parsedExpiryInfo === 'object'
+      ? parsedExpiryInfo
+      : { trackingEnabled: false }
 
     const baseFolder = await prisma.folder.findUnique({
       where: { id: folderIdInt },
@@ -374,6 +390,33 @@ class DocumentController {
         const metaProjectCategoryIdRaw = meta?.projectCategoryId
         const metaProjectCategoryId = Number.isFinite(Number(metaProjectCategoryIdRaw)) ? parseInt(metaProjectCategoryIdRaw) : null
 
+        let parsedMetaExpiryInfo = null
+        const metaExpiryInfo = meta?.expiryInfo
+        if (typeof metaExpiryInfo === 'string' && metaExpiryInfo.trim()) {
+          try {
+            const v = JSON.parse(metaExpiryInfo)
+            if (v && typeof v === 'object') parsedMetaExpiryInfo = v
+          } catch (_) {
+            parsedMetaExpiryInfo = null
+          }
+        } else if (metaExpiryInfo && typeof metaExpiryInfo === 'object') {
+          parsedMetaExpiryInfo = metaExpiryInfo
+        }
+
+        const expiryRaw = parsedMetaExpiryInfo && typeof parsedMetaExpiryInfo === 'object'
+          ? parsedMetaExpiryInfo
+          : normalizedExpiryInfo
+
+        const expiryToUse = (() => {
+          const enabled = Boolean(expiryRaw?.trackingEnabled)
+          const startDate = expiryRaw?.startDate
+          const expiryDate = expiryRaw?.expiryDate
+          const remarks = expiryRaw?.remarks
+          if (!enabled) return { trackingEnabled: false }
+          if (!startDate || !expiryDate) return { trackingEnabled: false }
+          return { trackingEnabled: true, startDate, expiryDate, remarks }
+        })()
+
         let documentTypeIdToUse = null
         if (isClientDocument) {
           if (!othersTypeId) {
@@ -439,7 +482,14 @@ class DocumentController {
         });
 
         const workflowService = require('../services/workflowService');
-        await workflowService.publishDocument(document.id, req.user.id, document.folderId || folderIdInt, 'Bulk import');
+        await workflowService.publishDocument(
+          document.id,
+          req.user.id,
+          document.folderId || folderIdInt,
+          'Bulk import',
+          null,
+          expiryToUse
+        );
 
         imported.push({
           id: document.id,
@@ -846,6 +896,11 @@ class DocumentController {
         fileCode: doc.fileCode,
         title: doc.title,
         documentType: doc.documentType?.name || '',
+        documentTypeId: doc.documentTypeId,
+        documentTypeConfig: {
+          requiresExpiryTracking: Boolean(doc.documentType?.requiresExpiryTracking),
+          allowRenewal: Boolean(doc.documentType?.allowRenewal)
+        },
         version: doc.version,
         fileName: latestVersion?.fileName || null,
         submittedDate: doc.submittedAt ? new Date(doc.submittedAt).toLocaleDateString('en-GB') : '',
@@ -1295,7 +1350,7 @@ class DocumentController {
     const documentId = parseInt(req.params.id);
     
     // Get document info before deletion for logging
-    const document = await documentService.getDocumentById(documentId);
+    const document = await documentService.getDocumentById(documentId, req.user);
     
     // Check if user is admin (roles is an array of role name strings)
     const isAdmin = req.user.roles?.some(roleName => 
@@ -1320,7 +1375,7 @@ class DocumentController {
   purgeDocument = asyncHandler(async (req, res) => {
     const documentId = parseInt(req.params.id);
 
-    const document = await documentService.getDocumentById(documentId);
+    const document = await documentService.getDocumentById(documentId, req.user);
 
     await auditLogService.logDocument(req.user.id, 'PURGE', document, req, {
       fileCode: document?.fileCode,
@@ -1657,45 +1712,69 @@ class DocumentController {
   getDocumentRequests = asyncHandler(async (req, res) => {
     const { status, page, limit } = req.query;
     
-    // Get both pending and acknowledged document requests
-    // Show ALL requests to all users (not filtered by createdById)
-    const filters = {};
-
-    // If specific status requested
-    if (status) {
-      filters.status = status.toUpperCase();
-    }
+    const normalizedStatus = status ? String(status).trim().toUpperCase() : null
+    const canAcknowledge = !!req.user?.permissions?.newDocumentRequest?.acknowledge
 
     const pagination = {
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 50
     };
+    const skip = (pagination.page - 1) * pagination.limit
 
-    // Don't pass userId to show ALL document requests to everyone
-    // Permissions will control who can acknowledge
-    const result = await documentService.listDocuments(filters, pagination, null);
-    
-    // Filter only NDR-related statuses and format for frontend
-    const requests = result.documents
-      .filter(doc => 
-        doc.status === 'PENDING_ACKNOWLEDGMENT' || 
-        doc.status === 'ACKNOWLEDGED' ||
-        doc.status === 'REJECTED' ||
-        (doc.stage === 'ACKNOWLEDGMENT')
-      )
-      .map(doc => ({
-        id: doc.id,
-        title: doc.title,
-        documentType: doc.documentType?.name || '',
-        projectCategory: doc.projectCategory?.name || '',
-        dateOfDocument: doc.dateOfDocument ? new Date(doc.dateOfDocument).toLocaleDateString('en-GB') : '',
-        requestDate: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-GB') : '',
-        requestedBy: doc.createdBy ? `${doc.createdBy.firstName} ${doc.createdBy.lastName}` : 'Unknown',
-        requestedById: doc.createdById, // Include user ID for self-acknowledgment check
-        remarks: doc.status === 'REJECTED' ? doc.obsoleteReason || doc.description : doc.description || '',
-        fileCode: doc.fileCode && !doc.fileCode.startsWith('PENDING-') ? doc.fileCode : '-',
-        status: doc.status === 'ACKNOWLEDGED' ? 'Acknowledged' : doc.status === 'REJECTED' ? 'Rejected' : 'Pending Acknowledgment'
-      }));
+    const roleIds = await folderPermissionService.getRoleIdsByNames(req.user.roles || [])
+    const where = {
+      AND: [confidentialAccessService.buildConfidentialWhereClause(req.user, roleIds)]
+    }
+
+    if (normalizedStatus) {
+      where.AND.push({ status: normalizedStatus })
+    } else {
+      where.AND.push({
+        OR: [
+          { status: { in: ['PENDING_ACKNOWLEDGMENT', 'ACKNOWLEDGED', 'REJECTED'] } },
+          { stage: 'ACKNOWLEDGMENT' }
+        ]
+      })
+    }
+
+    if (!canAcknowledge) {
+      where.AND.push({
+        OR: [{ createdById: req.user.id }, { ownerId: req.user.id }]
+      })
+    }
+
+    const documents = await prisma.document.findMany({
+      where,
+      include: {
+        documentType: true,
+        projectCategory: true,
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip,
+      take: pagination.limit
+    })
+
+    const requests = documents.map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      documentType: doc.documentType?.name || '',
+      projectCategory: doc.projectCategory?.name || '',
+      dateOfDocument: doc.dateOfDocument ? new Date(doc.dateOfDocument).toLocaleDateString('en-GB') : '',
+      requestDate: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-GB') : '',
+      createdAt: doc.createdAt,
+      requestedBy: doc.createdBy ? `${doc.createdBy.firstName} ${doc.createdBy.lastName}` : 'Unknown',
+      requestedById: doc.createdById,
+      remarks: doc.status === 'REJECTED' ? doc.obsoleteReason || doc.description : doc.description || '',
+      fileCode: doc.fileCode && !doc.fileCode.startsWith('PENDING-') ? doc.fileCode : '-',
+      status: doc.status === 'ACKNOWLEDGED' ? 'Acknowledged' : doc.status === 'REJECTED' ? 'Rejected' : 'Pending Acknowledgment'
+    }));
 
     return ResponseFormatter.success(
       res,
@@ -1825,7 +1904,7 @@ class DocumentController {
 
   deleteDocumentRequest = asyncHandler(async (req, res) => {
     const requestId = parseInt(req.params.id);
-    const document = await documentService.getDocumentById(requestId);
+    const document = await documentService.getDocumentById(requestId, req.user);
 
     await auditLogService.logDocument(req.user.id, 'DELETE', document, req, {
       fileCode: document?.fileCode,
