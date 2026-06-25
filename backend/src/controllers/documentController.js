@@ -11,6 +11,7 @@ const config = require('../config/app');
 const prisma = require('../config/database');
 const documentAssignmentService = require('../services/documentAssignmentService');
 const confidentialAccessService = require('../services/confidentialAccessService')
+const folderService = require('../services/folderService')
 
 const resolveExistingFilePath = (storedPath) => {
   const raw = String(storedPath || '').trim()
@@ -1629,15 +1630,30 @@ class DocumentController {
    * GET /api/documents/published
    */
   getPublishedDocuments = asyncHandler(async (req, res) => {
-    const { folderId, page, limit, search } = req.query;
+    const { folderId, page, limit, search, includeSubfolders } = req.query;
 
     const filters = {};
 
     if (folderId) {
-      await folderPermissionService.assertCan(parseInt(folderId), req.user, 'view')
+      const parsedFolderId = parseInt(folderId)
+      await folderPermissionService.assertCan(parsedFolderId, req.user, 'view')
       // If folder is specified, show published, superseded, and obsolete documents
       // but exclude draft/in-process documents
-      filters.folderId = parseInt(folderId);
+      const shouldIncludeSubfolders =
+        String(includeSubfolders || '').trim().toLowerCase() === 'true' && Boolean(search)
+
+      if (shouldIncludeSubfolders) {
+        const descendantIds = await folderService.getDescendantFolderIds(parsedFolderId)
+        const allowedFolderIds = []
+        for (const id of descendantIds) {
+          if (await folderPermissionService.canUser(id, req.user, 'view')) {
+            allowedFolderIds.push(id)
+          }
+        }
+        filters.folderIds = allowedFolderIds.length > 0 ? allowedFolderIds : [parsedFolderId]
+      } else {
+        filters.folderId = parsedFolderId;
+      }
       filters.statusIn = ['PUBLISHED', 'SUPERSEDED', 'OBSOLETE', 'ARCHIVED'];
     } else {
       // If no folder specified, only show published documents

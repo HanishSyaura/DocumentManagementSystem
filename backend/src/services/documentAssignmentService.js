@@ -20,6 +20,8 @@ class DocumentAssignmentService {
    * @param {number} assignedById - User who made the assignment
    */
   async assignDocument(documentId, userId, assignmentType, assignedById = null) {
+    const now = new Date()
+
     // Use upsert to avoid duplicates
     const assignment = await prisma.documentAssignment.upsert({
       where: {
@@ -31,13 +33,15 @@ class DocumentAssignmentService {
       },
       update: {
         assignedById,
-        createdAt: new Date() // Update timestamp
+        createdAt: now, // Update timestamp
+        lastReminderSentAt: now
       },
       create: {
         documentId,
         userId,
         assignmentType,
-        assignedById
+        assignedById,
+        lastReminderSentAt: now
       }
     });
 

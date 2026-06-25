@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const retentionService = require('./services/retentionService');
 const expiryReminderService = require('./services/expiryReminderService');
+const reviewApprovalReminderService = require('./services/reviewApprovalReminderService');
 
 dotenv.config();
 
@@ -52,4 +53,7 @@ app.listen(port, () => {
 
   expiryReminderService.scheduleDailyProcessing();
   console.log('Expiry tracking scheduler initialized');
+
+  reviewApprovalReminderService.scheduleProcessing();
+  console.log('Review and approval reminder scheduler initialized');
 });

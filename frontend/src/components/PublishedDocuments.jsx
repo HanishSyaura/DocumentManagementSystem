@@ -292,8 +292,9 @@ export default function PublishedDocuments() {
   const loadDocuments = async () => {
     try {
       setLoading(true)
+      const hasSearch = Boolean(String(searchQuery || '').trim())
       const childFolders = getChildFolders(selectedFolder)
-      const folderItems = childFolders.map(folder => ({
+      const folderItems = hasSearch ? [] : childFolders.map(folder => ({
         id: `folder-${folder.id}`,
         folderId: folder.id,
         isFolder: true,
@@ -305,7 +306,7 @@ export default function PublishedDocuments() {
         status: '-'
       }))
 
-      if (!selectedFolder) {
+      if (!selectedFolder && !hasSearch) {
         setDocuments(folderItems)
         setTotalDocuments(0)
         return
@@ -313,11 +314,12 @@ export default function PublishedDocuments() {
 
       const params = new URLSearchParams({
         page: currentPage,
-        limit: pageSize,
-        folderId: selectedFolder
+        limit: pageSize
       })
-      
-      if (searchQuery) params.append('search', searchQuery)
+
+      if (selectedFolder) params.append('folderId', selectedFolder)
+      if (hasSearch) params.append('search', searchQuery.trim())
+      if (selectedFolder && hasSearch) params.append('includeSubfolders', 'true')
 
       const res = await api.get(`/documents/published?${params}`)
       const combinedItems = [...folderItems, ...(res.data.data || [])]
@@ -1292,7 +1294,7 @@ export default function PublishedDocuments() {
                     <tr>
                       <td colSpan="7">
                         <EmptyState
-                          message={selectedFolder ? t('no_documents') : t('select_folder_view')}
+                          message={searchQuery ? t('no_documents') : selectedFolder ? t('no_documents') : t('select_folder_view')}
                           description={searchQuery ? t('adjust_search') : selectedFolder ? t('no_published_in_folder') : t('click_folder_view')}
                           actionLabel={searchQuery ? t('clear_search') : selectedFolder ? t('upload_file') : null}
                           onAction={

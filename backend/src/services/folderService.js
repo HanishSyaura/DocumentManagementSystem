@@ -175,6 +175,31 @@ class FolderService {
     return false;
   }
 
+  async getDescendantFolderIds(folderId, { includeSelf = true } = {}) {
+    const rootId = parseInt(folderId, 10)
+    if (!Number.isFinite(rootId)) {
+      return []
+    }
+
+    const ids = includeSelf ? [rootId] : []
+    let frontier = [rootId]
+
+    while (frontier.length > 0) {
+      const children = await prisma.folder.findMany({
+        where: { parentId: { in: frontier } },
+        select: { id: true }
+      })
+
+      frontier = children
+        .map((child) => child.id)
+        .filter((id) => Number.isFinite(id))
+
+      ids.push(...frontier)
+    }
+
+    return Array.from(new Set(ids))
+  }
+
   /**
    * Delete folder
    */

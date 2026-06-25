@@ -1181,6 +1181,7 @@ class DocumentService {
       createdById,
       ownerId,
       folderId,
+      folderIds,
       search,
       startDate,
       endDate
@@ -1242,13 +1243,24 @@ class DocumentService {
     if (documentTypeId) where.documentTypeId = documentTypeId;
     if (createdById) where.createdById = createdById;
     if (ownerId) where.ownerId = ownerId;
-    if (folderId !== undefined) where.folderId = folderId;
+    if (Array.isArray(folderIds) && folderIds.length > 0) {
+      where.folderId = { in: folderIds };
+    } else if (folderId !== undefined) {
+      where.folderId = folderId;
+    }
 
     if (search) {
       where.OR = [
         { fileCode: { contains: search } },
         { title: { contains: search } },
-        { description: { contains: search } }
+        { description: { contains: search } },
+        {
+          versions: {
+            some: {
+              fileName: { contains: search }
+            }
+          }
+        }
       ];
     }
 

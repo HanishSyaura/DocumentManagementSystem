@@ -995,6 +995,7 @@ model DocumentAssignment {
   assignedById   Int?
   createdAt      DateTime       @default(now())
   expiresAt      DateTime? // Optional: auto-cleanup after workflow completion
+  lastReminderSentAt DateTime?
 
   // Relations
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
