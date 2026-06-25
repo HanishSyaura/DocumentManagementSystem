@@ -32,27 +32,11 @@ const reportMasterRecordDebug = (hypothesisId, location, msg, data = {}, runId =
   }).catch(() => {})
 }
 
-const escapeHtmlCell = (value) =>
-  String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
 
-const downloadExcelTable = (fileName, headers, rows) => {
-  const html = `
-    <table>
-      <thead>
-        <tr>${headers.map((header) => `<th>${escapeHtmlCell(header)}</th>`).join('')}</tr>
-      </thead>
-      <tbody>
-        ${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtmlCell(cell)}</td>`).join('')}</tr>`).join('')}
-      </tbody>
-    </table>
-  `
-
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+const downloadCsv = (fileName, headers, rows) => {
+  const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' })
   const link = window.document.createElement('a')
   link.href = window.URL.createObjectURL(blob)
   link.download = fileName
@@ -170,8 +154,8 @@ function NewDocumentRegister({ projectCategories = [], documentTypes = [], users
         doc.status || ''
       ])
 
-      downloadExcelTable(
-        `new_document_register_${new Date().toISOString().slice(0, 10)}.xls`,
+      downloadCsv(
+        `new_document_register_${new Date().toISOString().slice(0, 10)}.csv`,
         [
           t('file_code'),
           t('mr_doc_title'),
@@ -518,8 +502,8 @@ function NewVersionRegister({ projectCategories = [], users = [] }) {
         record.changeSummary || ''
       ])
 
-      downloadExcelTable(
-        `new_version_register_${new Date().toISOString().slice(0, 10)}.xls`,
+      downloadCsv(
+        `new_version_register_${new Date().toISOString().slice(0, 10)}.csv`,
         [
           t('file_code'),
           t('mr_doc_title'),
@@ -817,8 +801,8 @@ function ObsoleteRegister({ projectCategories = [] }) {
           record.lastOwner || ''
         ])
 
-        downloadExcelTable(
-          `obsolete_register_${new Date().toISOString().slice(0, 10)}.xls`,
+        downloadCsv(
+          `obsolete_register_${new Date().toISOString().slice(0, 10)}.csv`,
           [
             t('file_code'),
             t('mr_doc_title'),
@@ -1104,8 +1088,8 @@ function OldVersionRegister({ projectCategories = [] }) {
           record.archivedBy || ''
         ])
 
-        downloadExcelTable(
-          `old_version_register_${new Date().toISOString().slice(0, 10)}.xls`,
+        downloadCsv(
+          `old_version_register_${new Date().toISOString().slice(0, 10)}.csv`,
           [
             t('file_code'),
             t('mr_doc_title'),
@@ -1407,8 +1391,8 @@ function ConsolidatedRegister() {
         row.register || ''
       ])
 
-      downloadExcelTable(
-        `consolidated_registry_${new Date().toISOString().slice(0, 10)}.xls`,
+      downloadCsv(
+        `consolidated_registry_${new Date().toISOString().slice(0, 10)}.csv`,
         [
           t('file_code'),
           t('mr_doc_title'),

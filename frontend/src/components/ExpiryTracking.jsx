@@ -646,19 +646,12 @@ export default function ExpiryTracking() {
         row.renewalStatus || ''
       ])
 
-      const html = `
-        <table>
-          <thead><tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr></thead>
-          <tbody>
-            ${rows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell ?? '')}</td>`).join('')}</tr>`).join('')}
-          </tbody>
-        </table>
-      `
-
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+      const escapeCsvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+      const csv = [headers, ...rows].map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
+      const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8;' })
       const link = window.document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `expiry-tracking-${new Date().toISOString().slice(0, 10)}.xls`
+      link.download = `expiry-tracking-${new Date().toISOString().slice(0, 10)}.csv`
       link.click()
       URL.revokeObjectURL(link.href)
     } catch (error) {
