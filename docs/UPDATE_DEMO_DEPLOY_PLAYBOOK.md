@@ -13,9 +13,9 @@ Ia tidak cover setup awal server. Ia fokus pada flow ini sahaja:
 Contoh naming dalam dokumen ini:
 
 - Domain: `demo.example.com`
-- App root: `/www/wwwroot/dms-demo`
-- Backend path: `/www/wwwroot/dms-demo/backend`
-- Frontend path: `/www/wwwroot/dms-demo/frontend`
+- App root: `/www/wwwroot/dms.demo.clbgroups.com`
+- Backend path: `/www/wwwroot/dms.demo.clbgroups.com/backend`
+- Frontend path: `/www/wwwroot/dms.demo.clbgroups.com/frontend`
 - PM2 app: `dms-demo-backend`
 - Upload dir: `/srv/dms-demo-storage`
 
@@ -29,7 +29,7 @@ Contoh naming dalam dokumen ini:
 ## 1) Pre-check dalam server demo
 
 ```bash
-cd /www/wwwroot/dms-demo
+cd /www/wwwroot/dms.demo.clbgroups.com
 git status -sb
 git fetch --all --prune
 git log --oneline HEAD..origin/main
@@ -46,7 +46,7 @@ Kalau `git status` tak clean:
 ## 2) Pull update terbaru
 
 ```bash
-cd /www/wwwroot/dms-demo
+cd /www/wwwroot/dms.demo.clbgroups.com
 git pull --ff-only
 git log --oneline --decorate -n 3
 ```
@@ -54,7 +54,7 @@ git log --oneline --decorate -n 3
 ## 3) Update backend demo bila ada perubahan `backend/`
 
 ```bash
-cd /www/wwwroot/dms-demo/backend
+cd /www/wwwroot/dms.demo.clbgroups.com/backend
 npm ci
 npx prisma migrate deploy
 pm2 restart dms-demo-backend --update-env
@@ -79,7 +79,7 @@ Nota:
 ## 4) Update frontend demo bila ada perubahan `frontend/`
 
 ```bash
-cd /www/wwwroot/dms-demo/frontend
+cd /www/wwwroot/dms.demo.clbgroups.com/frontend
 npm ci
 npm run build
 sudo systemctl reload nginx
@@ -110,7 +110,7 @@ Cannot find module @rollup/rollup-linux-x64-gnu
 Buat ini:
 
 ```bash
-cd /www/wwwroot/dms-demo/frontend
+cd /www/wwwroot/dms.demo.clbgroups.com/frontend
 rm -rf node_modules
 npm ci --include=optional
 npm i --no-save @rollup/rollup-linux-x64-gnu
@@ -122,26 +122,26 @@ npm run build
 Semak commit:
 
 ```bash
-cd /www/wwwroot/dms-demo
+cd /www/wwwroot/dms.demo.clbgroups.com
 git log --oneline -n 10
 ```
 
 Rollback:
 
 ```bash
-cd /www/wwwroot/dms-demo
+cd /www/wwwroot/dms.demo.clbgroups.com
 git reset --hard <OLD_SHA>
 ```
 
 Lepas rollback:
 
 ```bash
-cd /www/wwwroot/dms-demo/backend
+cd /www/wwwroot/dms.demo.clbgroups.com/backend
 npm ci
 npx prisma migrate deploy
 pm2 restart dms-demo-backend --update-env
 
-cd /www/wwwroot/dms-demo/frontend
+cd /www/wwwroot/dms.demo.clbgroups.com/frontend
 npm ci
 npm run build
 sudo systemctl reload nginx
@@ -150,7 +150,7 @@ sudo systemctl reload nginx
 ## 8) Checklist pendek setiap kali update demo
 
 ```text
-[ ] Dalam folder /www/wwwroot/dms-demo
+[ ] Dalam folder /www/wwwroot/dms.demo.clbgroups.com
 [ ] git status clean
 [ ] git pull --ff-only berjaya
 [ ] backend npm ci berjaya

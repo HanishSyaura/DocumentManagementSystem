@@ -242,8 +242,8 @@ export default function GuidedTour({ open, tourId, onClose }) {
     : null
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0" />
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none" />
       {highlight && (
         <div
           className="fixed rounded-lg"
@@ -261,7 +261,7 @@ export default function GuidedTour({ open, tourId, onClose }) {
 
       <div
         ref={tooltipRef}
-        className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-4"
+        className="fixed bg-white rounded-lg shadow-xl border border-gray-200 p-4 pointer-events-auto"
         style={{
           left: tooltipPos.left,
           top: tooltipPos.top,
