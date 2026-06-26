@@ -280,6 +280,68 @@ function getDocumentTitleLabel(document) {
   return document?.title || 'Untitled document'
 }
 
+function buildStageDocumentGroups(items = [], stageLinks = []) {
+  const grouped = new Map()
+
+  const upsertEntry = (stageId, entry) => {
+    if (stageId == null || !entry?.document?.id) return
+
+    if (!grouped.has(stageId)) grouped.set(stageId, new Map())
+    const stageMap = grouped.get(stageId)
+    const existing = stageMap.get(entry.document.id)
+
+    if (!existing) {
+      stageMap.set(entry.document.id, entry)
+      return
+    }
+
+    const existingTime = new Date(existing.linkedAt || 0).getTime()
+    const nextTime = new Date(entry.linkedAt || 0).getTime()
+
+    if (nextTime >= existingTime) {
+      stageMap.set(entry.document.id, entry)
+    }
+  }
+
+  items.forEach((item) => {
+    ;(item.links || []).forEach((link) => {
+      if (!link?.document?.id) return
+
+      upsertEntry(item.stageId, {
+        id: `item-${link.id}`,
+        document: link.document,
+        source: 'Required Checklist',
+        documentTypeName: item.documentType?.name || link.document?.documentType?.name || 'Required Document',
+        itemStatus: item.status,
+        linkedAt: link.linkedAt || link.document.updatedAt
+      })
+    })
+  })
+
+  stageLinks.forEach((link) => {
+    if (!link?.document?.id) return
+
+    upsertEntry(link.stageId, {
+      id: `stage-${link.id}`,
+      document: link.document,
+      source: 'Other Documents',
+      documentTypeName: link.document?.documentType?.name || 'Other Document',
+      itemStatus: null,
+      linkedAt: link.linkedAt || link.document.updatedAt
+    })
+  })
+
+  const normalized = new Map()
+  grouped.forEach((docs, stageId) => {
+    normalized.set(
+      stageId,
+      Array.from(docs.values()).sort((a, b) => new Date(b.linkedAt || 0).getTime() - new Date(a.linkedAt || 0).getTime())
+    )
+  })
+
+  return normalized
+}
+
 function DocumentAccessModal({ document, onClose, onSaved, onError }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -1541,9 +1603,22 @@ function ProjectsList({ onOpenProject }) {
   )
 }
 
-function ProjectStageBulletTimeline({ stages, currentStageId }) {
+function ProjectStageBulletTimeline({
+  stages,
+  currentStageId,
+  documentsByStage = new Map(),
+  documentsLoading = false,
+  documentsError = ''
+}) {
   const ordered = Array.isArray(stages) ? stages : []
   const currentIndex = ordered.findIndex((s) => String(s.id) === String(currentStageId))
+  const orderedStageIds = ordered.map((stage) => String(stage.id)).join('|')
+  const [expandedStageIds, setExpandedStageIds] = useState([])
+
+  useEffect(() => {
+    const defaultStage = currentIndex >= 0 ? ordered[currentIndex] : ordered[0]
+    setExpandedStageIds(defaultStage?.id != null ? [String(defaultStage.id)] : [])
+  }, [currentIndex, orderedStageIds])
 
   if (ordered.length === 0) {
     return <div className="text-sm text-ink-muted">No stages configured for this project.</div>
@@ -1575,6 +1650,13 @@ function ProjectStageBulletTimeline({ stages, currentStageId }) {
               ? 'bg-brand/25'
               : 'bg-border'
 
+        const cardTone =
+          state === 'done'
+            ? 'border-[var(--dms-color-success-ink)]/20 bg-[var(--dms-color-success-soft)]/35'
+            : state === 'current'
+              ? 'border-brand/25 bg-[var(--dms-color-info-soft)]/40 shadow-[0_0_0_1px_rgba(59,130,246,0.08)]'
+              : 'border-border bg-surface-muted'
+
         const badgeTone =
           state === 'done'
             ? 'bg-[var(--dms-color-success-soft)] text-[var(--dms-color-success-ink)]'
@@ -1583,15 +1665,21 @@ function ProjectStageBulletTimeline({ stages, currentStageId }) {
               : 'border border-border bg-surface text-ink-secondary'
 
         const badgeLabel = state === 'done' ? 'Completed' : state === 'current' ? 'Current' : 'Upcoming'
+        const stageDocuments = documentsByStage.get(stage.id) || []
+        const isExpanded = expandedStageIds.includes(String(stage.id))
 
         return (
-          <div key={stage.id} className="flex gap-4">
-            <div className="flex w-5 flex-col items-center">
-              <div className={`mt-1 h-3.5 w-3.5 rounded-full border-2 ${bulletTone}`} />
-              {index < ordered.length - 1 && <div className={`mt-1 w-0.5 flex-1 ${lineTone}`} />}
+          <div key={stage.id} className={`relative grid grid-cols-[20px_minmax(0,1fr)] gap-4 ${index === ordered.length - 1 ? '' : 'pb-4'}`}>
+            <div className="relative flex justify-center">
+              {index < ordered.length - 1 && <div className={`absolute left-1/2 top-4 bottom-[-1rem] w-0.5 -translate-x-1/2 ${lineTone}`} />}
+              <div
+                className={`relative z-[1] mt-1 h-3.5 w-3.5 rounded-full border-2 ${bulletTone} ${
+                  state === 'current' ? 'ring-4 ring-brand/15' : ''
+                }`}
+              />
             </div>
-            <div className={`flex-1 pb-5 ${index === ordered.length - 1 ? 'pb-0' : ''}`}>
-              <div className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-muted px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className={`flex flex-col gap-2 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${cardTone}`}>
                 <div>
                   <div className="text-sm font-semibold text-ink">{stage.label}</div>
                   <div className="mt-1 text-xs text-ink-muted">
@@ -1601,10 +1689,73 @@ function ProjectStageBulletTimeline({ stages, currentStageId }) {
                         ? 'This is the current active stage.'
                         : 'This stage has not started yet.'}
                   </div>
+                  <div className="mt-2 text-xs font-medium text-ink-secondary">
+                    {`${stageDocuments.length} attached document${stageDocuments.length === 1 ? '' : 's'}`}
+                  </div>
                 </div>
                 <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium ${badgeTone}`}>
                   {badgeLabel}
                 </span>
+              </div>
+
+              <div className="pl-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedStageIds((prev) =>
+                      prev.includes(String(stage.id))
+                        ? prev.filter((id) => id !== String(stage.id))
+                        : [...prev, String(stage.id)]
+                    )
+                  }
+                  className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-brand hover:underline"
+                >
+                  {isExpanded ? 'Collapse documents' : `Expand documents (${stageDocuments.length})`}
+                </button>
+
+                {isExpanded && (
+                  <div className="mt-3 space-y-2">
+                    {documentsLoading ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-surface px-3 py-3 text-xs text-ink-muted">
+                        <InlineSpinner className="h-3.5 w-3.5" />
+                        <span>Loading attached documents...</span>
+                      </div>
+                    ) : documentsError ? (
+                      <div className="rounded-xl border border-[var(--dms-color-warning-ink)]/20 bg-[var(--dms-color-warning-soft)]/40 px-3 py-3 text-xs text-[var(--dms-color-warning-ink)]">
+                        {documentsError}
+                      </div>
+                    ) : stageDocuments.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border bg-surface px-3 py-3 text-xs text-ink-muted">
+                        No documents attached to this stage yet.
+                      </div>
+                    ) : (
+                      stageDocuments.map((entry) => (
+                        <div key={entry.id} className="rounded-xl border border-border bg-surface px-3 py-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold text-ink">{getDocumentCodeLabel(entry.document)}</span>
+                                <DocumentStatusBadge status={entry.document?.status} />
+                                <ConfidentialBadge isConfidential={entry.document?.isConfidential} />
+                              </div>
+                              <div className="mt-1 text-sm text-ink-secondary">{getDocumentTitleLabel(entry.document)}</div>
+                              <div className="mt-1 text-xs text-ink-muted">{entry.documentTypeName}</div>
+                              {entry.itemStatus ? (
+                                <div className="mt-1 text-xs text-ink-muted">{`Checklist status: ${entry.itemStatus}`}</div>
+                              ) : null}
+                              {entry.document?.isConfidential && entry.document?.canAccess !== true ? (
+                                <div className="mt-1 text-xs font-medium text-ink-muted">Confidential access required for full document access.</div>
+                              ) : null}
+                            </div>
+                            <span className="inline-flex w-fit rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-medium text-ink-secondary">
+                              {entry.source}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1650,6 +1801,7 @@ function ProjectDashboard({ onOpenProject }) {
   const [activityLogs, setActivityLogs] = useState([])
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedPhaseIds, setExpandedPhaseIds] = useState([])
+  const [phaseStageData, setPhaseStageData] = useState({})
 
   useEffect(() => {
     setPageSize(itemsPerPage)
@@ -1813,6 +1965,58 @@ function ProjectDashboard({ onOpenProject }) {
     setExpandedPhaseIds(latestPhaseId ? [latestPhaseId] : [])
   }, [selectedProject?.id, phases])
 
+  useEffect(() => {
+    setPhaseStageData({})
+  }, [selectedProject?.id])
+
+  async function loadPhaseStageData(phaseId) {
+    if (!phaseId) return
+
+    const existing = phaseStageData[phaseId]
+    if (existing?.loading || existing?.loaded) return
+
+    setPhaseStageData((prev) => ({
+      ...prev,
+      [phaseId]: {
+        items: prev[phaseId]?.items || [],
+        stageLinks: prev[phaseId]?.stageLinks || [],
+        loading: true,
+        loaded: false,
+        error: ''
+      }
+    }))
+
+    try {
+      const [itemsRes, docsRes] = await Promise.all([
+        api.get(`/project-tracking/iterations/${phaseId}/items`),
+        api.get(`/project-tracking/iterations/${phaseId}/stage-documents`)
+      ])
+
+      setPhaseStageData((prev) => ({
+        ...prev,
+        [phaseId]: {
+          items: itemsRes?.data?.data?.items || [],
+          stageLinks: docsRes?.data?.data?.documents || [],
+          loading: false,
+          loaded: true,
+          error: ''
+        }
+      }))
+    } catch (error) {
+      console.error('Failed to load phase stage documents:', error)
+      setPhaseStageData((prev) => ({
+        ...prev,
+        [phaseId]: {
+          items: [],
+          stageLinks: [],
+          loading: false,
+          loaded: true,
+          error: 'Unable to load attached documents for this phase right now.'
+        }
+      }))
+    }
+  }
+
   const openProject = async (id) => {
     if (!id) return
     setSelectedProjectId(id)
@@ -1826,6 +2030,12 @@ function ProjectDashboard({ onOpenProject }) {
         : [...prev, phaseId]
     )
   }
+
+  useEffect(() => {
+    expandedPhaseIds.forEach((phaseId) => {
+      void loadPhaseStageData(phaseId)
+    })
+  }, [expandedPhaseIds])
 
   return (
     <div className="space-y-5">
@@ -2018,7 +2228,16 @@ function ProjectDashboard({ onOpenProject }) {
                   <div className="space-y-5">
                     <div className="space-y-2">
                       <div className="text-sm font-semibold text-ink">Stage Timeline</div>
-                      <ProjectStageBulletTimeline stages={stageSteps} currentStageId={phase.currentStageId} />
+                      <ProjectStageBulletTimeline
+                        stages={stageSteps}
+                        currentStageId={phase.currentStageId}
+                        documentsByStage={buildStageDocumentGroups(
+                          phaseStageData[phase.id]?.items || [],
+                          phaseStageData[phase.id]?.stageLinks || []
+                        )}
+                        documentsLoading={phaseStageData[phase.id]?.loading === true}
+                        documentsError={phaseStageData[phase.id]?.error || ''}
+                      />
                     </div>
 
                     <div className="space-y-2">

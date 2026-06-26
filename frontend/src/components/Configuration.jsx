@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import api from '../api/axios'
 import AddTemplateModal from './AddTemplateModal'
 import TemplatePreviewModal from './TemplatePreviewModal'
@@ -19,22 +19,17 @@ import { useLocation } from 'react-router-dom'
 const VALID_CONFIG_TABS = ['general', 'masterdata', 'roles', 'template', 'audit', 'backup', 'cleanup']
 
 // Tab Navigation Component
-function TabNavigation({ activeTab, onTabChange }) {
+function TabNavigation({ activeTab, onTabChange, tabs }) {
   const { t } = usePreferences()
-  const tabs = [
-    { id: 'general', label: t('cfg_general_system') },
-    { id: 'masterdata', label: t('cfg_master_data') },
-    { id: 'roles', label: t('cfg_role_permission') },
-    { id: 'template', label: t('cfg_template_mgmt') },
-    { id: 'audit', label: t('cfg_audit_log') },
-    { id: 'backup', label: t('cfg_backup_recovery') },
-    { id: 'cleanup', label: t('cfg_database_cleanup') }
-  ]
+  const resolvedTabs = (tabs || []).map((tab) => ({
+    ...tab,
+    label: tab?.label || t(tab?.translationKey)
+  }))
 
   return (
     <div className="mb-6 border-b border-border">
       <nav className="dms-scrollbar flex gap-4 overflow-x-auto">
-        {tabs.map((tab) => (
+        {resolvedTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
@@ -990,21 +985,50 @@ function TemplateManagement() {
 // Main Configuration Component
 export default function Configuration() {
   const location = useLocation()
+  const configTabs = useMemo(() => {
+    const allTabs = [
+      { id: 'general', translationKey: 'cfg_general_system', modules: ['configuration.settings'] },
+      { id: 'masterdata', translationKey: 'cfg_master_data', modules: ['configuration.masterData', 'configuration.documentTypes'] },
+      { id: 'roles', translationKey: 'cfg_role_permission', modules: ['configuration.users', 'configuration.roles'] },
+      { id: 'template', translationKey: 'cfg_template_mgmt', modules: ['configuration.templates', 'configuration.templateRequests'] },
+      { id: 'audit', translationKey: 'cfg_audit_log', modules: ['configuration.auditSettings'] },
+      { id: 'backup', translationKey: 'cfg_backup_recovery', modules: ['configuration.backup'] },
+      { id: 'cleanup', translationKey: 'cfg_database_cleanup', modules: ['configuration.cleanup'] }
+    ]
+
+    return allTabs.filter((tab) => {
+      const modules = Array.isArray(tab.modules) ? tab.modules : []
+      return modules.some((m) => hasAnyPermission(m))
+    })
+  }, [])
+
   const [activeTab, setActiveTab] = useState(() => {
     const tab = new URLSearchParams(location.search).get('tab')
-    return tab && VALID_CONFIG_TABS.includes(tab) ? tab : 'general'
+    const requested = tab && VALID_CONFIG_TABS.includes(tab) ? tab : null
+    const firstAllowed = configTabs?.[0]?.id || 'general'
+    const allowedIds = new Set((configTabs || []).map((t) => t.id))
+    if (requested && allowedIds.has(requested)) return requested
+    return firstAllowed
   })
 
   useEffect(() => {
     const tab = new URLSearchParams(location.search).get('tab')
-    if (tab && VALID_CONFIG_TABS.includes(tab) && tab !== activeTab) {
-      setActiveTab(tab)
-    }
-  }, [location.search, activeTab])
+    const requested = tab && VALID_CONFIG_TABS.includes(tab) ? tab : null
+    const allowedIds = new Set((configTabs || []).map((t) => t.id))
+    const nextTab = requested && allowedIds.has(requested) ? requested : (configTabs?.[0]?.id || 'general')
+    if (nextTab !== activeTab) setActiveTab(nextTab)
+  }, [location.search, activeTab, configTabs])
+
+  useEffect(() => {
+    const allowedIds = new Set((configTabs || []).map((t) => t.id))
+    if (activeTab && allowedIds.has(activeTab)) return
+    const nextTab = configTabs?.[0]?.id || 'general'
+    if (nextTab !== activeTab) setActiveTab(nextTab)
+  }, [activeTab, configTabs])
 
   return (
     <div className="p-6">
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} tabs={configTabs} />
       
       {activeTab === 'general' && <GeneralSystemSettings />}
       {activeTab === 'masterdata' && <MasterDataManagement />}

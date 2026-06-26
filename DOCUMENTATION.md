@@ -10,12 +10,16 @@ Fail ini dijadikan rujukan utama untuk projek DMS dalam repo ini. Ia ringkaskan 
 ## Start di sini
 
 - Deploy + upload code (PM2 + Nginx): [DEPLOY_VM_PM2_NGINX_GUIDE.md](docs/DEPLOY_VM_PM2_NGINX_GUIDE.md)
+- Deploy demo di aaPanel Ubuntu: [DEPLOY_AAPANEL_UBUNTU_DEMO_GUIDE.md](docs/DEPLOY_AAPANEL_UBUNTU_DEMO_GUIDE.md)
+- Update demo version sahaja: [UPDATE_DEMO_DEPLOY_PLAYBOOK.md](docs/UPDATE_DEMO_DEPLOY_PLAYBOOK.md)
 - Quick start dev/local: [QUICK_START.md](docs/QUICK_START.md)
 - Migration notes: [MIGRATION_INSTRUCTIONS.md](docs/MIGRATION_INSTRUCTIONS.md)
 
 ## Deployment & Operasi
 
 - Deploy VM + cara upload code: [DEPLOY_VM_PM2_NGINX_GUIDE.md](docs/DEPLOY_VM_PM2_NGINX_GUIDE.md)
+- Deploy demo di aaPanel Ubuntu: [DEPLOY_AAPANEL_UBUNTU_DEMO_GUIDE.md](docs/DEPLOY_AAPANEL_UBUNTU_DEMO_GUIDE.md)
+- Playbook update demo sahaja: [UPDATE_DEMO_DEPLOY_PLAYBOOK.md](docs/UPDATE_DEMO_DEPLOY_PLAYBOOK.md)
 - Setup Published Documents module: [PUBLISHED_DOCUMENTS_SETUP.md](docs/PUBLISHED_DOCUMENTS_SETUP.md)
 - System health / laporan: [SYSTEM_HEALTH_REPORT.md](docs/backend/SYSTEM_HEALTH_REPORT.md)
 
